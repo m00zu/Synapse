@@ -1,0 +1,131 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+*.whl
+build/
+
+# Rust build artifacts
+target/
+
+# IDE / Editor
+.vscode/
+.idea/
+.claude/
+.agent/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+Thumbs.db
+
+# Secrets & credentials
+.api_keys
+.env
+.env.*
+credentials*
+secrets*
+
+# Generated / temporary
+/site/
+tmp_workflows/
+llm_node_schema.json
+nuitka-crash-report.xml
+matplotlib_*.svg
+matplotlib_*.xml
+*.log
+
+# Distribution / build output
+dist/
+
+# Large data directories
+20260211*/
+20260312*/
+_confocol_code/
+Image_Process/
+Demo_OIR/
+test_batch/
+test_data/
+test_files/
+
+# External repos / submodules (install separately)
+rxdock/
+gnina/
+gnina-torch/
+AutoDock-Vina/
+smina/
+sdfrust/
+qvina-qvina2/
+vina_rust/
+
+# Rust extension source (optional, documented in README)
+oir_reader_rs/
+oir_reader_rs_win/
+image_process_rs/
+
+# Fine-tuning data
+finetune/
+
+# Legacy / scratch scripts
+_*.py
+test_*.py
+benchmark_*.py
+_plot_functions/
+
+# Root plugins dir (legacy — bundled plugins are now in synapse/plugins/)
+/plugins/
+
+# Data files at root
+*.tsv
+*.csv
+*.png
+!synapse/icons/*.png
+
+# NodeGraphQt build artifacts, docs, examples (source code is kept)
+NodeGraph-PySide6/build/
+NodeGraph-PySide6/docs/
+NodeGraph-PySide6/examples/
+NodeGraph-PySide6/dist/
+NodeGraph-PySide6/*.egg-info/
+NodeGraph-PySide6/setup.py
+NodeGraph-PySide6/setup.cfg
+NodeGraph-PySide6/MANIFEST.in
+NodeGraph-PySide6/requirements.txt
+
+# Redundant requirements (deps defined in pyproject.toml)
+requirements_clean.txt
+requirements_uv.txt
+
+# Other
+CELLPOSE_GUIDE.md
+synapse_codebase_with_plugin.txt
+rdkit-*.whl
+*.json
+!workflows/*.json
+!pyproject.toml
+!mkdocs.yml
+
+# Original flat files (now in synapse/ — keep main.py as thin wrapper)
+/data_models.py
+/i18n.py
+/llm_assistant.py
+/compact_workflow.py
+/custom_nodes.py
+/export_script.py
+/export_node_schema.py
+/minimap.py
+/plugin_loader.py
+/plugin_imports.py
+/skimage_nuitka_compat.py
+/generate_docs.py
+/package_plugin.py
+/vina_dock.py
+/gnina_scorer.py
+/nodes/
+/translations/
+/ui/
+/util/
+/icons/

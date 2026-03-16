@@ -1,0 +1,85 @@
+site_name: Synapse Manual
+site_description: Documentation for Synapse — Visual Node-Based Data Analysis
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - toc.integrate
+  icon:
+    logo: material/brain
+
+use_directory_urls: false
+site_dir: synapse/site
+
+plugins: []
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.keys
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Interface Overview: getting-started/interface.md
+    - Quick Start: getting-started/quick-start.md
+  - User Guide:
+    - Nodes & Connections: concepts/nodes-and-connections.md
+    - Data Types: concepts/data-types.md
+    - Batch Processing: concepts/batch-processing.md
+    - Installing Plugins: getting-started/plugins.md
+    - Keyboard Shortcuts: shortcuts.md
+  - Example Workflows:
+    - Cell Counting: workflows/cell-counting.md
+    - Batch Analysis: workflows/batch-analysis.md
+  - Node Reference:
+    - IO & Display: nodes/io-display.md
+    - Data & Tables:
+      - Filter: nodes/data-tables/filter.md
+      - Compute: nodes/data-tables/compute.md
+      - Transform: nodes/data-tables/transform.md
+      - Combine: nodes/data-tables/combine.md
+      - Utility: nodes/data-tables/util.md
+  - Plugin Reference:
+    - Image Analysis:
+      - Color: plugins/image-analysis/color.md
+      - Exposure: plugins/image-analysis/exposure.md
+      - Filters: plugins/image-analysis/filters.md
+      - Transform: plugins/image-analysis/transform.md
+      - Morphology: plugins/image-analysis/morphology.md
+      - Measurement: plugins/image-analysis/measurement.md
+      - ROI & Drawing: plugins/image-analysis/roi-drawing.md
+    - Statistical Analysis:
+      - Descriptive & Comparison: plugins/statistical-analysis/descriptive.md
+      - Regression & Advanced: plugins/statistical-analysis/regression.md
+    - Figure Plotting: plugins/figure-plotting.md
+    - SAM2 Segmentation: plugins/sam2.md
+    - Cellpose: plugins/cellpose.md
+    - Video & Tracking: plugins/video-tracking.md
+    - 3D Volume: plugins/volume.md
+    - Cheminformatics: plugins/cheminformatics.md
+    - Filopodia Analysis: plugins/filopodia.md
+  - Developing:
+    - Creating Plugins: developing/creating-plugins.md
