@@ -47,9 +47,24 @@ synapse = "synapse.app:main"
 Homepage = "https://github.com/Ezra-Nemo/Synapse"
 Issues = "https://github.com/Ezra-Nemo/Synapse/issues"
 
-[tool.setuptools.packages.find]
-where = [".", "NodeGraph-PySide6"]
-include = ["synapse*", "NodeGraphQt*"]
+[tool.setuptools]
+packages = [
+    "synapse", "synapse.nodes", "synapse.translations", "synapse.ui",
+    "synapse.plugins", "synapse.plugins.image_analysis",
+    "synapse.plugins.statistical_analysis", "synapse.plugins.figure_plotting",
+    "NodeGraphQt", "NodeGraphQt.base", "NodeGraphQt.nodes",
+    "NodeGraphQt.qgraphics", "NodeGraphQt.widgets",
+    "NodeGraphQt.custom_widgets", "NodeGraphQt.custom_widgets.properties_bin",
+]
+
+[tool.setuptools.package-dir]
+"NodeGraphQt" = "NodeGraph-PySide6/NodeGraphQt"
+"NodeGraphQt.base" = "NodeGraph-PySide6/NodeGraphQt/base"
+"NodeGraphQt.nodes" = "NodeGraph-PySide6/NodeGraphQt/nodes"
+"NodeGraphQt.qgraphics" = "NodeGraph-PySide6/NodeGraphQt/qgraphics"
+"NodeGraphQt.widgets" = "NodeGraph-PySide6/NodeGraphQt/widgets"
+"NodeGraphQt.custom_widgets" = "NodeGraph-PySide6/NodeGraphQt/custom_widgets"
+"NodeGraphQt.custom_widgets.properties_bin" = "NodeGraph-PySide6/NodeGraphQt/custom_widgets/properties_bin"
 
 [tool.setuptools.package-data]
 synapse = [
@@ -57,4 +72,7 @@ synapse = [
     "translations/*.py",
     "site/**/*",
     "llm_node_schema.json",
+]
+NodeGraphQt = [
+    "widgets/icons/*.png",
 ]

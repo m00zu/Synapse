@@ -80,7 +80,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 # ---------------------------------------------------------------------------
 # Schema path (at project root, one level up from synapse/)
 # ---------------------------------------------------------------------------
-_SCHEMA_PATH = Path(__file__).parent.parent / "llm_node_schema.json"
+_SCHEMA_PATH = Path(__file__).parent / "llm_node_schema.json"
 
 # ---------------------------------------------------------------------------
 # Response schema — sent as Ollama's `format` parameter.
