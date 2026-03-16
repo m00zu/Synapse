@@ -61,10 +61,10 @@ sdfrust/
 qvina-qvina2/
 vina_rust/
 
-# Rust extension source (optional, documented in README)
-oir_reader_rs/
+# Rust build artifacts (source is tracked, target/ is not)
+oir_reader_rs/target/
 oir_reader_rs_win/
-image_process_rs/
+image_process_rs/target/
 
 # Fine-tuning data
 finetune/

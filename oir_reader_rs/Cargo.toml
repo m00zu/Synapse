@@ -1,0 +1,16 @@
+[package]
+name = "oir_reader_rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "oir_reader_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28", features = ["extension-module"] }
+numpy = "0.28"
+memmap2 = "0.9"
+memchr = "2"
+regex = "1"
+rayon = "1"
