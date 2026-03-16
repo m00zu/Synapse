@@ -49,7 +49,7 @@ jobs:
         run: cd image_process_rs && maturin build --release && pip install target/wheels/*.whl
 
       - name: Install NodeGraphQt
-        run: pip install ./NodeGraph-PySide6/
+        run: pip install ./NodeGraph-PySide6/ --no-deps
 
       - name: Install Python dependencies
         run: pip install . nuitka ordered-set zstandard
