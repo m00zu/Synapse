@@ -106,6 +106,7 @@ synapse_codebase_with_plugin.txt
 rdkit-*.whl
 *.json
 !workflows/*.json
+!llm_node_schema.json
 !pyproject.toml
 !mkdocs.yml
 
