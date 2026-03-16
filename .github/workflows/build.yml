@@ -75,7 +75,7 @@ jobs:
           --include-module=matplotlib.backends.backend_svg
           --include-module=PySide6.QtOpenGL
           --include-module=PySide6.QtOpenGLWidgets
-          --include-module=plugin_imports
+          --include-module=synapse.plugin_imports
           --include-data-files=llm_node_schema.json=llm_node_schema.json
           --include-data-dir=./workflows=workflows
           --include-raw-dir=./synapse/site=synapse/site
