@@ -10,7 +10,7 @@ jobs:
       matrix:
         include:
           - os: macos-14
-            python: '3.14'
+            python: '3.13'
             nuitka_extra: >-
               --macos-create-app-bundle
               --macos-app-name=Synapse
@@ -23,7 +23,7 @@ jobs:
               --windows-icon-from-ico=synapse/icons/synapse_icon.ico
             artifact_name: Synapse-Windows-x64
           - os: ubuntu-latest
-            python: '3.14'
+            python: '3.13'
             nuitka_extra: ''
             artifact_name: Synapse-Linux-x64
 
@@ -47,6 +47,9 @@ jobs:
 
       - name: Build image_process_rs
         run: cd image_process_rs && maturin build --release && pip install target/wheels/*.whl
+
+      - name: Install NodeGraphQt
+        run: pip install ./NodeGraph-PySide6/
 
       - name: Install Python dependencies
         run: pip install . nuitka ordered-set zstandard
