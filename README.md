@@ -111,9 +111,7 @@ Batch-convert Olympus OIR microscopy files to TIFF. The iterator feeds each `.oi
 
 ### Collagen area measurement (video)
 
-<p align="center">
-  <video src="docs/images/synapse_demo.mp4" width="800" autoplay loop muted></video>
-</p>
+https://github.com/user-attachments/assets/a3772ee9-da64-4fe1-ad58-ee22ac6f41aa
 
 <p align="center"><i>Color deconvolution of a Masson's trichrome stain, threshold the collagen channel, measure area.</i></p>
 
