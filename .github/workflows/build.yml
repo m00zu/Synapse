@@ -54,8 +54,11 @@ jobs:
       - name: Install Python dependencies
         run: pip install . nuitka ordered-set zstandard
 
-      - name: Install NodeGraphQt
-        run: pip install ./NodeGraph-PySide6/ --no-deps
+      - name: Verify NodeGraphQt installation
+        run: |
+          python -c "import NodeGraphQt; print('NodeGraphQt OK:', NodeGraphQt.__file__)"
+          pip show NodeGraphQt || echo "NodeGraphQt not in pip list"
+          python -c "import importlib.util; spec = importlib.util.find_spec('NodeGraphQt'); print('spec:', spec)"
 
       - name: Build with Nuitka
         run: >-

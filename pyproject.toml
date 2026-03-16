@@ -48,6 +48,7 @@ Homepage = "https://github.com/Ezra-Nemo/Synapse"
 Issues = "https://github.com/Ezra-Nemo/Synapse/issues"
 
 [tool.setuptools.packages.find]
+where = [".", "NodeGraph-PySide6"]
 include = ["synapse*", "NodeGraphQt*"]
 
 [tool.setuptools.package-data]
@@ -55,4 +56,5 @@ synapse = [
     "icons/*",
     "translations/*.py",
     "site/**/*",
+    "llm_node_schema.json",
 ]

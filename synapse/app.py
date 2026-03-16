@@ -5,12 +5,15 @@ if "__compiled__" in globals():
 import sys, time
 import json
 
-# Compatibility shims: external plugins use `from nodes.base import ...` and
-# `from data_models import ...`. Register aliases so those resolve to synapse.*
-from synapse import nodes as _nodes_pkg, data_models as _dm_pkg
+# Compatibility shims: external plugins and NodeGraphQt use bare imports like
+# `from nodes.base import ...`, `from custom_nodes import ...`, etc.
+# Register aliases so those resolve to synapse.* when installed via pip.
+from synapse import nodes as _nodes_pkg, data_models as _dm_pkg, custom_nodes as _cn_pkg
+from synapse.nodes import base as _nodes_base_pkg
 sys.modules.setdefault('nodes', _nodes_pkg)
-sys.modules.setdefault('nodes.base', _nodes_pkg.base)
+sys.modules.setdefault('nodes.base', _nodes_base_pkg)
 sys.modules.setdefault('data_models', _dm_pkg)
+sys.modules.setdefault('custom_nodes', _cn_pkg)
 from PySide6 import QtCore, QtWidgets, QtGui
 from NodeGraphQt import NodeGraph, PropertiesBinWidget, NodesTreeWidget
 from .custom_nodes import (
