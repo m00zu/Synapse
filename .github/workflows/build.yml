@@ -43,12 +43,10 @@ jobs:
         run: pip install maturin
 
       - name: Build oir_reader_rs
-        working-directory: oir_reader_rs
-        run: maturin develop --release
+        run: cd oir_reader_rs && maturin build --release && pip install target/wheels/*.whl
 
       - name: Build image_process_rs
-        working-directory: image_process_rs
-        run: maturin develop --release
+        run: cd image_process_rs && maturin build --release && pip install target/wheels/*.whl
 
       - name: Install Python dependencies
         run: pip install . nuitka ordered-set zstandard
