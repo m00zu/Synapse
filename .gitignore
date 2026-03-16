@@ -83,6 +83,7 @@ _plot_functions/
 *.csv
 *.png
 !synapse/icons/*.png
+!docs/images/*.png
 
 # NodeGraphQt build artifacts, docs, examples (source code is kept)
 NodeGraph-PySide6/build/
