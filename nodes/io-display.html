@@ -2092,12 +2092,15 @@ result only after the entire batch is complete.</p>
 <ul>
 <li><em>Standard</em> — JPEG, PNG, BMP, and other PIL-supported formats</li>
 <li><em>TIFF</em> — 12/16-bit microscopy TIFFs (auto-normalized to 8-bit)</li>
-<li>
-<p><em>OIR</em> — Olympus .oir files (via <code>oir_reader_rs</code> extension)</p>
-</li>
-<li>
-<p><strong>file_path</strong> — path to the image file (widget or upstream port).</p>
-</li>
+<li><em>OIR</em> — Olympus .oir files (Rust accelerated, with Python fallback)</li>
+</ul>
+<p>Options:</p>
+<ul>
+<li><strong>channels</strong> — comma-separated channel numbers (0-4, where 0 = black/pad).
+  <code>2</code> for single grayscale channel,
+  <code>1,2,3</code> for RGB,
+  <code>2,3,4</code> to map channels 2/3/4 as R/G/B,
+  <code>1,0,3</code> to map ch1 as red, black as green, ch3 as blue.</li>
 </ul>
 </details>
 <table>

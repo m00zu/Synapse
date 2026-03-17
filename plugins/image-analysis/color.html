@@ -1242,6 +1242,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#channel-colorize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Channel Colorize
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2022,6 +2033,41 @@
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>Stain Matrix</code>, <code>Third Stain</code>, ``</p>
+<hr />
+<h3 id="channel-colorize">Channel Colorize<a class="headerlink" href="#channel-colorize" title="Permanent link">&para;</a></h3>
+<p>Remaps RGB channels to custom colors and composites them.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Each channel can be assigned any color. The node multiplies each
+channel's grayscale intensity by its chosen color, then additively
+blends all channels into one RGB output.</p>
+<p>Use cases:</p>
+<ul>
+<li>Change DAPI from blue to cyan</li>
+<li>Show two channels in magenta + green for better contrast</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
 <hr />
 
 

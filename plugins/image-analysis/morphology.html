@@ -2472,11 +2472,12 @@
 <p><strong>Properties:</strong> <code>Min Region Area (px²)</code></p>
 <hr />
 <h3 id="particle-select">Particle Select<a class="headerlink" href="#particle-select" title="Permanent link">&para;</a></h3>
-<p>Interactively filters individual particles from a LabelData input using a checkbox list.</p>
+<p>Filters particles from a LabelData input using dynamic filter rules.</p>
 <details class="note">
 <summary>Details</summary>
-<p>Accepts the label_image output of ParticlePropsNode or WatershedNode. Presents a checkbox list of all particles with their area in px-squared. Use the Min/Max spinboxes to hide tiny debris from the list. Outputs a binary mask containing only the checked particles.</p>
-<p>Workflow: connect label_image, run once to populate the list, check/uncheck desired particles, then run again for the filtered mask. By default all size-passing particles are kept.</p>
+<p>Add filter rules (e.g. area &gt;= 100, circularity &gt;= 0.5) to keep only
+particles matching all conditions. Available properties are auto-detected
+from the upstream data.</p>
 </details>
 <table>
 <thead>

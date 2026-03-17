@@ -1410,6 +1410,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#scale-bar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scale Bar
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1986,6 +1997,47 @@
 </tr>
 </tbody>
 </table>
+<hr />
+<h3 id="scale-bar">Scale Bar<a class="headerlink" href="#scale-bar" title="Permanent link">&para;</a></h3>
+<p>Draws a calibrated scale bar on a microscopy image.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Reads the <code>scale_um</code> metadata from the upstream ImageData to calculate
+the correct pixel length for the bar. If no scale info is available,
+the node reports an error.</p>
+<p>Options:</p>
+<ul>
+<li><strong>bar_length_um</strong> — desired bar length in micrometers</li>
+<li><strong>position</strong> — corner placement</li>
+<li><strong>bar_color</strong> — color of the bar and label</li>
+<li><strong>bar_height</strong> — thickness in pixels</li>
+<li><strong>show_label</strong> — display "100 µm" text</li>
+<li><strong>font_size</strong> — label size</li>
+<li><strong>padding_x / padding_y</strong> — margin from image edge</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Bar Length (µm)</code>, <code>Position</code>, <code>Show Label</code>, <code>Text-Bar Gap (px)</code></p>
 <hr />
 
 

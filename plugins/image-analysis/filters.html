@@ -1255,6 +1255,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#set-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set Scale
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gaussian-blur" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1929,6 +1940,42 @@
 
 
 <h1 id="filters">Filters<a class="headerlink" href="#filters" title="Permanent link">&para;</a></h1>
+<h3 id="set-scale">Set Scale<a class="headerlink" href="#set-scale" title="Permanent link">&para;</a></h3>
+<p>Manually set the pixel scale (µm/pixel) for an image.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Use this when the image has no embedded calibration data (e.g. plain TIFF or PNG).</p>
+<p>Options:</p>
+<ul>
+<li><strong>um_per_pixel</strong> — micrometers per pixel</li>
+<li><strong>known_distance</strong> — a known real-world distance in µm</li>
+<li><strong>distance_pixels</strong> — the same distance measured in pixels</li>
+</ul>
+<p>If both known_distance and distance_pixels are set, um_per_pixel is calculated automatically.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>µm / pixel</code>, <code>Known Distance (µm)</code>, <code>Distance (pixels)</code></p>
+<hr />
 <h3 id="gaussian-blur">Gaussian Blur<a class="headerlink" href="#gaussian-blur" title="Permanent link">&para;</a></h3>
 <p>Applies a Gaussian blur to smooth the image.</p>
 <details class="note">
