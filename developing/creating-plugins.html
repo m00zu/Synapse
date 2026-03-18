@@ -1919,78 +1919,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#reading-input-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reading Input Data
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#writing-output-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Writing Output Data
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-evaluate-method" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The evaluate() Method
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="The evaluate() Method">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#return-signature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Return Signature
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#full-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full Pattern
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#important-rules" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Important Rules
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2102,6 +2030,78 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-evaluate-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The evaluate() Method
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The evaluate() Method">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#return-signature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Return Signature
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reading-input-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading Input Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writing-output-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing Output Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full Pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#important-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#data-types" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2190,17 +2190,6 @@
     <span class="md-ellipsis">
       
         Batch Processing Hooks
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cancellation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cancellation
       
     </span>
   </a>
@@ -2407,6 +2396,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#available-custom-widgets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Custom Widgets
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2458,7 +2458,7 @@
 <li>Has <code>__identifier__</code> starting with <code>'plugins.'</code></li>
 <li>Has a <code>NODE_NAME</code> attribute</li>
 </ol>
-<p>No configuration files, no manual registration. Drop a file in, restart, and your nodes appear.</p>
+<p>No configuration files, no manual registration. Drop a file in, click <strong>View &gt; Reload Plugins</strong>, and your nodes appear.</p>
 <h3 id="plugin-directory-locations">Plugin Directory Locations<a class="headerlink" href="#plugin-directory-locations" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2493,10 +2493,9 @@
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseExecutionNode</span><span class="p">,</span> <span class="n">PORT_COLORS</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageData</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">InvertImageNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert pixel intensities (output = 255 - input).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert pixel intensities (output = 1.0 - input).&quot;&quot;&quot;</span>
 
     <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.MyPlugin&#39;</span>
     <span class="n">NODE_NAME</span>      <span class="o">=</span> <span class="s1">&#39;Invert Image&#39;</span>
@@ -2508,7 +2507,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># 1. Get input data</span>
+        <span class="c1"># 1. Read from the input port</span>
         <span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
             <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
@@ -2519,25 +2518,34 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ImageData</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Expected ImageData&quot;</span>
 
-        <span class="c1"># 2. Process</span>
-        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="mi">255</span> <span class="o">-</span> <span class="n">arr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="c1"># 2. Process — payload is a float32 numpy array in [0, 1]</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span>          <span class="c1"># shape: (H, W) grayscale or (H, W, 3) RGB</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">arr</span>          <span class="c1"># invert: black becomes white, white becomes black</span>
 
-        <span class="c1"># 3. Store output and finish</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ImageData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+        <span class="c1"># 3. Write to the output port, carrying over upstream metadata</span>
+        <span class="c1">#    (bit_depth, scale_um, source_path, etc.)</span>
+        <span class="n">upstream_meta</span> <span class="o">=</span> <span class="p">{</span><span class="n">f</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">model_fields</span> <span class="k">if</span> <span class="n">f</span> <span class="o">!=</span> <span class="s1">&#39;payload&#39;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ImageData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">result</span><span class="p">,</span> <span class="o">**</span><span class="n">upstream_meta</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
         <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
 </code></pre></div>
-<p>Restart Synapse. Your node appears under <strong>Plugins &gt; MyPlugin</strong> in the Node Explorer.</p>
+<blockquote>
+<p><strong>Tip:</strong> The two lines that propagate metadata are common enough that there's a
+shortcut: <code>self._make_image_output(arr)</code> does the same thing (find upstream ImageData,
+copy all fields except payload, store to <code>output_values['image']</code>).
+There's also <code>self._get_input_image_data()</code> which replaces the port-reading boilerplate.
+See the <a href="#api-reference">API Reference</a> at the bottom of this page.</p>
+</blockquote>
+<p>Click <strong>View &gt; Reload Plugins</strong> and your node appears under <strong>Plugins &gt; MyPlugin</strong> in the Node Explorer.</p>
 <hr />
 <h2 id="anatomy-of-a-node-class">Anatomy of a Node Class<a class="headerlink" href="#anatomy-of-a-node-class" title="Permanent link">&para;</a></h2>
 <h3 id="required-attributes">Required Attributes<a class="headerlink" href="#required-attributes" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MyNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
     <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.Category&#39;</span>  <span class="c1"># Must start with &#39;plugins.&#39;</span>
     <span class="n">NODE_NAME</span>      <span class="o">=</span> <span class="s1">&#39;My Node&#39;</span>                    <span class="c1"># Display name in Node Explorer</span>
-    <span class="n">PORT_SPEC</span>      <span class="o">=</span> <span class="p">{</span>                            <span class="c1"># Port declaration for docs/LLM</span>
+    <span class="n">PORT_SPEC</span>      <span class="o">=</span> <span class="p">{</span>                            <span class="c1"># Port declaration for docs/LLM/tree</span>
         <span class="s1">&#39;inputs&#39;</span><span class="p">:</span>  <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;mask&#39;</span><span class="p">],</span>
-        <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;result&#39;</span><span class="p">]</span>
+        <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span>
     <span class="p">}</span>
 </code></pre></div>
 <p><strong><code>__identifier__</code></strong> controls the Node Explorer tree hierarchy:</p>
@@ -2564,13 +2572,18 @@
 </tbody>
 </table>
 <p>All nodes with the same <code>__identifier__</code> are grouped together in the tree.</p>
-<p><strong><code>PORT_SPEC</code></strong> is used by the documentation generator and the LLM assistant's node catalog. It should mirror your <code>add_input()</code> / <code>add_output()</code> calls.</p>
+<p><strong><code>PORT_SPEC</code></strong> is used by the documentation generator, the LLM assistant's node catalog, and the Node Explorer tree panel (to show colored port indicators next to each node). Each name should be a key from <code>PORT_COLORS</code> (detailed in the following section, <strong>Built-in Port Colors</strong>) so the tree shows the correct color. It should mirror your <code>add_input()</code> / <code>add_output()</code> calls.</p>
 <h3 id="docstrings">Docstrings<a class="headerlink" href="#docstrings" title="Permanent link">&para;</a></h3>
-<p>The first line of the class docstring is shown in the Node Help panel and the LLM assistant catalog. Write a concise, descriptive one-liner:</p>
+<p>The class docstring is shown in the Node Help panel. The first line is also used as the short description in the LLM assistant's node catalog. When searching for nodes in the Node Explorer, the full docstring text is included in the search, so adding relevant keywords helps users find your node.</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GaussianBlurNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply a Gaussian blur filter with configurable sigma radius.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply a Gaussian blur filter with configurable sigma radius.</span>
+
+<span class="sd">    Accepts grayscale or RGB images. The sigma parameter controls</span>
+<span class="sd">    how much the image is smoothed.</span>
+
+<span class="sd">    Keywords: smooth, denoise, blur</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 </code></pre></div>
-<p>Additional lines are shown in the expandable "Details" section of the generated documentation.</p>
 <hr />
 <h2 id="ports-inputs-and-outputs">Ports: Inputs and Outputs<a class="headerlink" href="#ports-inputs-and-outputs" title="Permanent link">&para;</a></h2>
 <h3 id="adding-ports">Adding Ports<a class="headerlink" href="#adding-ports" title="Permanent link">&para;</a></h3>
@@ -2579,7 +2592,7 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span>   <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">])</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;result&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">])</span>
 </code></pre></div>
 <h3 id="built-in-port-colors">Built-in Port Colors<a class="headerlink" href="#built-in-port-colors" title="Permanent link">&para;</a></h3>
@@ -2597,13 +2610,13 @@
 <td><code>'image'</code></td>
 <td>Green</td>
 <td>Image</td>
-<td><code>ImageData</code> (PIL Image)</td>
+<td><code>ImageData</code> (numpy float32 [0,1])</td>
 </tr>
 <tr>
 <td><code>'mask'</code></td>
 <td>Forest green</td>
 <td>Binary mask</td>
-<td><code>MaskData</code> (PIL Image)</td>
+<td><code>MaskData</code> (numpy uint8, 0 or 255)</td>
 </tr>
 <tr>
 <td><code>'label'</code></td>
@@ -2615,7 +2628,7 @@
 <td><code>'skeleton'</code></td>
 <td>Yellow-green</td>
 <td>Skeleton mask</td>
-<td><code>SkeletonData</code> (PIL Image)</td>
+<td><code>SkeletonData</code> (numpy uint8)</td>
 </tr>
 <tr>
 <td><code>'table'</code></td>
@@ -2650,90 +2663,25 @@
 </tbody>
 </table>
 <h3 id="custom-port-colors">Custom Port Colors<a class="headerlink" href="#custom-port-colors" title="Permanent link">&para;</a></h3>
-<p>Register custom colors <strong>before</strong> your class definitions:</p>
-<div class="highlight"><pre><span></span><code><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;spectra&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">165</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>   <span class="c1"># Orange</span>
-<span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;tensor&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="mi">220</span><span class="p">,</span>  <span class="mi">80</span><span class="p">,</span> <span class="mi">220</span><span class="p">)</span> <span class="c1"># Magenta</span>
+<p>If your plugin introduces a new data type, register a color for it <strong>before</strong> your class definitions. The key you add becomes usable in <code>PORT_SPEC</code>, <code>add_input()</code>, and <code>add_output()</code>, and the Node Explorer tree will show the matching color.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">PORT_COLORS</span>
+
+<span class="c1"># Register at module level, before any class definitions.</span>
+<span class="c1"># Use setdefault() so you don&#39;t overwrite colors registered by other plugins.</span>
+<span class="n">PORT_COLORS</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;spectra&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">165</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>   <span class="c1"># Orange</span>
+<span class="n">PORT_COLORS</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;tensor&#39;</span><span class="p">,</span>  <span class="p">(</span><span class="mi">220</span><span class="p">,</span>  <span class="mi">80</span><span class="p">,</span> <span class="mi">220</span><span class="p">))</span> <span class="c1"># Magenta</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MySpectraNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+    <span class="n">PORT_SPEC</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;inputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">],</span> <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;spectra&#39;</span><span class="p">]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span>    <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;spectra&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;spectra&#39;</span><span class="p">])</span>
 </code></pre></div>
-<h3 id="reading-input-data">Reading Input Data<a class="headerlink" href="#reading-input-data" title="Permanent link">&para;</a></h3>
-<p>The standard pattern for reading an input port:</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
-        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
-
-    <span class="n">connected</span> <span class="o">=</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">connected</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="o">.</span><span class="n">output_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">connected</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ImageData</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Expected ImageData&quot;</span>
-
-    <span class="c1"># Use data.payload (PIL Image), data.metadata, data.source_path</span>
-    <span class="o">...</span>
-</code></pre></div>
-<h3 id="writing-output-data">Writing Output Data<a class="headerlink" href="#writing-output-data" title="Permanent link">&para;</a></h3>
-<p>Store results in <code>self.output_values</code> using the port name as key:</p>
-<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;result&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ImageData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">pil_image</span><span class="p">)</span>
-<span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">TableData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">dataframe</span><span class="p">)</span>
-</code></pre></div>
-<hr />
-<h2 id="the-evaluate-method">The <code>evaluate()</code> Method<a class="headerlink" href="#the-evaluate-method" title="Permanent link">&para;</a></h2>
-<p>This is where your processing logic lives. It is called by the execution engine whenever the node is dirty (inputs changed or properties changed).</p>
-<h3 id="return-signature">Return Signature<a class="headerlink" href="#return-signature" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
-</code></pre></div>
-<ul>
-<li>Return <code>(True, None)</code> on success</li>
-<li>Return <code>(False, "Error message")</code> on failure</li>
-</ul>
-<h3 id="full-pattern">Full Pattern<a class="headerlink" href="#full-pattern" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># 1. Read inputs</span>
-    <span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
-        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
-
-    <span class="n">connected</span> <span class="o">=</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">connected</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="o">.</span><span class="n">output_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">connected</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ImageData</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Expected ImageData&quot;</span>
-
-    <span class="c1"># 2. Read properties</span>
-    <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">)</span>
-
-    <span class="c1"># 3. Report progress (optional)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-
-    <span class="c1"># 4. Do work</span>
-    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">arr</span> <span class="o">&gt;</span> <span class="n">threshold</span>
-
-    <span class="c1"># 5. Check for cancellation (for long-running operations)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cancel_requested</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Cancelled&quot;</span>
-
-    <span class="c1"># 6. Store outputs</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MaskData</span><span class="p">(</span>
-        <span class="n">payload</span><span class="o">=</span><span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="c1"># 7. Update display (optional, shows thumbnail on node)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">set_display</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-
-    <span class="c1"># 8. Finish</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
-    <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
-</code></pre></div>
-<h3 id="important-rules">Important Rules<a class="headerlink" href="#important-rules" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Always call <code>self.mark_clean()</code> before returning <code>(True, None)</code></li>
-<li>Never call <code>self.mark_clean()</code> when returning <code>(False, ...)</code></li>
-<li><code>evaluate()</code> runs on a <strong>background thread</strong> — do not create or modify Qt widgets here</li>
-<li>Use <code>self.set_progress()</code> and <code>self.set_display()</code> for thread-safe UI updates</li>
-</ul>
 <hr />
 <h2 id="properties-and-widgets">Properties and Widgets<a class="headerlink" href="#properties-and-widgets" title="Permanent link">&para;</a></h2>
-<p>Properties are node parameters that the user can adjust. They are shown on the node card and in the Properties panel.</p>
+<p>Properties are node parameters that the user can adjust. They are shown on the node card and in the Properties panel. Add them in <code>__init__()</code>.</p>
 <h3 id="integer-spinbox">Integer Spinbox<a class="headerlink" href="#integer-spinbox" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">_add_int_spinbox</span><span class="p">(</span><span class="s1">&#39;radius&#39;</span><span class="p">,</span> <span class="s1">&#39;Radius&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">min_val</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </code></pre></div>
@@ -2787,6 +2735,81 @@
                      <span class="n">widget_type</span><span class="o">=</span><span class="n">NodePropWidgetEnum</span><span class="o">.</span><span class="n">HIDDEN</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 </code></pre></div>
 <hr />
+<h2 id="the-evaluate-method">The <code>evaluate()</code> Method<a class="headerlink" href="#the-evaluate-method" title="Permanent link">&para;</a></h2>
+<p>This is where your processing logic lives. It is called by the execution engine whenever the node is dirty (inputs changed or properties changed).</p>
+<h3 id="return-signature">Return Signature<a class="headerlink" href="#return-signature" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+</code></pre></div>
+<ul>
+<li>Return <code>(True, None)</code> on success</li>
+<li>Return <code>(False, "Error message")</code> on failure</li>
+</ul>
+<h3 id="reading-input-data">Reading Input Data<a class="headerlink" href="#reading-input-data" title="Permanent link">&para;</a></h3>
+<p>For image inputs, use the built-in helper:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_input_image_data</span><span class="p">()</span>  <span class="c1"># returns ImageData or None</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span>  <span class="c1"># numpy float32 array, values in [0, 1]</span>
+    <span class="c1"># arr.shape is (H, W) for grayscale, (H, W, 3) for RGB</span>
+    <span class="o">...</span>
+</code></pre></div>
+<p>For non-image inputs, read the port manually:</p>
+<div class="highlight"><pre><span></span><code><span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
+    <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+<span class="n">connected</span> <span class="o">=</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">connected</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="o">.</span><span class="n">output_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">connected</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
+</code></pre></div>
+<h3 id="writing-output-data">Writing Output Data<a class="headerlink" href="#writing-output-data" title="Permanent link">&para;</a></h3>
+<p>For image outputs, use <code>_make_image_output()</code> which propagates upstream metadata (bit_depth, scale_um, etc.):</p>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">_make_image_output</span><span class="p">(</span><span class="n">result_array</span><span class="p">)</span>                  <span class="c1"># default port name &#39;image&#39;</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">_make_image_output</span><span class="p">(</span><span class="n">result_array</span><span class="p">,</span> <span class="n">port_name</span><span class="o">=</span><span class="s1">&#39;out&#39;</span><span class="p">)</span> <span class="c1"># custom port name</span>
+</code></pre></div>
+<p>For non-image outputs, store directly:</p>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TableData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">dataframe</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">MaskData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">binary_uint8</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="full-pattern">Full Pattern<a class="headerlink" href="#full-pattern" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># 1. Read inputs</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_input_image_data</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+    <span class="c1"># 2. Read properties</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">)</span>
+
+    <span class="c1"># 3. Report progress (optional)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="c1"># 4. Do work — payload is float32 [0, 1]</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span>
+    <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># convert to grayscale using simple mean</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">arr</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
+
+    <span class="c1"># 5. Store outputs</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MaskData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="c1"># 6. Update display (optional, shows thumbnail on node)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_display</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="c1"># 7. Finish</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
+    <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+</code></pre></div>
+<h3 id="important-rules">Important Rules<a class="headerlink" href="#important-rules" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Always call <code>self.mark_clean()</code> before returning <code>(True, None)</code></li>
+<li>Never call <code>self.mark_clean()</code> when returning <code>(False, ...)</code></li>
+<li><code>evaluate()</code> runs on a <strong>background thread</strong> — do not create or modify Qt widgets here</li>
+<li>Use <code>self.set_progress()</code> and <code>self.set_display()</code> for thread-safe UI updates</li>
+</ul>
+<hr />
 <h2 id="data-types">Data Types<a class="headerlink" href="#data-types" title="Permanent link">&para;</a></h2>
 <p>All data flowing between nodes is wrapped in a <code>NodeData</code> subclass (from <code>data_models.py</code>).</p>
 <h3 id="built-in-types">Built-in Types<a class="headerlink" href="#built-in-types" title="Permanent link">&para;</a></h3>
@@ -2794,48 +2817,55 @@
 <thead>
 <tr>
 <th>Type</th>
+<th>Parent</th>
 <th>Payload</th>
-<th>Import</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>ImageData</code></td>
-<td><code>PIL.Image.Image</code></td>
-<td><code>from data_models import ImageData</code></td>
+<td><code>NodeData</code></td>
+<td><code>np.ndarray</code> float32 [0,1]</td>
 </tr>
 <tr>
 <td><code>MaskData</code></td>
-<td><code>PIL.Image.Image</code> (binary)</td>
-<td><code>from data_models import MaskData</code></td>
-</tr>
-<tr>
-<td><code>LabelData</code></td>
-<td><code>np.ndarray</code> (int32)</td>
-<td><code>from data_models import LabelData</code></td>
+<td><code>ImageData</code></td>
+<td><code>np.ndarray</code> uint8 (0 or 255)</td>
 </tr>
 <tr>
 <td><code>SkeletonData</code></td>
-<td><code>PIL.Image.Image</code> (thinned)</td>
-<td><code>from data_models import SkeletonData</code></td>
+<td><code>MaskData</code></td>
+<td><code>np.ndarray</code> uint8</td>
+</tr>
+<tr>
+<td><code>LabelData</code></td>
+<td><code>NodeData</code></td>
+<td><code>np.ndarray</code> int32</td>
 </tr>
 <tr>
 <td><code>TableData</code></td>
+<td><code>NodeData</code></td>
 <td><code>pd.DataFrame</code> or <code>pd.Series</code></td>
-<td><code>from data_models import TableData</code></td>
 </tr>
 <tr>
 <td><code>StatData</code></td>
+<td><code>TableData</code></td>
 <td><code>pd.DataFrame</code></td>
-<td><code>from data_models import StatData</code></td>
 </tr>
 <tr>
 <td><code>FigureData</code></td>
+<td><code>NodeData</code></td>
 <td><code>matplotlib.figure.Figure</code></td>
-<td><code>from data_models import FigureData</code></td>
 </tr>
 </tbody>
 </table>
+<p>Since <code>MaskData</code> and <code>SkeletonData</code> inherit from <code>ImageData</code>, any node that accepts <code>ImageData</code> input can also accept a mask or skeleton. Similarly, <code>StatData</code> inherits from <code>TableData</code>, so it works anywhere a table is expected.</p>
+<p>All types are imported from <code>data_models</code> (e.g. <code>from data_models import ImageData, MaskData</code>).</p>
+<p><code>ImageData</code> has additional fields beyond <code>payload</code>:</p>
+<ul>
+<li><code>bit_depth: int</code> — original bit depth (8, 12, 14, or 16). Default 8.</li>
+<li><code>scale_um: float | None</code> — physical pixel size in micrometers</li>
+</ul>
 <p>All types share these optional fields:</p>
 <ul>
 <li><code>metadata: dict</code> — arbitrary key-value pairs (e.g., <code>{'frame': 1, 'file': 'img_001.tif'}</code>)</li>
@@ -2851,7 +2881,7 @@
 </code></pre></div>
 <p>Use <code>payload: Any</code> for types that Pydantic cannot natively validate (numpy arrays, custom objects, etc.).</p>
 <h3 id="batch-merge-support">Batch Merge Support<a class="headerlink" href="#batch-merge-support" title="Permanent link">&para;</a></h3>
-<p>If your data type will be used with batch processing (Folder Iterator), implement <code>merge()</code>:</p>
+<p>If your data type will be used with batch processing, implement <code>merge()</code>. The <code>Batch Accumulator</code> node calls this method after all iterations finish to combine results from each iteration into a single output (usually a <code>TableData</code>):</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SpectraData</span><span class="p">(</span><span class="n">NodeData</span><span class="p">):</span>
     <span class="n">payload</span><span class="p">:</span> <span class="n">Any</span>
 
@@ -2889,23 +2919,57 @@
 <li>On failure: <code>mark_error()</code> is called automatically</li>
 </ol>
 <h3 id="batch-processing-hooks">Batch Processing Hooks<a class="headerlink" href="#batch-processing-hooks" title="Permanent link">&para;</a></h3>
-<p>If your node participates in batch workflows, override these optional methods:</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">on_batch_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called once before the batch loop begins.&quot;&quot;&quot;</span>
-    <span class="k">pass</span>
+<p>When a batch runs (via <code>Folder Iterator</code>), the execution engine calls two hooks on every node in the graph:</p>
+<ul>
+<li><code>on_batch_start()</code> — called once before the first iteration. Use it to initialize state, open resources, or clear accumulated results.</li>
+<li><code>on_batch_end()</code> — called once after the last iteration. Use it to finalize output, close resources, or merge collected data.</li>
+</ul>
+<p>Between these two calls, <code>evaluate()</code> runs once per iteration as usual.</p>
+<p>Most nodes don't need to override these. They're useful when your node needs to manage something across the entire batch rather than per-iteration. For example, the built-in <code>Batch Accumulator</code> node uses <code>on_batch_start()</code> to clear its internal list and <code>on_batch_end()</code> to merge all collected items into a single output.</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CsvBatchWriterNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write each batch iteration&#39;s table as a row to a single CSV file.&quot;&quot;&quot;</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">on_batch_end</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called once after all batch items are processed.&quot;&quot;&quot;</span>
-    <span class="k">pass</span>
-</code></pre></div>
-<h3 id="cancellation">Cancellation<a class="headerlink" href="#cancellation" title="Permanent link">&para;</a></h3>
-<p>For long-running operations, check <code>self.cancel_requested</code> periodically:</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">frame</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">frames</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cancel_requested</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Cancelled&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
-        <span class="c1"># ... process frame ...</span>
+    <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.MyPlugin&#39;</span>
+    <span class="n">NODE_NAME</span>      <span class="o">=</span> <span class="s1">&#39;CSV Batch Writer&#39;</span>
+    <span class="n">PORT_SPEC</span>      <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;inputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">],</span> <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">])</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFileSaver</span>
+        <span class="n">save_w</span> <span class="o">=</span> <span class="n">NodeFileSaver</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;save_path&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Save As&#39;</span><span class="p">,</span>
+                               <span class="n">ext</span><span class="o">=</span><span class="s1">&#39;*.csv&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_custom_widget</span><span class="p">(</span><span class="n">save_w</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_batch_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Clear accumulated rows before each batch run</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+        <span class="n">connected</span> <span class="o">=</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">connected</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="o">.</span><span class="n">output_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">connected</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No data&quot;</span>
+
+        <span class="c1"># Collect each iteration&#39;s table</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_batch_end</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># After all iterations, write everything to one CSV</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span><span class="p">:</span>
+            <span class="n">combined</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rows</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">save_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;save_path&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">save_path</span><span class="p">:</span>
+                <span class="n">combined</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span> <span class="o">=</span> <span class="p">[]</span>
 </code></pre></div>
 <hr />
 <h2 id="progress-and-display">Progress and Display<a class="headerlink" href="#progress-and-display" title="Permanent link">&para;</a></h2>
@@ -2918,9 +2982,16 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">use_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="display-thumbnail">Display Thumbnail<a class="headerlink" href="#display-thumbnail" title="Permanent link">&para;</a></h3>
-<p>Show a preview image on the node card:</p>
-<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">set_display</span><span class="p">(</span><span class="n">numpy_array</span><span class="p">)</span>  <span class="c1"># Thread-safe, accepts numpy arrays</span>
+<p>Nodes that extend <code>BaseImageProcessNode</code> (instead of <code>BaseExecutionNode</code>) get a built-in image preview widget on the node card. Call <code>set_display()</code> inside <code>evaluate()</code> to update it:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseImageProcessNode</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MyImageNode</span><span class="p">(</span><span class="n">BaseImageProcessNode</span><span class="p">):</span>
+    <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="o">...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_display</span><span class="p">(</span><span class="n">numpy_array</span><span class="p">)</span>  <span class="c1"># Thread-safe, accepts numpy arrays</span>
 </code></pre></div>
+<p><code>BaseImageProcessNode</code> also adds a "Show Preview" checkbox that lets the user toggle the thumbnail on/off to save canvas space. If your node doesn't output images, just use <code>BaseExecutionNode</code>.</p>
 <hr />
 <h2 id="plugin-formats">Plugin Formats<a class="headerlink" href="#plugin-formats" title="Permanent link">&para;</a></h2>
 <h3 id="single-file-plugin">Single File Plugin<a class="headerlink" href="#single-file-plugin" title="Permanent link">&para;</a></h3>
@@ -2961,10 +3032,24 @@
 </code></pre></div>
 <p>Users install via <strong>Plugins &gt; Plugin Manager &gt; Install Plugin...</strong> and select the <code>.zip</code>.</p>
 <h3 id="as-a-synpkg-file">As a <code>.synpkg</code> File<a class="headerlink" href="#as-a-synpkg-file" title="Permanent link">&para;</a></h3>
-<p>For smaller downloads, use zstd-compressed tar archives:</p>
-<div class="highlight"><pre><span></span><code>tar<span class="w"> </span>cf<span class="w"> </span>-<span class="w"> </span>my_plugin/<span class="w"> </span><span class="p">|</span><span class="w"> </span>zstd<span class="w"> </span>-o<span class="w"> </span>my_plugin.synpkg
+<p>Use the <code>synapse package</code> command to create zstd-compressed tar archives:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Full package (includes vendor/ directory)</span>
+synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin
+
+<span class="c1"># Skip vendored dependencies (smaller, user installs deps separately)</span>
+synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<span class="w"> </span>--no-vendor
+
+<span class="c1"># Source only (no vendor/, no data/)</span>
+synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<span class="w"> </span>--slim
+
+<span class="c1"># Custom output directory</span>
+synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<span class="w"> </span>-o<span class="w"> </span>~/Desktop
 </code></pre></div>
-<p>Requires the <code>zstandard</code> Python package on the user's machine.</p>
+<p>The output filename includes platform, architecture, and Python version automatically (e.g. <code>my_plugin-darwin-arm64-cp313-20260318.synpkg</code>).</p>
+<p>To install a <code>.synpkg</code> from the command line:</p>
+<div class="highlight"><pre><span></span><code>synapse<span class="w"> </span>package<span class="w"> </span>--install<span class="w"> </span>my_plugin.synpkg
+</code></pre></div>
+<p>Users can also install via <strong>Plugins &gt; Plugin Manager &gt; Install Plugin...</strong> in the app.</p>
 <h3 id="available-libraries">Available Libraries<a class="headerlink" href="#available-libraries" title="Permanent link">&para;</a></h3>
 <p>Plugins can only import libraries bundled with the Synapse app:</p>
 <ul>
@@ -2982,7 +3067,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">data_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageData</span><span class="p">,</span> <span class="n">MaskData</span><span class="p">,</span> <span class="n">TableData</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">ParticleDetectorNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Detect bright particles above a threshold and measure their properties.&quot;&quot;&quot;</span>
@@ -3001,28 +3085,24 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">])</span>
 
-        <span class="c1"># Properties</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_add_int_spinbox</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="s1">&#39;Threshold&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
-                              <span class="n">min_val</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mi">255</span><span class="p">)</span>
+        <span class="c1"># Properties — threshold is in [0, 1] to match the float32 pipeline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_float_spinbox</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="s1">&#39;Threshold&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                                <span class="n">min_val</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_add_int_spinbox</span><span class="p">(</span><span class="s1">&#39;min_area&#39;</span><span class="p">,</span> <span class="s1">&#39;Min Area (px)&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
                               <span class="n">min_val</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mi">100000</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># Read input</span>
-        <span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
+        <span class="c1"># Read input — payload is float32 [0, 1]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_input_image_data</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
-
-        <span class="n">connected</span> <span class="o">=</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">connected</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="o">.</span><span class="n">output_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">connected</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ImageData</span><span class="p">):</span>
-            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Expected ImageData&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 
-        <span class="c1"># Convert to grayscale numpy array</span>
-        <span class="n">img</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s1">&#39;L&#39;</span><span class="p">)</span>
-        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="c1"># Convert to grayscale if RGB</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># Threshold</span>
         <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">)</span>
@@ -3046,9 +3126,8 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span>
 
-        <span class="c1"># Create output mask</span>
+        <span class="c1"># Create output mask (uint8, 0 or 255)</span>
         <span class="n">mask_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
-        <span class="n">mask_img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">mask_arr</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;L&#39;</span><span class="p">)</span>
 
         <span class="c1"># Rename columns</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span>
@@ -3057,7 +3136,7 @@
         <span class="p">})</span>
 
         <span class="c1"># Store outputs</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">MaskData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">mask_img</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">MaskData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">mask_arr</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TableData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">set_display</span><span class="p">(</span><span class="n">mask_arr</span><span class="p">)</span>
@@ -3077,6 +3156,7 @@
 <hr />
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h3 id="baseexecutionnode-methods">BaseExecutionNode Methods<a class="headerlink" href="#baseexecutionnode-methods" title="Permanent link">&para;</a></h3>
+<p><strong>Lifecycle (override these):</strong></p>
 <table>
 <thead>
 <tr>
@@ -3087,63 +3167,158 @@
 <tbody>
 <tr>
 <td><code>evaluate()</code></td>
-<td>Override this. Return <code>(bool, str \| None)</code></td>
-</tr>
-<tr>
-<td><code>add_input(name, color=...)</code></td>
-<td>Add an input port</td>
-</tr>
-<tr>
-<td><code>add_output(name, color=...)</code></td>
-<td>Add an output port</td>
-</tr>
-<tr>
-<td><code>get_property(name)</code></td>
-<td>Read a property value</td>
-</tr>
-<tr>
-<td><code>set_property(name, value)</code></td>
-<td>Update a property value</td>
-</tr>
-<tr>
-<td><code>create_property(name, value, ...)</code></td>
-<td>Create a new property</td>
-</tr>
-<tr>
-<td><code>mark_clean()</code></td>
-<td>Mark node as successfully executed</td>
-</tr>
-<tr>
-<td><code>mark_dirty()</code></td>
-<td>Mark node as needing re-execution</td>
-</tr>
-<tr>
-<td><code>set_progress(value)</code></td>
-<td>Update progress bar (0-100)</td>
-</tr>
-<tr>
-<td><code>set_display(data)</code></td>
-<td>Show preview data on the node card</td>
-</tr>
-<tr>
-<td><code>cancel_requested</code></td>
-<td><code>True</code> if user clicked Stop</td>
+<td>Your processing logic. Return <code>(True, None)</code> on success, <code>(False, "message")</code> on failure.</td>
 </tr>
 <tr>
 <td><code>on_batch_start()</code></td>
-<td>Called before batch loop</td>
+<td>Called once before the batch loop begins. Override to initialize accumulators.</td>
 </tr>
 <tr>
 <td><code>on_batch_end()</code></td>
-<td>Called after batch loop</td>
+<td>Called once after all batch items are processed.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Port management (call in <code>__init__</code>):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>add_input(name, color=...)</code></td>
+<td>Add an input port.</td>
+</tr>
+<tr>
+<td><code>add_output(name, color=...)</code></td>
+<td>Add an output port.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading inputs:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self.inputs()</code></td>
+<td>Dict of input ports. Use <code>self.inputs().get('name')</code> to get a port.</td>
+</tr>
+<tr>
+<td><code>port.connected_ports()</code></td>
+<td>List of ports connected to this port. Index <code>[0]</code> for the first connection.</td>
+</tr>
+<tr>
+<td><code>connected.node().output_values.get(connected.name())</code></td>
+<td>Read the data from a connected upstream port.</td>
+</tr>
+<tr>
+<td><code>_get_input_image_data()</code></td>
+<td>Shortcut: find the first connected <code>ImageData</code> across all input ports. Returns <code>None</code> if not found.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Writing outputs:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self.output_values['port_name'] = data</code></td>
+<td>Store output data on a named port.</td>
+</tr>
+<tr>
+<td><code>_make_image_output(arr, port_name='image')</code></td>
+<td>Shortcut: wrap a numpy array as <code>ImageData</code>, propagate upstream metadata (bit_depth, scale_um, etc.), and store on the named port.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_property(name)</code></td>
+<td>Read a property value.</td>
+</tr>
+<tr>
+<td><code>set_property(name, value)</code></td>
+<td>Update a property value. Triggers <code>mark_dirty()</code> automatically.</td>
+</tr>
+<tr>
+<td><code>create_property(name, value, ...)</code></td>
+<td>Create a new property. Raises if it already exists.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Node state:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mark_clean()</code></td>
+<td>Mark node as successfully executed. You must call this before returning <code>(True, None)</code>.</td>
+</tr>
+<tr>
+<td><code>mark_dirty()</code></td>
+<td>Mark node as needing re-execution. Cascades to all downstream nodes.</td>
+</tr>
+<tr>
+<td><code>mark_disabled()</code></td>
+<td>Disable the node so it is skipped during execution.</td>
+</tr>
+<tr>
+<td><code>mark_enabled()</code></td>
+<td>Re-enable a disabled node.</td>
 </tr>
 <tr>
 <td><code>clear_cache()</code></td>
-<td>Clear outputs and force re-evaluation</td>
+<td>Clear <code>output_values</code> and force re-evaluation on next run.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>UI feedback (thread-safe, can be called from <code>evaluate()</code>):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>set_progress(value)</code></td>
+<td>Update progress bar (0-100).</td>
+</tr>
+<tr>
+<td><code>set_display(data)</code></td>
+<td>Show a preview thumbnail on the node card. Accepts numpy arrays.</td>
 </tr>
 </tbody>
 </table>
 <h3 id="widget-helpers">Widget Helpers<a class="headerlink" href="#widget-helpers" title="Permanent link">&para;</a></h3>
+<p>Call these in <code>__init__()</code> to add user-facing controls to the node card.</p>
 <table>
 <thead>
 <tr>
@@ -3154,23 +3329,71 @@
 <tbody>
 <tr>
 <td><code>_add_int_spinbox(name, label, value, min_val, max_val, step)</code></td>
-<td>Integer spinbox</td>
+<td>Integer spinbox.</td>
 </tr>
 <tr>
 <td><code>_add_float_spinbox(name, label, value, min_val, max_val, step, decimals)</code></td>
-<td>Float spinbox</td>
+<td>Float spinbox.</td>
 </tr>
 <tr>
 <td><code>_add_row(name, label, fields)</code></td>
-<td>Compact row of spinboxes</td>
+<td>Compact horizontal row of labeled spinboxes.</td>
+</tr>
+<tr>
+<td><code>_add_column_selector(name, label, text, mode)</code></td>
+<td>Text input with column dropdown. <code>mode</code>: <code>'single'</code> or <code>'multi'</code>.</td>
+</tr>
+<tr>
+<td><code>_refresh_column_selectors(df, *prop_names)</code></td>
+<td>Update column selector dropdowns with columns from a DataFrame. Thread-safe.</td>
+</tr>
+<tr>
+<td><code>_add_list_input(name, label, items)</code></td>
+<td>Reorderable list widget.</td>
 </tr>
 <tr>
 <td><code>add_combo_menu(name, label, items)</code></td>
-<td>Dropdown menu</td>
+<td>Dropdown menu.</td>
 </tr>
 <tr>
 <td><code>add_custom_widget(widget)</code></td>
-<td>Embed any <code>NodeBaseWidget</code> subclass</td>
+<td>Embed any <code>NodeBaseWidget</code> subclass.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="available-custom-widgets">Available Custom Widgets<a class="headerlink" href="#available-custom-widgets" title="Permanent link">&para;</a></h3>
+<p>Import these from <code>nodes.base</code> for use with <code>add_custom_widget()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Widget</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NodeFileSelector(view, name, label, ext)</code></td>
+<td>File open dialog. <code>ext</code>: e.g. <code>'*.tif *.png *.jpg'</code>.</td>
+</tr>
+<tr>
+<td><code>NodeFileSaver(view, name, label, ext)</code></td>
+<td>File save dialog.</td>
+</tr>
+<tr>
+<td><code>NodeDirSelector(view, name, label)</code></td>
+<td>Directory picker.</td>
+</tr>
+<tr>
+<td><code>NodeColorPickerWidget(view, name, label)</code></td>
+<td>Color picker button.</td>
+</tr>
+<tr>
+<td><code>NodeColumnSelectorWidget(view, name, label, text, mode)</code></td>
+<td>Text field with column dropdown.</td>
+</tr>
+<tr>
+<td><code>NodeChannelSelectorWidget(view, name, label, text)</code></td>
+<td>Channel toggle selector (1-4 + PAD).</td>
 </tr>
 </tbody>
 </table>

@@ -1916,24 +1916,29 @@
 <summary>Details</summary>
 <p>Two-input operations (connect both A and B):</p>
 <ul>
-<li><em>A + B</em> — saturating add: <code>clip(A + B, 0, 255)</code></li>
-<li><em>A - B</em> — saturating subtract: <code>clip(A - B, 0, 255)</code></li>
-<li><em>A x B (image)</em> — normalised multiply: <code>clip(A * B / 255, 0, 255)</code></li>
+<li><em>A + B</em> — add and clip to [0, 1]</li>
+<li><em>A - B</em> — subtract and clip to [0, 1]</li>
+<li><em>A x B (image)</em> — element-wise multiply</li>
 <li><em>A x B (apply mask)</em> — mask A by B: <code>A * (B &gt; 0)</code></li>
-<li><em>A AND B</em> — mask intersection: <code>(A&gt;0) &amp; (B&gt;0)</code> to 0/255</li>
-<li><em>A OR B</em> — mask union: <code>(A&gt;0) | (B&gt;0)</code> to 0/255</li>
+<li><em>A AND B</em> — mask intersection</li>
+<li><em>A OR B</em> — mask union</li>
 <li><em>Max(A, B)</em> — element-wise maximum</li>
 <li><em>Min(A, B)</em> — element-wise minimum</li>
-<li><em>Blend</em> — weighted blend: <code>A*v + B*(1-v)</code> where <strong>v</strong> is the scalar value (0-1)</li>
+<li><em>Blend</em> — weighted blend: <code>A*v + B*(1-v)</code></li>
 </ul>
 <p>Single-input operations (only A is required):</p>
 <ul>
-<li><em>Invert A</em> — <code>255 - A</code></li>
-<li><em>Normalize A</em> — stretch to 0-255</li>
-<li><em>Gamma A^v</em> — <code>(A/255)^v * 255</code> where <strong>v</strong> is the scalar value</li>
-<li><em>Threshold A &gt; v</em> — <code>(A &gt; v)</code> to 0/255 where <strong>v</strong> is the scalar value (0-255)</li>
+<li><em>Invert A</em> — <code>1 - A</code></li>
+<li><em>Normalize A</em> — stretch to [0, 1]</li>
+<li><em>Gamma A^v</em> — <code>A^v</code> where v is the scalar value</li>
+<li><em>Threshold A &gt; v</em> — binary threshold</li>
 </ul>
-<p>Both outputs always carry the same pixel data. Binary operations (AND, OR, Apply Mask, Threshold) wrap the result as MaskData; all other operations wrap it as ImageData.</p>
+<p>Custom expression mode:</p>
+<ul>
+<li><em>Custom Expression</em> — type any math using A, B, v as variables.
+  Available functions: abs, sqrt, log, log2, log10, exp, sin, cos, clip, max, min, mean, std.
+  Example: <code>A ** 2 + B</code>, <code>clip(A * 2, 0, 1)</code>, <code>sqrt(A)</code></li>
+</ul>
 </details>
 <table>
 <thead>

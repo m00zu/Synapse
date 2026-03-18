@@ -1988,20 +1988,21 @@ using <code>skimage.feature.blob_log</code>.</p>
 <p><strong>Properties:</strong> <code>Min Radius (px)</code>, <code>Max Radius (px)</code>, <code>Threshold</code></p>
 <hr />
 <h3 id="colocalization">Colocalization<a class="headerlink" href="#colocalization" title="Permanent link">&para;</a></h3>
-<p>Computes fluorescence colocalization metrics between two channels, mirroring ImageJ Coloc 2.</p>
+<p>Computes colocalization metrics between two channels.</p>
 <details class="note">
 <summary>Details</summary>
-<p>Metrics computed:</p>
+<p>All metrics respect the mask input when connected. Without a mask, all pixels are used.</p>
+<p>Metrics:</p>
 <ul>
-<li><code>PCC_full</code> — Pearson's r over the whole image (or ROI if mask connected)</li>
-<li><code>PCC_masked</code> — Pearson's r restricted to pixels in the mask (same as PCC_full when no mask)</li>
-<li><code>MOC</code> — Manders' Overlap Coefficient <code>sum(I1*I2) / sqrt(sum(I1^2) * sum(I2^2))</code></li>
-<li><code>M1</code> — Manders' M1: fraction of ch1 intensity colocalising with ch2</li>
-<li><code>M2</code> — Manders' M2: fraction of ch2 intensity colocalising with ch1 (M1/M2 thresholds auto-determined by Otsu per channel)</li>
-<li><code>ICQ</code> — Li's Intensity Correlation Quotient, range (-0.5, 0.5)</li>
+<li><em>Pearson r</em> — linear correlation (-1 to 1)</li>
+<li><em>Spearman r</em> — rank correlation, robust to non-linear relationships</li>
+<li><em>Kendall tau</em> — rank correlation, more robust for small samples</li>
+<li><em>MOC</em> — Manders' Overlap Coefficient (0 to 1)</li>
+<li><em>M1</em> — fraction of ch1 intensity where ch2 is above its Otsu threshold</li>
+<li><em>M2</em> — fraction of ch2 intensity where ch1 is above its Otsu threshold</li>
+<li><em>ICQ</em> — Li's Intensity Correlation Quotient (-0.5 to 0.5)</li>
 </ul>
-<p>Outputs a 1-row table plus a scatter plot of ch1 vs ch2 pixel intensities
-(subsampled to 20,000 pixels for speed).</p>
+<p>Outputs a 1-row table and a scatter plot of ch1 vs ch2 intensities.</p>
 </details>
 <table>
 <thead>

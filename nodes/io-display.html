@@ -2112,15 +2112,18 @@ result only after the entire batch is complete.</p>
 </table>
 <hr />
 <h3 id="image-reader">Image Reader<a class="headerlink" href="#image-reader" title="Permanent link">&para;</a></h3>
-<p>Reads an image file and outputs it as a PIL Image.</p>
+<p>Reads an image file and outputs it as a float32 [0,1] numpy array.</p>
 <details class="note">
 <summary>Details</summary>
 <p>Supported formats:</p>
 <ul>
-<li><em>Standard</em> — JPEG, PNG, BMP, and other PIL-supported formats</li>
-<li><em>TIFF</em> — 12/16-bit microscopy TIFFs (auto-normalized to 8-bit)</li>
+<li><em>Standard</em> — JPEG, PNG, BMP, and other PIL-supported formats (8-bit)</li>
+<li><em>TIFF</em> — 8/12/14/16-bit microscopy TIFFs (bit depth preserved)</li>
 <li><em>OIR</em> — Olympus .oir files (Rust accelerated, with Python fallback)</li>
 </ul>
+<p>The original bit depth is stored as metadata for downstream nodes
+(threshold sliders, histogram, save). All processing uses float32 [0,1]
+internally.</p>
 <p>Options:</p>
 <ul>
 <li><strong>channels</strong> — comma-separated channel numbers (0-4, where 0 = black/pad).

@@ -2006,27 +2006,19 @@
 <p>Separates staining colours in histology images using colour deconvolution.</p>
 <details class="note">
 <summary>Details</summary>
-<p>Uses <code>skimage.color.separate_stains</code> / <code>combine_stains</code> with both skimage presets and ImageJ Colour Deconvolution 2 presets.</p>
-<p>Supported staining matrices:</p>
-<ul>
-<li><em>H&amp;E (HED)</em> — Haematoxylin + Eosin + DAB (most common H&amp;E stain)</li>
-<li><em>H-DAB</em> — Haematoxylin + DAB (immunohistochemistry)</li>
-<li><em>Feulgen + LG</em> — Feulgen + Light Green (DNA staining)</li>
-<li><em>Giemsa</em> — Methyl Blue + Eosin (blood/bone marrow)</li>
-<li><em>FastRed+Blue+DAB</em>, <em>Methyl Green+DAB</em>, <em>H+AEC</em>, <em>Blue+Rose+Orange</em>, <em>Methyl Blue+Ponceau</em>, <em>Alcian Blue+H</em>, <em>H+PAS</em>, <em>Masson Trichrome</em></li>
-</ul>
+<p>Stain matrices prefixed with SK are from scikit-image, CD2 matrices are
+from ImageJ's Colour Deconvolution 2 plugin.</p>
 <p>Output mode:</p>
 <ul>
-<li><em>Colored</em> (default) — each channel is reconstructed as a full RGB image retaining the stain's original colour on a white background</li>
-<li><em>Grayscale</em> — each channel is an 8-bit intensity map where brighter pixels indicate higher stain concentration (useful for downstream quantification)</li>
+<li><em>Colored</em> — each channel retains the stain's original colour on a white background</li>
+<li><em>Grayscale</em> — intensity map where brighter = more stain (for quantification)</li>
 </ul>
-<p>Third stain completion mode:</p>
+<p>Third stain completion:</p>
 <ul>
-<li><em>Auto (matrix)</em> — keep matrix as provided (if 3rd vector missing, uses Ruifrok fallback)</li>
-<li><em>Cross Product</em> — force stain-3 = stain-1 x stain-2</li>
-<li><em>Ruifrok</em> — force stain-3 via Ruifrok/Johnston fallback per channel</li>
+<li><em>Ruifrok</em> — Ruifrok/Johnston fallback</li>
+<li><em>Cross Product</em> — stain-3 = stain-1 x stain-2</li>
+<li><em>Auto</em> — keep matrix as provided</li>
 </ul>
-<p>Outputs ch1, ch2, ch3 correspond to the first, second, and third stain vectors after completion and normalisation.</p>
 </details>
 <table>
 <thead>

@@ -1307,6 +1307,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#bit-depth-convert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bit Depth Convert
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#zoom" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1879,6 +1890,40 @@
 
 
 <h1 id="transform">Transform<a class="headerlink" href="#transform" title="Permanent link">&para;</a></h1>
+<h3 id="bit-depth-convert">Bit Depth Convert<a class="headerlink" href="#bit-depth-convert" title="Permanent link">&para;</a></h3>
+<p>Changes the bit depth metadata of an image.</p>
+<details class="note">
+<summary>Details</summary>
+<p>The internal float [0,1] data is unchanged. This node only updates
+the bit_depth tag so that saving and display use the target range.</p>
+<p>Options:</p>
+<ul>
+<li><strong>target_depth</strong> — output bit depth (8, 12, 14, 16)</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Target Bit Depth</code></p>
+<hr />
 <h3 id="zoom">Zoom<a class="headerlink" href="#zoom" title="Permanent link">&para;</a></h3>
 <p>Resizes an image by a zoom factor using high-quality Lanczos resampling.</p>
 <details class="note">
