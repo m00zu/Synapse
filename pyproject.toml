@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synapse-app"
+version = "0.1.1"
+description = "Visual node-graph workflow editor for scientific data analysis"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "CC-BY-NC-4.0"
+authors = [
+    { name = "Synapse Contributors" },
+]
+keywords = ["data-analysis", "node-editor", "workflow", "microscopy", "scientific", "image-analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Programming Language :: Python :: 3",
+]
+
+dependencies = [
+    "PySide6>=6.10",
+    "numpy>=2.4",
+    "pandas>=3.0",
+    "pillow>=12.0",
+    "matplotlib>=3.10",
+    "scikit-image>=0.26",
+    "scikit-learn>=1.8",
+    "scipy>=1.17",
+    "seaborn>=0.13",
+    "statsmodels>=0.14",
+    "tifffile>=2026.2",
+    "pydantic>=2.12",
+    "requests>=2.28",
+    "zstandard>=0.25",
+]
+
+[project.optional-dependencies]
+dev = ["mkdocs", "mkdocs-material", "pymdown-extensions"]
+
+[project.scripts]
+synapse = "synapse.app:main"
+
+[project.urls]
+Homepage = "https://github.com/m00zu/Synapse"
+Issues = "https://github.com/m00zu/Synapse/issues"
+
+[tool.setuptools]
+packages = [
+    "synapse", "synapse.nodes", "synapse.translations", "synapse.ui",
+    "synapse.plugins", "synapse.plugins.image_analysis",
+    "synapse.plugins.statistical_analysis", "synapse.plugins.figure_plotting",
+    "NodeGraphQt", "NodeGraphQt.base", "NodeGraphQt.nodes",
+    "NodeGraphQt.qgraphics", "NodeGraphQt.widgets",
+    "NodeGraphQt.custom_widgets", "NodeGraphQt.custom_widgets.properties_bin",
+]
+
+[tool.setuptools.package-dir]
+"NodeGraphQt" = "NodeGraph-PySide6/NodeGraphQt"
+"NodeGraphQt.base" = "NodeGraph-PySide6/NodeGraphQt/base"
+"NodeGraphQt.nodes" = "NodeGraph-PySide6/NodeGraphQt/nodes"
+"NodeGraphQt.qgraphics" = "NodeGraph-PySide6/NodeGraphQt/qgraphics"
+"NodeGraphQt.widgets" = "NodeGraph-PySide6/NodeGraphQt/widgets"
+"NodeGraphQt.custom_widgets" = "NodeGraph-PySide6/NodeGraphQt/custom_widgets"
+"NodeGraphQt.custom_widgets.properties_bin" = "NodeGraph-PySide6/NodeGraphQt/custom_widgets/properties_bin"
+
+[tool.setuptools.package-data]
+synapse = [
+    "icons/*",
+    "translations/*.py",
+    "site/**/*",
+    "llm_node_schema.json",
+]
+NodeGraphQt = [
+    "widgets/icons/*.png",
+]
