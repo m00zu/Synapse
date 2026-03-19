@@ -745,32 +745,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sam2-segmentation" class="md-nav__link">
+  <a href="#sam2-cellpose" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SAM2 Segmentation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cellpose" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cellpose
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#video-tracking" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Video &amp; Tracking
+        SAM2 &amp; Cellpose
       
     </span>
   </a>
@@ -1733,6 +1711,57 @@
   
   
   
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SAM2 & Cellpose
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SAM2 & Cellpose
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../plugins/sam2.html" class="md-nav__link">
         
@@ -1806,6 +1835,14 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -2065,12 +2102,14 @@
 <h3 id="figure-plotting">Figure Plotting<a class="headerlink" href="#figure-plotting" title="Permanent link">&para;</a></h3>
 <p>Publication-ready figures with matplotlib and seaborn. Scatter, box, violin, swarm, bar, histogram, KDE, XY line, heatmap, volcano, regression, and survival plots. All plots are configurable with palettes, axis labels, and styling options.</p>
 <p><strong>16 nodes</strong> for data visualization.</p>
-<h3 id="sam2-segmentation">SAM2 Segmentation<a class="headerlink" href="#sam2-segmentation" title="Permanent link">&para;</a></h3>
-<p>Interactive segmentation using Meta's Segment Anything Model 2. Click on objects to segment them, manage multiple objects, and run automatic full-image segmentation. Runs entirely on ONNX Runtime — no PyTorch required. Models are auto-downloaded on first use.</p>
-<h3 id="cellpose">Cellpose<a class="headerlink" href="#cellpose" title="Permanent link">&para;</a></h3>
-<p>Deep learning cell and nucleus segmentation (cyto, cyto2, cyto3, nuclei models). Supports single image and batch folder processing. Runs on ONNX Runtime with GPU acceleration when available. Models auto-download from HuggingFace.</p>
-<h3 id="video-tracking">Video &amp; Tracking<a class="headerlink" href="#video-tracking" title="Permanent link">&para;</a></h3>
-<p>Video frame extraction (imageio + ffmpeg), multi-object tracking via centroid re-prompting, particle linking, trajectory analysis, MSD computation, and track filtering.</p>
+<h3 id="sam2-cellpose">SAM2 &amp; Cellpose<a class="headerlink" href="#sam2-cellpose" title="Permanent link">&para;</a></h3>
+<p>This plugin package includes three sets of nodes:</p>
+<ul>
+<li><strong>SAM2 Segmentation</strong> — interactive segmentation using Meta's Segment Anything Model 2. Click on objects to segment them, manage multiple objects, and run automatic full-image segmentation.</li>
+<li><strong>Cellpose</strong> — deep learning cell and nucleus segmentation (cyto, cyto2, cyto3, nuclei models). Supports single image and batch folder processing.</li>
+<li><strong>Video &amp; Tracking</strong> — video frame extraction (imageio + ffmpeg), multi-object tracking via centroid re-prompting, trajectory analysis, and track filtering.</li>
+</ul>
+<p>All run on ONNX Runtime (no PyTorch). Models auto-download on first use.</p>
 <h3 id="3d-volume">3D Volume<a class="headerlink" href="#3d-volume" title="Permanent link">&para;</a></h3>
 <p>Volume rendering and analysis for 3D microscopy data. Requires <code>pyqtgraph</code>.</p>
 <h3 id="cheminformatics">Cheminformatics<a class="headerlink" href="#cheminformatics" title="Permanent link">&para;</a></h3>
