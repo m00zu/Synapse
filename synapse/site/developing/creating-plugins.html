@@ -1,0 +1,3521 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for Synapse — Visual Node-Based Data Analysis">
+      
+      
+      
+        <link rel="canonical" href="https://m00zu.github.io/Synapse/developing/creating-plugins.html">
+      
+      
+        <link rel="prev" href="../plugins/filopodia.html">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Creating Plugins - Synapse Manual</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <meta name="google-site-verification" content="rg863i5N8ecgnw3Fhv05lSJEnl4WFv_rMcdvnhzmdkY" />
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#creating-plugins" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="Synapse Manual" class="md-header__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.33 12.91c.09 1.55-.62 3.04-1.89 3.95l.77 1.49c.23.45.26.98.06 1.45-.19.47-.58.84-1.06 1l-.79.25a1.687 1.687 0 0 1-1.86-.55L14.44 18c-.89-.15-1.73-.53-2.44-1.1-.5.15-1 .23-1.5.23-.88 0-1.76-.27-2.5-.79-.53.16-1.07.23-1.62.22-.79.01-1.57-.15-2.3-.45a4.1 4.1 0 0 1-2.43-3.61c-.08-.72.04-1.45.35-2.11-.29-.75-.32-1.57-.07-2.33C2.3 7.11 3 6.32 3.87 5.82c.58-1.69 2.21-2.82 4-2.7 1.6-1.5 4.05-1.66 5.83-.37.42-.11.86-.17 1.3-.17 1.36-.03 2.65.57 3.5 1.64 2.04.53 3.5 2.35 3.58 4.47.05 1.11-.25 2.2-.86 3.13.07.36.11.72.11 1.09m-5-1.41c.57.07 1.02.5 1.02 1.07a1 1 0 0 1-1 1h-.63c-.32.9-.88 1.69-1.62 2.29.25.09.51.14.77.21 5.13-.07 4.53-3.2 4.53-3.25a2.59 2.59 0 0 0-2.69-2.49 1 1 0 0 1-1-1 1 1 0 0 1 1-1c1.23.03 2.41.49 3.33 1.3.05-.29.08-.59.08-.89-.06-1.24-.62-2.32-2.87-2.53-1.25-2.96-4.4-1.32-4.4-.4-.03.23.21.72.25.75a1 1 0 0 1 1 1c0 .55-.45 1-1 1-.53-.02-1.03-.22-1.43-.56-.48.31-1.03.5-1.6.56-.57.05-1.04-.35-1.07-.9a.97.97 0 0 1 .88-1.1c.16-.02.94-.14.94-.77 0-.66.25-1.29.68-1.79-.92-.25-1.91.08-2.91 1.29C6.75 5 6 5.25 5.45 7.2 4.5 7.67 4 8 3.78 9c1.08-.22 2.19-.13 3.22.25.5.19.78.75.59 1.29-.19.52-.77.78-1.29.59-.73-.32-1.55-.34-2.3-.06-.32.27-.32.83-.32 1.27 0 .74.37 1.43 1 1.83.53.27 1.12.41 1.71.4q-.225-.39-.39-.81a1.038 1.038 0 0 1 1.96-.68c.4 1.14 1.42 1.92 2.62 2.05 1.37-.07 2.59-.88 3.19-2.13.23-1.38 1.34-1.5 2.56-1.5m2 7.47-.62-1.3-.71.16 1 1.25zm-4.65-8.61a1 1 0 0 0-.91-1.03c-.71-.04-1.4.2-1.93.67-.57.58-.87 1.38-.84 2.19a1 1 0 0 0 1 1c.57 0 1-.45 1-1 0-.27.07-.54.23-.76.12-.1.27-.15.43-.15.55.03 1.02-.38 1.02-.92"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Synapse Manual
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Creating Plugins
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/m00zu/Synapse" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m00zu/Synapse
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="Synapse Manual" class="md-nav__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.33 12.91c.09 1.55-.62 3.04-1.89 3.95l.77 1.49c.23.45.26.98.06 1.45-.19.47-.58.84-1.06 1l-.79.25a1.687 1.687 0 0 1-1.86-.55L14.44 18c-.89-.15-1.73-.53-2.44-1.1-.5.15-1 .23-1.5.23-.88 0-1.76-.27-2.5-.79-.53.16-1.07.23-1.62.22-.79.01-1.57-.15-2.3-.45a4.1 4.1 0 0 1-2.43-3.61c-.08-.72.04-1.45.35-2.11-.29-.75-.32-1.57-.07-2.33C2.3 7.11 3 6.32 3.87 5.82c.58-1.69 2.21-2.82 4-2.7 1.6-1.5 4.05-1.66 5.83-.37.42-.11.86-.17 1.3-.17 1.36-.03 2.65.57 3.5 1.64 2.04.53 3.5 2.35 3.58 4.47.05 1.11-.25 2.2-.86 3.13.07.36.11.72.11 1.09m-5-1.41c.57.07 1.02.5 1.02 1.07a1 1 0 0 1-1 1h-.63c-.32.9-.88 1.69-1.62 2.29.25.09.51.14.77.21 5.13-.07 4.53-3.2 4.53-3.25a2.59 2.59 0 0 0-2.69-2.49 1 1 0 0 1-1-1 1 1 0 0 1 1-1c1.23.03 2.41.49 3.33 1.3.05-.29.08-.59.08-.89-.06-1.24-.62-2.32-2.87-2.53-1.25-2.96-4.4-1.32-4.4-.4-.03.23.21.72.25.75a1 1 0 0 1 1 1c0 .55-.45 1-1 1-.53-.02-1.03-.22-1.43-.56-.48.31-1.03.5-1.6.56-.57.05-1.04-.35-1.07-.9a.97.97 0 0 1 .88-1.1c.16-.02.94-.14.94-.77 0-.66.25-1.29.68-1.79-.92-.25-1.91.08-2.91 1.29C6.75 5 6 5.25 5.45 7.2 4.5 7.67 4 8 3.78 9c1.08-.22 2.19-.13 3.22.25.5.19.78.75.59 1.29-.19.52-.77.78-1.29.59-.73-.32-1.55-.34-2.3-.06-.32.27-.32.83-.32 1.27 0 .74.37 1.43 1 1.83.53.27 1.12.41 1.71.4q-.225-.39-.39-.81a1.038 1.038 0 0 1 1.96-.68c.4 1.14 1.42 1.92 2.62 2.05 1.37-.07 2.59-.88 3.19-2.13.23-1.38 1.34-1.5 2.56-1.5m2 7.47-.62-1.3-.71.16 1 1.25zm-4.65-8.61a1 1 0 0 0-.91-1.03c-.71-.04-1.4.2-1.93.67-.57.58-.87 1.38-.84 2.19a1 1 0 0 0 1 1c.57 0 1-.45 1-1 0-.27.07-.54.23-.76.12-.1.27-.15.43-.15.55.03 1.02-.38 1.02-.92"/></svg>
+
+    </a>
+    Synapse Manual
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/m00zu/Synapse" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m00zu/Synapse
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/interface.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interface Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quick-start.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/examples.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/ai-assistant.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Assistant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/nodes-and-connections.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes & Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/data-types.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/batch-processing.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/plugins.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installing Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shortcuts.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example Workflows
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Example Workflows
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workflows/cell-counting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cell Counting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workflows/batch-analysis.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Node Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nodes/io-display.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO & Display
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data & Tables
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data & Tables
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nodes/data-tables/filter.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nodes/data-tables/compute.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nodes/data-tables/transform.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nodes/data-tables/combine.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Combine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nodes/data-tables/util.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugin Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Image Analysis
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Image Analysis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/image-analysis/color.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Color
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/image-analysis/exposure.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exposure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/image-analysis/filters.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/image-analysis/transform.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/image-analysis/morphology.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Morphology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/image-analysis/measurement.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Measurement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/image-analysis/roi-drawing.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ROI & Drawing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistical Analysis
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Statistical Analysis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/statistical-analysis/descriptive.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Descriptive & Comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/statistical-analysis/regression.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Regression & Advanced
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/figure-plotting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Figure Plotting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SAM2 & Cellpose
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SAM2 & Cellpose
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/sam2.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SAM2 Segmentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/cellpose.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cellpose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/video-tracking.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Video & Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/volume.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3D Volume
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/cheminformatics.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cheminformatics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/filopodia.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filopodia Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Plugins
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="creating-plugins.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-plugins-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How Plugins Work
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How Plugins Work">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-directory-locations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Directory Locations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start-minimal-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start: Minimal Plugin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#anatomy-of-a-node-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anatomy of a Node Class
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Anatomy of a Node Class">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#required-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Attributes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docstrings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docstrings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ports-inputs-and-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ports: Inputs and Outputs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ports: Inputs and Outputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-ports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding Ports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#built-in-port-colors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in Port Colors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-port-colors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Port Colors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#properties-and-widgets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Properties and Widgets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Properties and Widgets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#integer-spinbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integer Spinbox
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#float-spinbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Float Spinbox
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combo-box-dropdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Combo Box (Dropdown)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filedirectory-selectors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File/Directory Selectors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#color-picker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Color Picker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compact-row-multiple-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compact Row (Multiple Values)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reading-property-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading Property Values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hidden-properties-no-widget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hidden Properties (No Widget)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-evaluate-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The evaluate() Method
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The evaluate() Method">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#return-signature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Return Signature
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reading-input-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading Input Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writing-output-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing Output Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full Pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#important-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#built-in-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-custom-data-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating Custom Data Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#batch-merge-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch Merge Support
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Node Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dirty-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dirty State
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#execution-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Order
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#batch-processing-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch Processing Hooks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#progress-and-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Progress and Display
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Progress and Display">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#progress-bar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Progress Bar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#display-thumbnail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Display Thumbnail
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Formats
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin Formats">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#single-file-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single File Plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#package-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package Plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#package-with-vendored-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package with Vendored Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Distribution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Distribution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#as-a-zip-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        As a .zip File
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-a-synpkg-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        As a .synpkg File
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#available-libraries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Libraries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-example-multi-output-node-with-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete Example: Multi-Output Node with Properties
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debugging-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debugging Tips
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#baseexecutionnode-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseExecutionNode Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#widget-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Widget Helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#available-custom-widgets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Custom Widgets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="creating-plugins">Creating Plugins<a class="headerlink" href="#creating-plugins" title="Permanent link">&para;</a></h1>
+<p>This guide walks you through building custom Synapse plugins — from a minimal single-node file to a full package with vendored dependencies and custom data types.</p>
+<hr />
+<h2 id="how-plugins-work">How Plugins Work<a class="headerlink" href="#how-plugins-work" title="Permanent link">&para;</a></h2>
+<p>When Synapse starts, it scans the <strong>plugin directory</strong> for <code>.py</code> files and package folders. Any Python class that meets three requirements is auto-registered and appears in the Node Explorer:</p>
+<ol>
+<li>Inherits from <code>BaseExecutionNode</code></li>
+<li>Has <code>__identifier__</code> starting with <code>'plugins.'</code></li>
+<li>Has a <code>NODE_NAME</code> attribute</li>
+</ol>
+<p>No configuration files, no manual registration. Drop a file in, click <strong>View &gt; Reload Plugins</strong>, and your nodes appear.</p>
+<h3 id="plugin-directory-locations">Plugin Directory Locations<a class="headerlink" href="#plugin-directory-locations" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Development (from source)</td>
+<td><code>./plugins/</code> (next to <code>main.py</code>)</td>
+</tr>
+<tr>
+<td>macOS (frozen app)</td>
+<td><code>~/Library/Application Support/Synapse/plugins/</code></td>
+</tr>
+<tr>
+<td>Windows (frozen app)</td>
+<td><code>%APPDATA%\Synapse\plugins\</code></td>
+</tr>
+<tr>
+<td>Linux (frozen app)</td>
+<td><code>~/.synapse/plugins/</code></td>
+</tr>
+</tbody>
+</table>
+<p>You can also open the plugin directory from <strong>Plugins &gt; Plugin Manager &gt; Open Folder</strong>.</p>
+<hr />
+<h2 id="quick-start-minimal-plugin">Quick Start: Minimal Plugin<a class="headerlink" href="#quick-start-minimal-plugin" title="Permanent link">&para;</a></h2>
+<p>Create a file called <code>my_plugin.py</code> in the plugin directory:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseExecutionNode</span><span class="p">,</span> <span class="n">PORT_COLORS</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageData</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">InvertImageNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert pixel intensities (output = 1.0 - input).&quot;&quot;&quot;</span>
+
+    <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.MyPlugin&#39;</span>
+    <span class="n">NODE_NAME</span>      <span class="o">=</span> <span class="s1">&#39;Invert Image&#39;</span>
+    <span class="n">PORT_SPEC</span>      <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;inputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">],</span> <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># 1. Read from the input port</span>
+        <span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+        <span class="n">connected</span> <span class="o">=</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">connected</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="o">.</span><span class="n">output_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">connected</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ImageData</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Expected ImageData&quot;</span>
+
+        <span class="c1"># 2. Process — payload is a float32 numpy array in [0, 1]</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span>          <span class="c1"># shape: (H, W) grayscale or (H, W, 3) RGB</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">arr</span>          <span class="c1"># invert: black becomes white, white becomes black</span>
+
+        <span class="c1"># 3. Write to the output port, carrying over upstream metadata</span>
+        <span class="c1">#    (bit_depth, scale_um, source_path, etc.)</span>
+        <span class="n">upstream_meta</span> <span class="o">=</span> <span class="p">{</span><span class="n">f</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">model_fields</span> <span class="k">if</span> <span class="n">f</span> <span class="o">!=</span> <span class="s1">&#39;payload&#39;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ImageData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">result</span><span class="p">,</span> <span class="o">**</span><span class="n">upstream_meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+</code></pre></div>
+<blockquote>
+<p><strong>Tip:</strong> The two lines that propagate metadata are common enough that there's a
+shortcut: <code>self._make_image_output(arr)</code> does the same thing (find upstream ImageData,
+copy all fields except payload, store to <code>output_values['image']</code>).
+There's also <code>self._get_input_image_data()</code> which replaces the port-reading boilerplate.
+See the <a href="#api-reference">API Reference</a> at the bottom of this page.</p>
+</blockquote>
+<p>Click <strong>View &gt; Reload Plugins</strong> and your node appears under <strong>Plugins &gt; MyPlugin</strong> in the Node Explorer.</p>
+<hr />
+<h2 id="anatomy-of-a-node-class">Anatomy of a Node Class<a class="headerlink" href="#anatomy-of-a-node-class" title="Permanent link">&para;</a></h2>
+<h3 id="required-attributes">Required Attributes<a class="headerlink" href="#required-attributes" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MyNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+    <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.Category&#39;</span>  <span class="c1"># Must start with &#39;plugins.&#39;</span>
+    <span class="n">NODE_NAME</span>      <span class="o">=</span> <span class="s1">&#39;My Node&#39;</span>                    <span class="c1"># Display name in Node Explorer</span>
+    <span class="n">PORT_SPEC</span>      <span class="o">=</span> <span class="p">{</span>                            <span class="c1"># Port declaration for docs/LLM/tree</span>
+        <span class="s1">&#39;inputs&#39;</span><span class="p">:</span>  <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;mask&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span>
+    <span class="p">}</span>
+</code></pre></div>
+<p><strong><code>__identifier__</code></strong> controls the Node Explorer tree hierarchy:</p>
+<table>
+<thead>
+<tr>
+<th>Identifier</th>
+<th>Node Explorer Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>'plugins.Plugins.MyPlugin'</code></td>
+<td>Plugins &gt; MyPlugin</td>
+</tr>
+<tr>
+<td><code>'plugins.Plugins.Segmentation'</code></td>
+<td>Plugins &gt; Segmentation</td>
+</tr>
+<tr>
+<td><code>'plugins.Plugins.Cheminformatics'</code></td>
+<td>Plugins &gt; Cheminformatics</td>
+</tr>
+</tbody>
+</table>
+<p>All nodes with the same <code>__identifier__</code> are grouped together in the tree.</p>
+<p><strong><code>PORT_SPEC</code></strong> is used by the documentation generator, the LLM assistant's node catalog, and the Node Explorer tree panel (to show colored port indicators next to each node). Each name should be a key from <code>PORT_COLORS</code> (detailed in the following section, <strong>Built-in Port Colors</strong>) so the tree shows the correct color. It should mirror your <code>add_input()</code> / <code>add_output()</code> calls.</p>
+<h3 id="docstrings">Docstrings<a class="headerlink" href="#docstrings" title="Permanent link">&para;</a></h3>
+<p>The class docstring is shown in the Node Help panel. The first line is also used as the short description in the LLM assistant's node catalog. When searching for nodes in the Node Explorer, the full docstring text is included in the search, so adding relevant keywords helps users find your node.</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GaussianBlurNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply a Gaussian blur filter with configurable sigma radius.</span>
+
+<span class="sd">    Accepts grayscale or RGB images. The sigma parameter controls</span>
+<span class="sd">    how much the image is smoothed.</span>
+
+<span class="sd">    Keywords: smooth, denoise, blur</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<hr />
+<h2 id="ports-inputs-and-outputs">Ports: Inputs and Outputs<a class="headerlink" href="#ports-inputs-and-outputs" title="Permanent link">&para;</a></h2>
+<h3 id="adding-ports">Adding Ports<a class="headerlink" href="#adding-ports" title="Permanent link">&para;</a></h3>
+<p>Ports are added in <code>__init__()</code> with type-specific colors:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span>   <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="built-in-port-colors">Built-in Port Colors<a class="headerlink" href="#built-in-port-colors" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Color</th>
+<th>Data Type</th>
+<th>Python Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>'image'</code></td>
+<td>Green</td>
+<td>Image</td>
+<td><code>ImageData</code> (numpy float32 [0,1])</td>
+</tr>
+<tr>
+<td><code>'mask'</code></td>
+<td>Forest green</td>
+<td>Binary mask</td>
+<td><code>MaskData</code> (numpy uint8, 0 or 255)</td>
+</tr>
+<tr>
+<td><code>'label'</code></td>
+<td>Chartreuse</td>
+<td>Label array</td>
+<td><code>LabelData</code> (numpy int32)</td>
+</tr>
+<tr>
+<td><code>'skeleton'</code></td>
+<td>Yellow-green</td>
+<td>Skeleton mask</td>
+<td><code>SkeletonData</code> (numpy uint8)</td>
+</tr>
+<tr>
+<td><code>'table'</code></td>
+<td>Blue</td>
+<td>Data table</td>
+<td><code>TableData</code> (pandas DataFrame)</td>
+</tr>
+<tr>
+<td><code>'stat'</code></td>
+<td>Royal blue</td>
+<td>Statistics</td>
+<td><code>StatData</code> (pandas DataFrame)</td>
+</tr>
+<tr>
+<td><code>'figure'</code></td>
+<td>Purple</td>
+<td>Plot</td>
+<td><code>FigureData</code> (matplotlib Figure)</td>
+</tr>
+<tr>
+<td><code>'path'</code></td>
+<td>Gray</td>
+<td>File path</td>
+<td><code>str</code></td>
+</tr>
+<tr>
+<td><code>'any'</code></td>
+<td>Dark gray</td>
+<td>Any type</td>
+<td>any Python object</td>
+</tr>
+</tbody>
+</table>
+<h3 id="custom-port-colors">Custom Port Colors<a class="headerlink" href="#custom-port-colors" title="Permanent link">&para;</a></h3>
+<p>If your plugin introduces a new data type, register a color for it <strong>before</strong> your class definitions. The key you add becomes usable in <code>PORT_SPEC</code>, <code>add_input()</code>, and <code>add_output()</code>, and the Node Explorer tree will show the matching color.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">PORT_COLORS</span>
+
+<span class="c1"># Register at module level, before any class definitions.</span>
+<span class="c1"># Use setdefault() so you don&#39;t overwrite colors registered by other plugins.</span>
+<span class="n">PORT_COLORS</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;spectra&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">165</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>   <span class="c1"># Orange</span>
+<span class="n">PORT_COLORS</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;tensor&#39;</span><span class="p">,</span>  <span class="p">(</span><span class="mi">220</span><span class="p">,</span>  <span class="mi">80</span><span class="p">,</span> <span class="mi">220</span><span class="p">))</span> <span class="c1"># Magenta</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MySpectraNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+    <span class="n">PORT_SPEC</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;inputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">],</span> <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;spectra&#39;</span><span class="p">]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span>    <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;spectra&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;spectra&#39;</span><span class="p">])</span>
+</code></pre></div>
+<hr />
+<h2 id="properties-and-widgets">Properties and Widgets<a class="headerlink" href="#properties-and-widgets" title="Permanent link">&para;</a></h2>
+<p>Properties are node parameters that the user can adjust. They are shown on the node card and in the Properties panel. Add them in <code>__init__()</code>.</p>
+<h3 id="integer-spinbox">Integer Spinbox<a class="headerlink" href="#integer-spinbox" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">_add_int_spinbox</span><span class="p">(</span><span class="s1">&#39;radius&#39;</span><span class="p">,</span> <span class="s1">&#39;Radius&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">min_val</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="float-spinbox">Float Spinbox<a class="headerlink" href="#float-spinbox" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">_add_float_spinbox</span><span class="p">(</span><span class="s1">&#39;sigma&#39;</span><span class="p">,</span> <span class="s1">&#39;Sigma&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                         <span class="n">min_val</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="combo-box-dropdown">Combo Box (Dropdown)<a class="headerlink" href="#combo-box-dropdown" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">add_combo_menu</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;Method&#39;</span><span class="p">,</span> <span class="n">items</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;median&#39;</span><span class="p">,</span> <span class="s1">&#39;bilateral&#39;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="filedirectory-selectors">File/Directory Selectors<a class="headerlink" href="#filedirectory-selectors" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># These are NodeBaseWidget subclasses — add with add_custom_widget()</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFileSelector</span><span class="p">,</span> <span class="n">NodeDirSelector</span><span class="p">,</span> <span class="n">NodeFileSaver</span>
+
+<span class="n">file_w</span> <span class="o">=</span> <span class="n">NodeFileSelector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;file_path&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Input File&#39;</span><span class="p">,</span>
+                          <span class="n">ext</span><span class="o">=</span><span class="s1">&#39;*.tif *.png *.jpg&#39;</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">add_custom_widget</span><span class="p">(</span><span class="n">file_w</span><span class="p">)</span>
+
+<span class="n">dir_w</span> <span class="o">=</span> <span class="n">NodeDirSelector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;folder&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Folder&#39;</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">add_custom_widget</span><span class="p">(</span><span class="n">dir_w</span><span class="p">)</span>
+
+<span class="n">save_w</span> <span class="o">=</span> <span class="n">NodeFileSaver</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;save_path&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Save As&#39;</span><span class="p">,</span>
+                       <span class="n">ext</span><span class="o">=</span><span class="s1">&#39;*.csv&#39;</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">add_custom_widget</span><span class="p">(</span><span class="n">save_w</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="color-picker">Color Picker<a class="headerlink" href="#color-picker" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeColorPickerWidget</span>
+
+<span class="n">color_w</span> <span class="o">=</span> <span class="n">NodeColorPickerWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dot_color&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Dot Color&#39;</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">add_custom_widget</span><span class="p">(</span><span class="n">color_w</span><span class="p">)</span>
+<span class="n">color_w</span><span class="o">.</span><span class="n">value_changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="k">lambda</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_property</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
+</code></pre></div>
+<h3 id="compact-row-multiple-values">Compact Row (Multiple Values)<a class="headerlink" href="#compact-row-multiple-values" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">_add_row</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="s1">&#39;Size&#39;</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+    <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;width&#39;</span><span class="p">,</span>  <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="s1">&#39;W&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="mi">512</span><span class="p">,</span> <span class="s1">&#39;min_val&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;max_val&#39;</span><span class="p">:</span> <span class="mi">8192</span><span class="p">},</span>
+    <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;height&#39;</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="mi">512</span><span class="p">,</span> <span class="s1">&#39;min_val&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;max_val&#39;</span><span class="p">:</span> <span class="mi">8192</span><span class="p">},</span>
+<span class="p">])</span>
+</code></pre></div>
+<h3 id="reading-property-values">Reading Property Values<a class="headerlink" href="#reading-property-values" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">radius</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;radius&#39;</span><span class="p">)</span>
+    <span class="n">sigma</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;sigma&#39;</span><span class="p">)</span>
+    <span class="n">method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">)</span>
+    <span class="o">...</span>
+</code></pre></div>
+<h3 id="hidden-properties-no-widget">Hidden Properties (No Widget)<a class="headerlink" href="#hidden-properties-no-widget" title="Permanent link">&para;</a></h3>
+<p>For internal state that should be serialized with the workflow but not shown to the user:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">NodeGraphQt.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodePropWidgetEnum</span>
+
+<span class="bp">self</span><span class="o">.</span><span class="n">create_property</span><span class="p">(</span><span class="s1">&#39;internal_state&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span>
+                     <span class="n">widget_type</span><span class="o">=</span><span class="n">NodePropWidgetEnum</span><span class="o">.</span><span class="n">HIDDEN</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="the-evaluate-method">The <code>evaluate()</code> Method<a class="headerlink" href="#the-evaluate-method" title="Permanent link">&para;</a></h2>
+<p>This is where your processing logic lives. It is called by the execution engine whenever the node is dirty (inputs changed or properties changed).</p>
+<h3 id="return-signature">Return Signature<a class="headerlink" href="#return-signature" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+</code></pre></div>
+<ul>
+<li>Return <code>(True, None)</code> on success</li>
+<li>Return <code>(False, "Error message")</code> on failure</li>
+</ul>
+<h3 id="reading-input-data">Reading Input Data<a class="headerlink" href="#reading-input-data" title="Permanent link">&para;</a></h3>
+<p>For image inputs, use the built-in helper:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_input_image_data</span><span class="p">()</span>  <span class="c1"># returns ImageData or None</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span>  <span class="c1"># numpy float32 array, values in [0, 1]</span>
+    <span class="c1"># arr.shape is (H, W) for grayscale, (H, W, 3) for RGB</span>
+    <span class="o">...</span>
+</code></pre></div>
+<p>For non-image inputs, read the port manually:</p>
+<div class="highlight"><pre><span></span><code><span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
+    <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+<span class="n">connected</span> <span class="o">=</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">connected</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="o">.</span><span class="n">output_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">connected</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
+</code></pre></div>
+<h3 id="writing-output-data">Writing Output Data<a class="headerlink" href="#writing-output-data" title="Permanent link">&para;</a></h3>
+<p>For image outputs, use <code>_make_image_output()</code> which propagates upstream metadata (bit_depth, scale_um, etc.):</p>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">_make_image_output</span><span class="p">(</span><span class="n">result_array</span><span class="p">)</span>                  <span class="c1"># default port name &#39;image&#39;</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">_make_image_output</span><span class="p">(</span><span class="n">result_array</span><span class="p">,</span> <span class="n">port_name</span><span class="o">=</span><span class="s1">&#39;out&#39;</span><span class="p">)</span> <span class="c1"># custom port name</span>
+</code></pre></div>
+<p>For non-image outputs, store directly:</p>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TableData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">dataframe</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">MaskData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">binary_uint8</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="full-pattern">Full Pattern<a class="headerlink" href="#full-pattern" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># 1. Read inputs</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_input_image_data</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+    <span class="c1"># 2. Read properties</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">)</span>
+
+    <span class="c1"># 3. Report progress (optional)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="c1"># 4. Do work — payload is float32 [0, 1]</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span>
+    <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># convert to grayscale using simple mean</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">arr</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
+
+    <span class="c1"># 5. Store outputs</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MaskData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="c1"># 6. Update display (optional, shows thumbnail on node)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_display</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="c1"># 7. Finish</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
+    <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+</code></pre></div>
+<h3 id="important-rules">Important Rules<a class="headerlink" href="#important-rules" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Always call <code>self.mark_clean()</code> before returning <code>(True, None)</code></li>
+<li>Never call <code>self.mark_clean()</code> when returning <code>(False, ...)</code></li>
+<li><code>evaluate()</code> runs on a <strong>background thread</strong> — do not create or modify Qt widgets here</li>
+<li>Use <code>self.set_progress()</code> and <code>self.set_display()</code> for thread-safe UI updates</li>
+</ul>
+<hr />
+<h2 id="data-types">Data Types<a class="headerlink" href="#data-types" title="Permanent link">&para;</a></h2>
+<p>All data flowing between nodes is wrapped in a <code>NodeData</code> subclass (from <code>data_models.py</code>).</p>
+<h3 id="built-in-types">Built-in Types<a class="headerlink" href="#built-in-types" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Parent</th>
+<th>Payload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ImageData</code></td>
+<td><code>NodeData</code></td>
+<td><code>np.ndarray</code> float32 [0,1]</td>
+</tr>
+<tr>
+<td><code>MaskData</code></td>
+<td><code>ImageData</code></td>
+<td><code>np.ndarray</code> uint8 (0 or 255)</td>
+</tr>
+<tr>
+<td><code>SkeletonData</code></td>
+<td><code>MaskData</code></td>
+<td><code>np.ndarray</code> uint8</td>
+</tr>
+<tr>
+<td><code>LabelData</code></td>
+<td><code>NodeData</code></td>
+<td><code>np.ndarray</code> int32</td>
+</tr>
+<tr>
+<td><code>TableData</code></td>
+<td><code>NodeData</code></td>
+<td><code>pd.DataFrame</code> or <code>pd.Series</code></td>
+</tr>
+<tr>
+<td><code>StatData</code></td>
+<td><code>TableData</code></td>
+<td><code>pd.DataFrame</code></td>
+</tr>
+<tr>
+<td><code>FigureData</code></td>
+<td><code>NodeData</code></td>
+<td><code>matplotlib.figure.Figure</code></td>
+</tr>
+</tbody>
+</table>
+<p>Since <code>MaskData</code> and <code>SkeletonData</code> inherit from <code>ImageData</code>, any node that accepts <code>ImageData</code> input can also accept a mask or skeleton. Similarly, <code>StatData</code> inherits from <code>TableData</code>, so it works anywhere a table is expected.</p>
+<p>All types are imported from <code>data_models</code> (e.g. <code>from data_models import ImageData, MaskData</code>).</p>
+<p><code>ImageData</code> has additional fields beyond <code>payload</code>:</p>
+<ul>
+<li><code>bit_depth: int</code> — original bit depth (8, 12, 14, or 16). Default 8.</li>
+<li><code>scale_um: float | None</code> — physical pixel size in micrometers</li>
+</ul>
+<p>All types share these optional fields:</p>
+<ul>
+<li><code>metadata: dict</code> — arbitrary key-value pairs (e.g., <code>{'frame': 1, 'file': 'img_001.tif'}</code>)</li>
+<li><code>source_path: str | None</code> — originating file path</li>
+</ul>
+<h3 id="creating-custom-data-types">Creating Custom Data Types<a class="headerlink" href="#creating-custom-data-types" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">data_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeData</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SpectraData</span><span class="p">(</span><span class="n">NodeData</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wraps a 1-D numpy float array (intensity vs channel).&quot;&quot;&quot;</span>
+    <span class="n">payload</span><span class="p">:</span> <span class="n">Any</span>   <span class="c1"># np.ndarray shape (N,)</span>
+</code></pre></div>
+<p>Use <code>payload: Any</code> for types that Pydantic cannot natively validate (numpy arrays, custom objects, etc.).</p>
+<h3 id="batch-merge-support">Batch Merge Support<a class="headerlink" href="#batch-merge-support" title="Permanent link">&para;</a></h3>
+<p>If your data type will be used with batch processing, implement <code>merge()</code>. The <code>Batch Accumulator</code> node calls this method after all iterations finish to combine results from each iteration into a single output (usually a <code>TableData</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SpectraData</span><span class="p">(</span><span class="n">NodeData</span><span class="p">):</span>
+    <span class="n">payload</span><span class="p">:</span> <span class="n">Any</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;TableData&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge spectra from all batch frames into a table.&quot;&quot;&quot;</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;frame&#39;</span><span class="p">:</span> <span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;frame&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="s1">&#39;mean_intensity&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">payload</span><span class="o">.</span><span class="n">mean</span><span class="p">()),</span>
+            <span class="p">})</span>
+        <span class="k">return</span> <span class="n">TableData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">))</span>
+</code></pre></div>
+<hr />
+<h2 id="node-lifecycle">Node Lifecycle<a class="headerlink" href="#node-lifecycle" title="Permanent link">&para;</a></h2>
+<h3 id="dirty-state">Dirty State<a class="headerlink" href="#dirty-state" title="Permanent link">&para;</a></h3>
+<p>Nodes track whether they need re-execution:</p>
+<ul>
+<li><strong>Dirty</strong> (blue) — needs re-execution. Set when inputs connect/disconnect, properties change, or upstream nodes change.</li>
+<li><strong>Clean</strong> (dark) — successfully executed, output is cached.</li>
+<li><strong>Error</strong> (red) — execution failed.</li>
+<li><strong>Disabled</strong> (gray) — skipped during execution.</li>
+</ul>
+<p>Property changes automatically trigger <code>mark_dirty()</code>, <strong>except</strong> for UI-only properties like <code>color</code>, <code>pos</code>, <code>selected</code>, <code>name</code>, <code>progress</code>, <code>table_view</code>, <code>image_view</code>, <code>show_preview</code>, <code>live_preview</code>.</p>
+<h3 id="execution-order">Execution Order<a class="headerlink" href="#execution-order" title="Permanent link">&para;</a></h3>
+<p>The execution engine:</p>
+<ol>
+<li>Topologically sorts all nodes (upstream first)</li>
+<li>Skips clean and disabled nodes</li>
+<li>Calls <code>evaluate()</code> on each dirty node</li>
+<li>On success: <code>mark_clean()</code> is called (you must call it yourself)</li>
+<li>On failure: <code>mark_error()</code> is called automatically</li>
+</ol>
+<h3 id="batch-processing-hooks">Batch Processing Hooks<a class="headerlink" href="#batch-processing-hooks" title="Permanent link">&para;</a></h3>
+<p>When a batch runs (via <code>Folder Iterator</code>), the execution engine calls two hooks on every node in the graph:</p>
+<ul>
+<li><code>on_batch_start()</code> — called once before the first iteration. Use it to initialize state, open resources, or clear accumulated results.</li>
+<li><code>on_batch_end()</code> — called once after the last iteration. Use it to finalize output, close resources, or merge collected data.</li>
+</ul>
+<p>Between these two calls, <code>evaluate()</code> runs once per iteration as usual.</p>
+<p>Most nodes don't need to override these. They're useful when your node needs to manage something across the entire batch rather than per-iteration. For example, the built-in <code>Batch Accumulator</code> node uses <code>on_batch_start()</code> to clear its internal list and <code>on_batch_end()</code> to merge all collected items into a single output.</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CsvBatchWriterNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write each batch iteration&#39;s table as a row to a single CSV file.&quot;&quot;&quot;</span>
+
+    <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.MyPlugin&#39;</span>
+    <span class="n">NODE_NAME</span>      <span class="o">=</span> <span class="s1">&#39;CSV Batch Writer&#39;</span>
+    <span class="n">PORT_SPEC</span>      <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;inputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">],</span> <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">])</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFileSaver</span>
+        <span class="n">save_w</span> <span class="o">=</span> <span class="n">NodeFileSaver</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;save_path&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Save As&#39;</span><span class="p">,</span>
+                               <span class="n">ext</span><span class="o">=</span><span class="s1">&#39;*.csv&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_custom_widget</span><span class="p">(</span><span class="n">save_w</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_batch_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Clear accumulated rows before each batch run</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">in_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">in_port</span> <span class="ow">and</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+        <span class="n">connected</span> <span class="o">=</span> <span class="n">in_port</span><span class="o">.</span><span class="n">connected_ports</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">connected</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="o">.</span><span class="n">output_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">connected</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No data&quot;</span>
+
+        <span class="c1"># Collect each iteration&#39;s table</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_batch_end</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># After all iterations, write everything to one CSV</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span><span class="p">:</span>
+            <span class="n">combined</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rows</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">save_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;save_path&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">save_path</span><span class="p">:</span>
+                <span class="n">combined</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows</span> <span class="o">=</span> <span class="p">[]</span>
+</code></pre></div>
+<hr />
+<h2 id="progress-and-display">Progress and Display<a class="headerlink" href="#progress-and-display" title="Permanent link">&para;</a></h2>
+<h3 id="progress-bar">Progress Bar<a class="headerlink" href="#progress-bar" title="Permanent link">&para;</a></h3>
+<p>Every node gets a progress bar by default. Update it with:</p>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>   <span class="c1"># 0-100, thread-safe</span>
+</code></pre></div>
+<p>To create a node without a progress bar, pass <code>use_progress=False</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">use_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="display-thumbnail">Display Thumbnail<a class="headerlink" href="#display-thumbnail" title="Permanent link">&para;</a></h3>
+<p>Nodes that extend <code>BaseImageProcessNode</code> (instead of <code>BaseExecutionNode</code>) get a built-in image preview widget on the node card. Call <code>set_display()</code> inside <code>evaluate()</code> to update it:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseImageProcessNode</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MyImageNode</span><span class="p">(</span><span class="n">BaseImageProcessNode</span><span class="p">):</span>
+    <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="o">...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_display</span><span class="p">(</span><span class="n">numpy_array</span><span class="p">)</span>  <span class="c1"># Thread-safe, accepts numpy arrays</span>
+</code></pre></div>
+<p><code>BaseImageProcessNode</code> also adds a "Show Preview" checkbox that lets the user toggle the thumbnail on/off to save canvas space. If your node doesn't output images, just use <code>BaseExecutionNode</code>.</p>
+<hr />
+<h2 id="plugin-formats">Plugin Formats<a class="headerlink" href="#plugin-formats" title="Permanent link">&para;</a></h2>
+<h3 id="single-file-plugin">Single File Plugin<a class="headerlink" href="#single-file-plugin" title="Permanent link">&para;</a></h3>
+<p>A single <code>.py</code> file in the plugin directory. Best for simple plugins with 1-3 nodes.</p>
+<div class="highlight"><pre><span></span><code>plugins/
+    my_plugin.py
+</code></pre></div>
+<h3 id="package-plugin">Package Plugin<a class="headerlink" href="#package-plugin" title="Permanent link">&para;</a></h3>
+<p>A directory with <code>__init__.py</code>. Best for complex plugins with multiple modules.</p>
+<div class="highlight"><pre><span></span><code>plugins/
+    my_plugin/
+        __init__.py       # Must import/export all node classes
+        processing.py     # Helper modules
+        models.py
+</code></pre></div>
+<p>Your <code>__init__.py</code> must import all node classes so the loader can find them:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># my_plugin/__init__.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.processing</span><span class="w"> </span><span class="kn">import</span> <span class="n">MyProcessNode</span><span class="p">,</span> <span class="n">MyFilterNode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">MyCustomData</span>
+</code></pre></div>
+<h3 id="package-with-vendored-dependencies">Package with Vendored Dependencies<a class="headerlink" href="#package-with-vendored-dependencies" title="Permanent link">&para;</a></h3>
+<p>If your plugin needs third-party packages not bundled with Synapse, include them in a <code>vendor/</code> subdirectory. The plugin loader automatically prepends <code>vendor/</code> to <code>sys.path</code> before importing your package.</p>
+<div class="highlight"><pre><span></span><code>plugins/
+    my_plugin/
+        __init__.py
+        core.py
+        vendor/
+            some_library/
+                __init__.py
+                ...
+</code></pre></div>
+<p>This allows <code>import some_library</code> to work without system-level installation.</p>
+<hr />
+<h2 id="distribution">Distribution<a class="headerlink" href="#distribution" title="Permanent link">&para;</a></h2>
+<h3 id="as-a-zip-file">As a <code>.zip</code> File<a class="headerlink" href="#as-a-zip-file" title="Permanent link">&para;</a></h3>
+<p>Zip your package directory:</p>
+<div class="highlight"><pre><span></span><code>zip<span class="w"> </span>-r<span class="w"> </span>my_plugin.zip<span class="w"> </span>my_plugin/
+</code></pre></div>
+<p>Users install via <strong>Plugins &gt; Plugin Manager &gt; Install Plugin...</strong> and select the <code>.zip</code>.</p>
+<h3 id="as-a-synpkg-file">As a <code>.synpkg</code> File<a class="headerlink" href="#as-a-synpkg-file" title="Permanent link">&para;</a></h3>
+<p>Use the <code>synapse package</code> command to create zstd-compressed tar archives:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Full package (includes vendor/ directory)</span>
+synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin
+
+<span class="c1"># Skip vendored dependencies (smaller, user installs deps separately)</span>
+synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<span class="w"> </span>--no-vendor
+
+<span class="c1"># Source only (no vendor/, no data/)</span>
+synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<span class="w"> </span>--slim
+
+<span class="c1"># Custom output directory</span>
+synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<span class="w"> </span>-o<span class="w"> </span>~/Desktop
+</code></pre></div>
+<p>The output filename includes platform, architecture, and Python version automatically (e.g. <code>my_plugin-darwin-arm64-cp313-20260318.synpkg</code>).</p>
+<p>To install a <code>.synpkg</code> from the command line:</p>
+<div class="highlight"><pre><span></span><code>synapse<span class="w"> </span>package<span class="w"> </span>--install<span class="w"> </span>my_plugin.synpkg
+</code></pre></div>
+<p>Users can also install via <strong>Plugins &gt; Plugin Manager &gt; Install Plugin...</strong> in the app.</p>
+<h3 id="available-libraries">Available Libraries<a class="headerlink" href="#available-libraries" title="Permanent link">&para;</a></h3>
+<p>Plugins can only import libraries bundled with the Synapse app:</p>
+<ul>
+<li><strong>numpy</strong>, <strong>scipy</strong>, <strong>pandas</strong> — numerical computing</li>
+<li><strong>PIL / Pillow</strong> — image I/O and manipulation</li>
+<li><strong>scikit-image</strong> (skimage) — image processing and analysis</li>
+<li><strong>matplotlib</strong> — plotting and figures</li>
+<li><strong>PySide6</strong> — Qt widgets (for custom node UIs)</li>
+<li><strong>pydantic</strong> — data validation (used by <code>NodeData</code>)</li>
+</ul>
+<p>Anything else must be vendored inside your plugin package.</p>
+<hr />
+<h2 id="complete-example-multi-output-node-with-properties">Complete Example: Multi-Output Node with Properties<a class="headerlink" href="#complete-example-multi-output-node-with-properties" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">nodes.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseExecutionNode</span><span class="p">,</span> <span class="n">PORT_COLORS</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">data_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageData</span><span class="p">,</span> <span class="n">MaskData</span><span class="p">,</span> <span class="n">TableData</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ParticleDetectorNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Detect bright particles above a threshold and measure their properties.&quot;&quot;&quot;</span>
+
+    <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.MyPlugin&#39;</span>
+    <span class="n">NODE_NAME</span>      <span class="o">=</span> <span class="s1">&#39;Particle Detector&#39;</span>
+    <span class="n">PORT_SPEC</span>      <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;inputs&#39;</span><span class="p">:</span>  <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;outputs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="s1">&#39;table&#39;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1"># Ports</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span>  <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PORT_COLORS</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Properties — threshold is in [0, 1] to match the float32 pipeline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_float_spinbox</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="s1">&#39;Threshold&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                                <span class="n">min_val</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_int_spinbox</span><span class="p">(</span><span class="s1">&#39;min_area&#39;</span><span class="p">,</span> <span class="s1">&#39;Min Area (px)&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                              <span class="n">min_val</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mi">100000</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Read input — payload is float32 [0, 1]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_input_image_data</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+
+        <span class="c1"># Convert to grayscale if RGB</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Threshold</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">)</span>
+        <span class="n">binary</span> <span class="o">=</span> <span class="n">arr</span> <span class="o">&gt;</span> <span class="n">threshold</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
+
+        <span class="c1"># Label connected components</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">skimage.measure</span><span class="w"> </span><span class="kn">import</span> <span class="n">label</span><span class="p">,</span> <span class="n">regionprops_table</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">label</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+
+        <span class="c1"># Measure properties</span>
+        <span class="n">min_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_property</span><span class="p">(</span><span class="s1">&#39;min_area&#39;</span><span class="p">)</span>
+        <span class="n">props</span> <span class="o">=</span> <span class="n">regionprops_table</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">intensity_image</span><span class="o">=</span><span class="n">arr</span><span class="p">,</span>
+                                  <span class="n">properties</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;area&#39;</span><span class="p">,</span> <span class="s1">&#39;centroid&#39;</span><span class="p">,</span>
+                                              <span class="s1">&#39;mean_intensity&#39;</span><span class="p">])</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">props</span><span class="p">)</span>
+
+        <span class="c1"># Filter by minimum area</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;area&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">min_area</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span>
+
+        <span class="c1"># Create output mask (uint8, 0 or 255)</span>
+        <span class="n">mask_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
+
+        <span class="c1"># Rename columns</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;centroid-0&#39;</span><span class="p">:</span> <span class="s1">&#39;centroid_y&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;centroid-1&#39;</span><span class="p">:</span> <span class="s1">&#39;centroid_x&#39;</span><span class="p">,</span>
+        <span class="p">})</span>
+
+        <span class="c1"># Store outputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">MaskData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">mask_arr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TableData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_display</span><span class="p">(</span><span class="n">mask_arr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_progress</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+</code></pre></div>
+<hr />
+<h2 id="debugging-tips">Debugging Tips<a class="headerlink" href="#debugging-tips" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Node doesn't appear?</strong> Check that <code>__identifier__</code> starts with <code>'plugins.'</code> and <code>NODE_NAME</code> is set.</li>
+<li><strong>Import errors?</strong> Open <strong>Plugins &gt; Plugin Manager</strong> — the Status column shows error messages per file.</li>
+<li><strong>Evaluate not called?</strong> Make sure the node is connected and marked dirty. Check that you're returning <code>(True, None)</code> or <code>(False, "message")</code>.</li>
+<li><strong>UI freezes?</strong> Your <code>evaluate()</code> runs on a background thread. Never call Qt widget methods directly — use <code>self.set_progress()</code> and <code>self.set_display()</code> instead.</li>
+<li><strong>Property not updating?</strong> Use <code>self.get_property('name')</code> inside <code>evaluate()</code>, not cached instance variables. Properties auto-trigger <code>mark_dirty()</code> when changed.</li>
+</ul>
+<hr />
+<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
+<h3 id="baseexecutionnode-methods">BaseExecutionNode Methods<a class="headerlink" href="#baseexecutionnode-methods" title="Permanent link">&para;</a></h3>
+<p><strong>Lifecycle (override these):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>evaluate()</code></td>
+<td>Your processing logic. Return <code>(True, None)</code> on success, <code>(False, "message")</code> on failure.</td>
+</tr>
+<tr>
+<td><code>on_batch_start()</code></td>
+<td>Called once before the batch loop begins. Override to initialize accumulators.</td>
+</tr>
+<tr>
+<td><code>on_batch_end()</code></td>
+<td>Called once after all batch items are processed.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Port management (call in <code>__init__</code>):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>add_input(name, color=...)</code></td>
+<td>Add an input port.</td>
+</tr>
+<tr>
+<td><code>add_output(name, color=...)</code></td>
+<td>Add an output port.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading inputs:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self.inputs()</code></td>
+<td>Dict of input ports. Use <code>self.inputs().get('name')</code> to get a port.</td>
+</tr>
+<tr>
+<td><code>port.connected_ports()</code></td>
+<td>List of ports connected to this port. Index <code>[0]</code> for the first connection.</td>
+</tr>
+<tr>
+<td><code>connected.node().output_values.get(connected.name())</code></td>
+<td>Read the data from a connected upstream port.</td>
+</tr>
+<tr>
+<td><code>_get_input_image_data()</code></td>
+<td>Shortcut: find the first connected <code>ImageData</code> across all input ports. Returns <code>None</code> if not found.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Writing outputs:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self.output_values['port_name'] = data</code></td>
+<td>Store output data on a named port.</td>
+</tr>
+<tr>
+<td><code>_make_image_output(arr, port_name='image')</code></td>
+<td>Shortcut: wrap a numpy array as <code>ImageData</code>, propagate upstream metadata (bit_depth, scale_um, etc.), and store on the named port.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_property(name)</code></td>
+<td>Read a property value.</td>
+</tr>
+<tr>
+<td><code>set_property(name, value)</code></td>
+<td>Update a property value. Triggers <code>mark_dirty()</code> automatically.</td>
+</tr>
+<tr>
+<td><code>create_property(name, value, ...)</code></td>
+<td>Create a new property. Raises if it already exists.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Node state:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mark_clean()</code></td>
+<td>Mark node as successfully executed. You must call this before returning <code>(True, None)</code>.</td>
+</tr>
+<tr>
+<td><code>mark_dirty()</code></td>
+<td>Mark node as needing re-execution. Cascades to all downstream nodes.</td>
+</tr>
+<tr>
+<td><code>mark_disabled()</code></td>
+<td>Disable the node so it is skipped during execution.</td>
+</tr>
+<tr>
+<td><code>mark_enabled()</code></td>
+<td>Re-enable a disabled node.</td>
+</tr>
+<tr>
+<td><code>clear_cache()</code></td>
+<td>Clear <code>output_values</code> and force re-evaluation on next run.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>UI feedback (thread-safe, can be called from <code>evaluate()</code>):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>set_progress(value)</code></td>
+<td>Update progress bar (0-100).</td>
+</tr>
+<tr>
+<td><code>set_display(data)</code></td>
+<td>Show a preview thumbnail on the node card. Accepts numpy arrays.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="widget-helpers">Widget Helpers<a class="headerlink" href="#widget-helpers" title="Permanent link">&para;</a></h3>
+<p>Call these in <code>__init__()</code> to add user-facing controls to the node card.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_add_int_spinbox(name, label, value, min_val, max_val, step)</code></td>
+<td>Integer spinbox.</td>
+</tr>
+<tr>
+<td><code>_add_float_spinbox(name, label, value, min_val, max_val, step, decimals)</code></td>
+<td>Float spinbox.</td>
+</tr>
+<tr>
+<td><code>_add_row(name, label, fields)</code></td>
+<td>Compact horizontal row of labeled spinboxes.</td>
+</tr>
+<tr>
+<td><code>_add_column_selector(name, label, text, mode)</code></td>
+<td>Text input with column dropdown. <code>mode</code>: <code>'single'</code> or <code>'multi'</code>.</td>
+</tr>
+<tr>
+<td><code>_refresh_column_selectors(df, *prop_names)</code></td>
+<td>Update column selector dropdowns with columns from a DataFrame. Thread-safe.</td>
+</tr>
+<tr>
+<td><code>_add_list_input(name, label, items)</code></td>
+<td>Reorderable list widget.</td>
+</tr>
+<tr>
+<td><code>add_combo_menu(name, label, items)</code></td>
+<td>Dropdown menu.</td>
+</tr>
+<tr>
+<td><code>add_custom_widget(widget)</code></td>
+<td>Embed any <code>NodeBaseWidget</code> subclass.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="available-custom-widgets">Available Custom Widgets<a class="headerlink" href="#available-custom-widgets" title="Permanent link">&para;</a></h3>
+<p>Import these from <code>nodes.base</code> for use with <code>add_custom_widget()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Widget</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NodeFileSelector(view, name, label, ext)</code></td>
+<td>File open dialog. <code>ext</code>: e.g. <code>'*.tif *.png *.jpg'</code>.</td>
+</tr>
+<tr>
+<td><code>NodeFileSaver(view, name, label, ext)</code></td>
+<td>File save dialog.</td>
+</tr>
+<tr>
+<td><code>NodeDirSelector(view, name, label)</code></td>
+<td>Directory picker.</td>
+</tr>
+<tr>
+<td><code>NodeColorPickerWidget(view, name, label)</code></td>
+<td>Color picker button.</td>
+</tr>
+<tr>
+<td><code>NodeColumnSelectorWidget(view, name, label, text, mode)</code></td>
+<td>Text field with column dropdown.</td>
+</tr>
+<tr>
+<td><code>NodeChannelSelectorWidget(view, name, label, text)</code></td>
+<td>Channel toggle selector (1-4 + PAD).</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "navigation.top", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
