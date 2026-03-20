@@ -1059,6 +1059,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#pop-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pop Collection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#split-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Split Collection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#save-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Save Collection
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2548,8 +2581,8 @@ over all items in the collection and repack the results.</p>
 <p>Extract a single item from a collection by name.</p>
 <details class="note">
 <summary>Details</summary>
-<p>Connect a CollectionData input, pick which item to extract from the
-dropdown. The dropdown auto-populates with available item names.</p>
+<p>Type a name or pick from the dropdown. The dropdown auto-populates
+with available item names when the collection is connected.</p>
 </details>
 <table>
 <thead>
@@ -2569,6 +2602,105 @@ dropdown. The dropdown auto-populates with available item names.</p>
 <td><strong>Output</strong></td>
 <td><code>out</code></td>
 <td>any</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="pop-collection">Pop Collection<a class="headerlink" href="#pop-collection" title="Permanent link">&para;</a></h3>
+<p>Extract one item from a collection and output the rest separately.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Two outputs: the extracted item on <strong>item</strong>, and a new collection
+without that item on <strong>rest</strong>.  Type a name or pick from the dropdown.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>item</code></td>
+<td>any</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>rest</code></td>
+<td>collection</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="split-collection">Split Collection<a class="headerlink" href="#split-collection" title="Permanent link">&para;</a></h3>
+<p>Split a collection into two groups by selecting which items go to each output.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Type item names separated by ' | ' or pick from the dropdown to add.
+Selected items go to <strong>selected</strong>, the rest go to <strong>rest</strong>.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>selected</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>rest</code></td>
+<td>collection</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="save-collection">Save Collection<a class="headerlink" href="#save-collection" title="Permanent link">&para;</a></h3>
+<p>Saves all items in a collection to disk.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Each item is saved as a separate file using the item name as a suffix.
+Supports images (TIFF, PNG), tables (CSV, TSV), and figures.</p>
+<p>If a path is connected, it is used as the base — the item name is inserted
+before the extension.  Otherwise the folder + extension fields are used.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>file_path</code></td>
+<td>path</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>status</code></td>
+<td>table</td>
 </tr>
 </tbody>
 </table>
