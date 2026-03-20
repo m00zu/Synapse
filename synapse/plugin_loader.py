@@ -184,6 +184,8 @@ def load_plugins(graph) -> list[dict]:
         error: str | None = None
 
         module_name = f'_plugin_{py_file.stem}'
+        # Evict cached module so updated files are re-read
+        sys.modules.pop(module_name, None)
         try:
             spec = importlib.util.spec_from_file_location(module_name, py_file)
             mod  = importlib.util.module_from_spec(spec)
@@ -219,6 +221,10 @@ def load_plugins(graph) -> list[dict]:
             sys.path.insert(0, str(vendor_dir))
 
         module_name = f'_plugin_pkg_{pkg_dir.name}'
+        # Evict cached module and all sub-modules so updated files are re-read
+        stale = [k for k in sys.modules if k == module_name or k.startswith(module_name + '.')]
+        for k in stale:
+            del sys.modules[k]
         try:
             spec = importlib.util.spec_from_file_location(
                 module_name, init_file,
