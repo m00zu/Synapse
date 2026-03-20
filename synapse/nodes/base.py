@@ -31,6 +31,7 @@ PORT_COLORS = {
     'figure':   (155,  89, 182),  # Purple     – matplotlib Figure / FigureData
     'confocal': (230, 126,  34),  # Orange     – ConfocalDatasetData
     'path':     (149, 165, 166),  # Grey       – file / folder path string
+    'collection': (230, 180, 50), # Gold       – CollectionData (named bundle)
     'any':      ( 95, 106, 106),  # Dark grey  – generic / unknown type
 }
 
@@ -1114,6 +1115,116 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
             if widget and hasattr(widget, 'set_columns'):
                 widget.set_columns(columns)
 
+    # ── Collection auto-loop ────────────────────────────────────────────────
+    _handles_collection = False  # True for nodes that natively handle CollectionData (Collect, Select)
+    _collection_aware = False    # True for stateless nodes safe to auto-loop over collections
+
+    def _check_collection_inputs(self):
+        """Check if any input port has a CollectionData. Returns (port_name, CollectionData) or None."""
+        from data_models import CollectionData
+        for port_name, port in self.inputs().items():
+            for connected in port.connected_ports():
+                data = connected.node().output_values.get(connected.name())
+                if isinstance(data, CollectionData):
+                    return port_name, data
+        return None
+
+    def _evaluate_collection_loop(self, col_port_name, collection):
+        """Run evaluate() once per collection item, repack outputs."""
+        from data_models import CollectionData
+
+        # Save original output_values
+        all_outputs = {}  # {port_name: {item_name: data}}
+        total = len(collection)
+        self.set_progress(0)
+
+        # Suppress per-item progress and display calls during the loop
+        _orig_set_progress = self.set_progress
+        _orig_set_display = self.set_display
+        _last_display = [None]  # capture last display data
+        self.set_progress = lambda v: None
+        self.set_display = lambda d: _last_display.__setitem__(0, d)
+
+        for idx, (item_name, item_data) in enumerate(collection.payload.items()):
+            _orig_set_progress(int(idx / total * 100))
+            # Temporarily inject the single item as the port's output
+            # by patching the upstream node's output_values
+            port = self.inputs().get(col_port_name)
+            if not port:
+                continue
+            connected_ports = port.connected_ports()
+            if not connected_ports:
+                continue
+
+            # Find all collection inputs and single inputs
+            # For collection inputs: swap in the current item
+            # For single inputs: leave as-is (broadcast)
+            originals = {}
+            for cp in connected_ports:
+                upstream = cp.node()
+                up_port = cp.name()
+                orig_val = upstream.output_values.get(up_port)
+                originals[(id(upstream), up_port)] = orig_val
+                if isinstance(orig_val, CollectionData):
+                    # Swap collection with single item
+                    upstream.output_values[up_port] = orig_val.get(item_name) or item_data
+
+            # Also check other input ports for collections and swap them
+            for other_name, other_port in self.inputs().items():
+                if other_name == col_port_name:
+                    continue
+                for cp in other_port.connected_ports():
+                    upstream = cp.node()
+                    up_port = cp.name()
+                    orig_val = upstream.output_values.get(up_port)
+                    if isinstance(orig_val, CollectionData):
+                        originals[(id(upstream), up_port)] = orig_val
+                        # Pair by name if available, otherwise broadcast first item
+                        upstream.output_values[up_port] = (
+                            orig_val.get(item_name) or
+                            next(iter(orig_val.payload.values()), None)
+                        )
+
+            # Run the node's normal evaluate
+            self.output_values = {}
+            success, err = self.evaluate()
+
+            # Restore original upstream values
+            for (uid, up_port), orig_val in originals.items():
+                for cp in port.connected_ports():
+                    if id(cp.node()) == uid:
+                        cp.node().output_values[up_port] = orig_val
+                for other_name, other_port in self.inputs().items():
+                    for cp in other_port.connected_ports():
+                        if id(cp.node()) == uid:
+                            cp.node().output_values[up_port] = orig_val
+
+            if not success:
+                continue  # skip failed items
+
+            # Collect outputs per port
+            for out_name, out_val in self.output_values.items():
+                if out_name not in all_outputs:
+                    all_outputs[out_name] = {}
+                all_outputs[out_name][item_name] = out_val
+
+        # Restore progress and display functions
+        self.set_progress = _orig_set_progress
+        self.set_display = _orig_set_display
+        self.set_progress(100)
+        # Show the last item's display data
+        if _last_display[0] is not None:
+            self.set_display(_last_display[0])
+
+        # Repack: each output port gets a CollectionData
+        self.output_values = {}
+        for out_name, items_dict in all_outputs.items():
+            if len(items_dict) == 0:
+                continue
+            self.output_values[out_name] = CollectionData(payload=items_dict)
+
+        return True, None
+
     def set_display(self, data):
         """Signals that this node wants to display data (Main Thread only)."""
         NODE_SIGNALS.display_requested.emit(self.id, data)
@@ -1344,7 +1455,12 @@ class BaseImageProcessNode(BaseExecutionNode):
                 self._display_ui(self._last_display_data)
         else:
             if name not in self._UI_PROPS and self.get_property('live_preview'):
-                success, err = self.evaluate()
+                # Check for collection input — use auto-loop if needed
+                col_info = self._check_collection_inputs() if self._collection_aware else None
+                if col_info:
+                    success, err = self._evaluate_collection_loop(*col_info)
+                else:
+                    success, err = self.evaluate()
                 if success:
                     self.mark_clean()
                 else:

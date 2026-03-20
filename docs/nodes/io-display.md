@@ -258,3 +258,37 @@ Takes a file path and modifies it by adding a suffix, changing the extension, or
 | **Output** | `path` | path |
 
 ---
+
+### Collect
+
+Pack multiple data items into a named collection.
+
+??? note "Details"
+    Connect any number of items to the multi-input port. Each connection
+    gets a name (auto-populated from the upstream port name, editable).
+    The output is a single CollectionData that flows as one wire.
+    
+    Downstream nodes that expect a single item will automatically loop
+    over all items in the collection and repack the results.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `in` | any |
+| **Output** | `collection` | collection |
+
+---
+
+### Select Collection
+
+Extract a single item from a collection by name.
+
+??? note "Details"
+    Connect a CollectionData input, pick which item to extract from the
+    dropdown. The dropdown auto-populates with available item names.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `collection` | collection |
+| **Output** | `out` | any |
+
+---

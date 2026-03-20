@@ -103,6 +103,7 @@ class FileReadNode(BaseExecutionNode):
     __identifier__ = 'nodes.io'
     NODE_NAME = 'Table Reader'
     PORT_SPEC = {'inputs': ['path'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super(FileReadNode, self).__init__()
@@ -176,6 +177,7 @@ class FolderIteratorNode(BaseExecutionNode):
     __identifier__ = 'nodes.io'
     NODE_NAME = 'Folder Iterator'
     PORT_SPEC = {'inputs': [], 'outputs': ['path']}
+    _collection_aware = True
 
     def __init__(self):
         super(FolderIteratorNode, self).__init__(use_progress=False)
@@ -1117,6 +1119,7 @@ class ImageReadNode(BaseExecutionNode):
     __identifier__ = 'nodes.io'
     NODE_NAME = 'Image Reader'
     PORT_SPEC = {'inputs': ['path'], 'outputs': ['image']}
+    _collection_aware = True
 
     def __init__(self):
         super(ImageReadNode, self).__init__()
@@ -1336,6 +1339,7 @@ class SaveNode(BaseExecutionNode):
     __identifier__ = 'nodes.utility'
     NODE_NAME = 'Data Saver'
     PORT_SPEC = {'inputs': ['any', 'path'], 'outputs': []}
+    _collection_aware = True
 
     def __init__(self):
         super(SaveNode, self).__init__()

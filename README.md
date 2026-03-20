@@ -121,6 +121,14 @@ The core handles data I/O, table operations, and display. Domain-specific nodes 
 
 ### Installing plugins
 
+**From the in-app Plugin Manager (recommended):**
+
+1. In Synapse, go to **Plugins > Plugin Manager** and open the **Browse Online** tab
+2. Browse available plugins, then click **Install** on the ones you need
+3. The plugin is downloaded and installed automatically — new nodes appear in the Node Explorer after restart
+
+**Manual install:**
+
 1. Download `.synpkg` files from [Synapse-Plugins Releases](https://github.com/m00zu/Synapse-Plugins/releases)
 2. In Synapse, go to **Plugins > Install Plugin** and select the `.synpkg` file
 3. Click **Plugins > Reload Plugins** and the new nodes appear in the Node Explorer

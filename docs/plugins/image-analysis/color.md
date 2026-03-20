@@ -105,3 +105,23 @@ Remaps RGB channels to custom colors and composites them.
 | **Output** | `image` | image |
 
 ---
+
+### Merge Image
+
+Additively blend multiple images into one output.
+
+??? note "Details"
+    Connect any number of images to the input port. The node sums all
+    input pixel values and clips to [0, 1]. Useful for combining
+    individually color-adjusted channels into a single composite
+    (e.g. merge ch1 + ch2 + ch4, skipping DAPI).
+    
+    Works with both grayscale and RGB inputs. Grayscale inputs are
+    broadcast across all 3 RGB channels.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `image` | image |
+| **Output** | `image` | image |
+
+---

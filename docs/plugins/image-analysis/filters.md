@@ -119,6 +119,29 @@ Splits image intensity into N classes using multi-Otsu thresholding.
 
 ---
 
+### OIR Reader
+
+Read Olympus OIR microscopy files and output each channel separately.
+
+??? note "Details"
+    Outputs up to 4 individual grayscale channels and a colorized composite.
+    Each channel can be assigned a display color (or grayscale) using the
+    color buttons. Channels not present in the file output as black.
+    
+    Supports both native OIR format and TIFF files saved with .oir extension.
+    Uses the Rust reader when available, with Python fallback.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `path` | path |
+| **Output** | `ch1` | image |
+| **Output** | `ch2` | image |
+| **Output** | `ch3` | image |
+| **Output** | `ch4` | image |
+| **Output** | `composite` | image |
+
+---
+
 ### Bandpass Filter
 
 Applies an FFT-based bandpass filter to a grayscale image.

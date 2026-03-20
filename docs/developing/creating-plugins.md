@@ -424,6 +424,78 @@ class SpectraData(NodeData):
 
 ---
 
+## Collections
+
+A `CollectionData` is a named bundle of `NodeData` items that travels through the graph as a single wire. Its payload is a `dict[str, NodeData]` — each key is a user-defined name, each value is a data item (typically all the same type, but mixed types are allowed).
+
+```python
+from data_models import CollectionData, ImageData
+
+# A collection of three images
+col = CollectionData(payload={
+    'sample_A': ImageData(payload=arr_a),
+    'sample_B': ImageData(payload=arr_b),
+    'control':  ImageData(payload=arr_c),
+})
+```
+
+### Making a Node Collection-Aware
+
+Add `_collection_aware = True` to your class:
+
+```python
+class InvertImageNode(BaseExecutionNode):
+    _collection_aware = True   # <-- this is all you need
+
+    def evaluate(self):
+        # Write this as if it handles a single item.
+        # The engine takes care of the rest.
+        data = self._get_input_image_data()
+        if data is None:
+            return False, "No input connected"
+        self.output_values['image'] = ImageData(payload=1.0 - data.payload)
+        self.mark_clean()
+        return True, None
+```
+
+When a `CollectionData` arrives at a collection-aware node, the execution engine automatically:
+
+1. Unpacks the collection into individual items
+2. Calls `evaluate()` once per item (swapping in each item as though it were a normal single input)
+3. Repacks the per-item outputs into a new `CollectionData` on each output port, preserving the original names
+
+Your `evaluate()` code never sees the collection — it just processes one item at a time as usual. The progress bar updates across all items automatically.
+
+### When to Use It
+
+Set `_collection_aware = True` on **stateless processing nodes** — nodes that read input, do some computation, and write output. Gaussian blur, threshold, invert, measure properties, that sort of thing. If your node would work correctly called N times in a row with different inputs, it's a good candidate.
+
+### When NOT to Use It
+
+Do **not** set `_collection_aware = True` on nodes that:
+
+- Have embedded editors, drawing canvases, or interactive widgets (ROI drawing, SAM2 click-to-segment)
+- Maintain internal state across calls (accumulators, batch writers)
+- Display histograms or plots that depend on seeing all items at once
+- Natively handle collections themselves (use `_handles_collection = True` instead)
+
+### Mixed Inputs: Single + Collection
+
+If a collection-aware node has two input ports and one receives a `CollectionData` while the other receives a plain `NodeData`, the single item is **broadcast** to every iteration. For example, a "Mask Image" node with an `image` collection (3 items) and a single `mask` input will apply that same mask to all 3 images.
+
+### Mixed Inputs: Two Collections
+
+When both inputs are collections, items are **paired by name**. If collection A has keys `['sample_1', 'sample_2']` and collection B has keys `['sample_1', 'sample_2']`, then `evaluate()` runs twice — once with `sample_1` from both, once with `sample_2` from both. If a name exists in one collection but not the other, the engine falls back to the first item of the collection that's missing the key.
+
+### Built-in Collection Nodes
+
+Two utility nodes handle collection creation and extraction:
+
+- **Collect** — has a multi-input port. Connect several items and give each a name. Outputs a single `CollectionData`. Names auto-populate from upstream port names and are editable.
+- **Select Collection** — takes a `CollectionData` input and a dropdown to pick one item by name. Outputs that single item. Useful when you need to pull one specific result out of a collection for further processing.
+
+---
+
 ## Node Lifecycle
 
 ### Dirty State
@@ -796,6 +868,7 @@ class ParticleDetectorNode(BaseExecutionNode):
 | `mark_disabled()` | Disable the node so it is skipped during execution. |
 | `mark_enabled()` | Re-enable a disabled node. |
 | `clear_cache()` | Clear `output_values` and force re-evaluation on next run. |
+| `_collection_aware = True` | Class attribute. Enables auto-loop over `CollectionData` inputs — the engine unpacks, runs `evaluate()` per item, and repacks outputs. |
 
 **UI feedback (thread-safe, can be called from `evaluate()`):**
 

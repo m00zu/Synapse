@@ -97,3 +97,29 @@ Applies gamma correction to adjust image tonality non-linearly.
 **Properties:** `Gamma`, `Gain`
 
 ---
+
+### Multi-Channel B&C
+
+Per-channel brightness & contrast with live composite preview.
+
+??? note "Details"
+    Connect 1–4 grayscale channels (or a single multi-channel image) and adjust
+    each channel's display window independently. Each channel has its own
+    histogram with draggable min/max lines, brightness/contrast sliders, and
+    a color button. The composite output blends all channels additively.
+    
+    Works as a single-channel B&C node when only one input is connected.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `ch1` | image |
+| **Input** | `ch2` | image |
+| **Input** | `ch3` | image |
+| **Input** | `ch4` | image |
+| **Output** | `ch1` | image |
+| **Output** | `ch2` | image |
+| **Output** | `ch3` | image |
+| **Output** | `ch4` | image |
+| **Output** | `composite` | image |
+
+---

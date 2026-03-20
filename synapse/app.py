@@ -25,6 +25,7 @@ from .custom_nodes import (
     DisplayNode, DataTableCellNode, DataFigureCellNode, ImageCellNode, SvgEditorNode,
     # Core utility
     UniversalDataNode, PathModifierNode,
+    CollectNode, SelectCollectionNode,
     # Core dataframe ops
     EditableTableNode, FilterTableNode, MathColumnNode, AggregateTableNode, RenameGroupNode,
     ReshapeTableNode, SortTableNode, TopNNode, ColumnValueSplitNode, TwoTableMathNode,
@@ -108,7 +109,14 @@ class GraphWorker(QtCore.QObject):
                     node.mark_skipped()
                     continue
 
-                success, err = node.evaluate()
+                # Auto-loop: if the node receives a CollectionData but
+                # doesn't handle collections natively, loop over each item.
+                col_info = (node._check_collection_inputs()
+                            if hasattr(node, '_check_collection_inputs') else None)
+                if col_info and getattr(node, '_collection_aware', False):
+                    success, err = node._evaluate_collection_loop(*col_info)
+                else:
+                    success, err = node.evaluate()
                 if self._stopped:
                     self.finished.emit()
                     return
@@ -181,7 +189,12 @@ class BatchGraphWorker(QtCore.QObject):
             if hasattr(node, 'evaluate'):
                 if getattr(node, 'is_dirty', True) is False:
                     continue
-                success, err = node.evaluate()
+                col_info = (node._check_collection_inputs()
+                            if hasattr(node, '_check_collection_inputs') else None)
+                if col_info and getattr(node, '_collection_aware', False):
+                    success, err = node._evaluate_collection_loop(*col_info)
+                else:
+                    success, err = node.evaluate()
                 if self._stopped:
                     return True
                 if not success:
@@ -284,7 +297,12 @@ class BatchGraphWorker(QtCore.QObject):
                         if getattr(node, 'is_dirty', True) is False:
                             continue
 
-                        success, err = node.evaluate()
+                        col_info = (node._check_collection_inputs()
+                                    if hasattr(node, '_check_collection_inputs') else None)
+                        if col_info and getattr(node, '_collection_aware', False):
+                            success, err = node._evaluate_collection_loop(*col_info)
+                        else:
+                            success, err = node.evaluate()
                         if self._stopped:
                             break
                         if not success:
@@ -326,7 +344,12 @@ class BatchGraphWorker(QtCore.QObject):
                         if getattr(node, 'is_dirty', True) is False:
                             continue
 
-                        success, err = node.evaluate()
+                        col_info = (node._check_collection_inputs()
+                                    if hasattr(node, '_check_collection_inputs') else None)
+                        if col_info and getattr(node, '_collection_aware', False):
+                            success, err = node._evaluate_collection_loop(*col_info)
+                        else:
+                            success, err = node.evaluate()
                         if self._stopped:
                             break
                         if not success:
@@ -1013,6 +1036,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             ImageCellNode, SvgEditorNode,
             # Utility
             UniversalDataNode, PathModifierNode,
+            CollectNode, SelectCollectionNode,
             # DataFrame operations
             EditableTableNode, FilterTableNode, MathColumnNode,
             AggregateTableNode, RenameGroupNode, ReshapeTableNode,

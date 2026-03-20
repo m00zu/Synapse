@@ -4,7 +4,7 @@ nodes/utility_nodes.py
 General-purpose utility nodes.
 """
 import NodeGraphQt
-from ..data_models import TableData, ImageData
+from ..data_models import TableData, ImageData, CollectionData
 from PIL import Image
 import pandas as pd
 import numpy as np
@@ -169,5 +169,306 @@ class PathModifierNode(BaseExecutionNode):
             new_path = orig_path.parent / new_filename
             
         self.output_values['path'] = str(new_path)
+        self.mark_clean()
+        return True, None
+
+
+# ===========================================================================
+# Collect — pack multiple data items into a named CollectionData
+# ===========================================================================
+
+from PySide6 import QtWidgets, QtCore, QtGui
+from NodeGraphQt.widgets.node_widgets import NodeBaseWidget
+
+
+class _CollectNamingWidget(NodeBaseWidget):
+    """Editable list showing one row per connected input with a name field."""
+
+    names_changed = QtCore.Signal()
+    _update_sig = QtCore.Signal(list)  # thread-safe update
+
+    def __init__(self, parent=None):
+        super().__init__(parent, name='_collect_names', label='')
+        container = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(container)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(2)
+
+        self._list = QtWidgets.QWidget()
+        self._list_layout = QtWidgets.QVBoxLayout(self._list)
+        self._list_layout.setContentsMargins(0, 0, 0, 0)
+        self._list_layout.setSpacing(2)
+        layout.addWidget(self._list)
+
+        self._edits: list[QtWidgets.QLineEdit] = []
+        self.set_custom_widget(container)
+        self._update_sig.connect(self._apply_update,
+                                 QtCore.Qt.ConnectionType.QueuedConnection)
+
+    def update_connections(self, port_names: list[str]):
+        """Update the list to show one editable row per connected input.
+        Thread-safe."""
+        import threading
+        if threading.current_thread() is threading.main_thread():
+            self._apply_update(port_names)
+        else:
+            self._update_sig.emit(port_names)
+
+    def _apply_update(self, port_names: list[str]):
+        # Preserve existing names where possible
+        old_names = self.get_value()
+
+        # Clear existing widgets
+        while self._list_layout.count():
+            item = self._list_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                while item.layout().count():
+                    sub = item.layout().takeAt(0)
+                    if sub.widget():
+                        sub.widget().deleteLater()
+        self._edits.clear()
+
+        # Create rows — each is: "1. [name_field]"
+        for i, upstream_name in enumerate(port_names):
+            row = QtWidgets.QHBoxLayout()
+            row.setSpacing(4)
+            row.setContentsMargins(0, 0, 0, 0)
+            lbl = QtWidgets.QLabel(f'{i+1}.')
+            lbl.setStyleSheet('color:#aaa; font-size:10px;')
+            lbl.setFixedWidth(18)
+            edit = QtWidgets.QLineEdit()
+            edit.setPlaceholderText(upstream_name or f'item_{i+1}')
+            if i < len(old_names) and old_names[i]:
+                edit.setText(old_names[i])
+            else:
+                edit.setText(upstream_name or f'item_{i+1}')
+            edit.setStyleSheet('font-size:10px; padding: 2px 4px;')
+            edit.setFixedHeight(22)
+            edit.setMinimumWidth(120)
+            edit.textChanged.connect(lambda _: self.names_changed.emit())
+            row.addWidget(lbl)
+            row.addWidget(edit, 1)
+            self._list_layout.addLayout(row)
+            self._edits.append(edit)
+
+        # Set explicit height based on number of rows
+        row_h = 26  # each row: 22px edit + 4px spacing
+        total_h = max(30, len(self._edits) * row_h + 4)
+        self._list.setFixedHeight(total_h)
+
+        # Defer node redraw to after layout is fully computed
+        node = getattr(self, '_node', None)
+        if node and hasattr(node, 'view') and hasattr(node.view, 'draw_node'):
+            QtCore.QTimer.singleShot(0, node.view.draw_node)
+
+    def get_value(self) -> list[str]:
+        return [e.text() for e in self._edits]
+
+    def set_value(self, value):
+        if isinstance(value, list):
+            for i, v in enumerate(value[:len(self._edits)]):
+                self._edits[i].blockSignals(True)
+                self._edits[i].setText(str(v))
+                self._edits[i].blockSignals(False)
+
+
+class CollectNode(BaseExecutionNode):
+    """
+    Pack multiple data items into a named collection.
+
+    Connect any number of items to the multi-input port. Each connection
+    gets a name (auto-populated from the upstream port name, editable).
+    The output is a single CollectionData that flows as one wire.
+
+    Downstream nodes that expect a single item will automatically loop
+    over all items in the collection and repack the results.
+
+    Keywords: collect, pack, bundle, group, collection, batch, 收集, 打包, 集合
+    """
+    __identifier__ = 'nodes.utility'
+    NODE_NAME      = 'Collect'
+    PORT_SPEC      = {'inputs': ['any'], 'outputs': ['collection']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__(use_progress=False)
+        self.add_input('in', multi_input=True, color=PORT_COLORS['any'])
+        self.add_output('collection', color=PORT_COLORS['collection'])
+
+        self._naming_widget = _CollectNamingWidget(self.view)
+        self._naming_widget._node = self  # back-reference for node resize
+        self._naming_widget.names_changed.connect(self._on_names_changed)
+        self.add_custom_widget(self._naming_widget)
+
+    def on_input_connected(self, in_port, out_port):
+        """Update naming widget when a new wire is connected (main thread)."""
+        super().on_input_connected(in_port, out_port)
+        self._refresh_naming_widget()
+
+    def on_input_disconnected(self, in_port, out_port):
+        """Update naming widget when a wire is disconnected (main thread)."""
+        super().on_input_disconnected(in_port, out_port)
+        self._refresh_naming_widget()
+
+    def _refresh_naming_widget(self):
+        """Rebuild the naming list from current connections."""
+        port = self.inputs().get('in')
+        if not port:
+            return
+        port_names = [cp.name() for cp in port.connected_ports()]
+        self._naming_widget.update_connections(port_names)
+
+    def _on_names_changed(self):
+        """User edited a name — re-evaluate to update output."""
+        success, _ = self.evaluate()
+        if success:
+            self.mark_clean()
+
+    def evaluate(self):
+        port = self.inputs().get('in')
+        if not port or not port.connected_ports():
+            return False, "No inputs connected"
+
+        connections = port.connected_ports()
+        items = {}
+
+        # Read names from widget (already populated by on_input_connected)
+        names = self._naming_widget.get_value()
+
+        # Collect items
+        for i, cp in enumerate(connections):
+            data = cp.node().output_values.get(cp.name())
+            if data is None:
+                continue
+            name = names[i] if i < len(names) and names[i] else f'item_{i+1}'
+            # Deduplicate names
+            base = name
+            counter = 2
+            while name in items:
+                name = f'{base}_{counter}'
+                counter += 1
+            items[name] = data
+
+        if not items:
+            return False, "No data from connected inputs"
+
+        self.output_values['collection'] = CollectionData(payload=items)
+        self.mark_clean()
+        return True, None
+
+
+# ===========================================================================
+# Select Collection — extract one item from a CollectionData
+# ===========================================================================
+
+class _SelectDropdownWidget(NodeBaseWidget):
+    """Dropdown that auto-populates with collection item names."""
+
+    selection_changed = QtCore.Signal()
+    _update_items_sig = QtCore.Signal(list)
+
+    def __init__(self, parent=None):
+        super().__init__(parent, name='_select_key', label='')
+        container = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(container)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(4)
+
+        lbl = QtWidgets.QLabel('Item:')
+        lbl.setStyleSheet('color:#ccc; font-size:9px;')
+        self._combo = QtWidgets.QComboBox()
+        self._combo.setMinimumWidth(100)
+        self._combo.currentTextChanged.connect(lambda _: self.selection_changed.emit())
+
+        layout.addWidget(lbl)
+        layout.addWidget(self._combo)
+        layout.addStretch()
+        self.set_custom_widget(container)
+
+        self._update_items_sig.connect(self._apply_items,
+                                       QtCore.Qt.ConnectionType.QueuedConnection)
+
+    def update_items(self, names: list[str]):
+        import threading
+        if threading.current_thread() is threading.main_thread():
+            self._apply_items(names)
+        else:
+            self._update_items_sig.emit(names)
+
+    def _apply_items(self, names: list[str]):
+        old = self._combo.currentText()
+        self._combo.blockSignals(True)
+        self._combo.clear()
+        self._combo.addItems(names)
+        if old in names:
+            self._combo.setCurrentText(old)
+        self._combo.blockSignals(False)
+
+    def get_value(self) -> str:
+        return self._combo.currentText()
+
+    def set_value(self, value):
+        if isinstance(value, str):
+            idx = self._combo.findText(value)
+            if idx >= 0:
+                self._combo.setCurrentText(value)
+
+
+class SelectCollectionNode(BaseExecutionNode):
+    """
+    Extract a single item from a collection by name.
+
+    Connect a CollectionData input, pick which item to extract from the
+    dropdown. The dropdown auto-populates with available item names.
+
+    Keywords: select, extract, unpack, pick, collection, 選擇, 提取, 集合
+    """
+    __identifier__ = 'nodes.utility'
+    NODE_NAME      = 'Select Collection'
+    PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['any']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__(use_progress=False)
+        self.add_input('collection', color=PORT_COLORS['collection'])
+        self.add_output('out', color=PORT_COLORS['any'])
+
+        self._select_widget = _SelectDropdownWidget(self.view)
+        self._select_widget.selection_changed.connect(self._on_selection_changed)
+        self.add_custom_widget(self._select_widget)
+
+    def _on_selection_changed(self):
+        success, _ = self.evaluate()
+        if success:
+            self.mark_clean()
+
+    def evaluate(self):
+        port = self.inputs().get('collection')
+        if not port or not port.connected_ports():
+            return False, "No collection connected"
+
+        cp = port.connected_ports()[0]
+        data = cp.node().output_values.get(cp.name())
+
+        if not isinstance(data, CollectionData):
+            return False, "Input must be a CollectionData"
+
+        # Update dropdown with available names
+        self._select_widget.update_items(data.names)
+
+        key = self._select_widget.get_value()
+        if not key:
+            if data.names:
+                key = data.names[0]
+            else:
+                return False, "Collection is empty"
+
+        item = data.get(key)
+        if item is None:
+            return False, f"Item '{key}' not found in collection"
+
+        self.output_values['out'] = item
         self.mark_clean()
         return True, None

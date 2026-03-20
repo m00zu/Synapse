@@ -1345,6 +1345,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#oir-reader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OIR Reader
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#bandpass-filter" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2223,6 +2234,58 @@
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>Classes</code></p>
+<hr />
+<h3 id="oir-reader">OIR Reader<a class="headerlink" href="#oir-reader" title="Permanent link">&para;</a></h3>
+<p>Read Olympus OIR microscopy files and output each channel separately.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Outputs up to 4 individual grayscale channels and a colorized composite.
+Each channel can be assigned a display color (or grayscale) using the
+color buttons. Channels not present in the file output as black.</p>
+<p>Supports both native OIR format and TIFF files saved with .oir extension.
+Uses the Rust reader when available, with Python fallback.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>path</code></td>
+<td>path</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>ch1</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>ch2</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>ch3</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>ch4</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>composite</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h3 id="bandpass-filter">Bandpass Filter<a class="headerlink" href="#bandpass-filter" title="Permanent link">&para;</a></h3>
 <p>Applies an FFT-based bandpass filter to a grayscale image.</p>

@@ -121,6 +121,14 @@ https://github.com/user-attachments/assets/a3772ee9-da64-4fe1-ad58-ee22ac6f41aa
 
 ### 安裝外掛
 
+**從應用程式內的外掛管理器安裝（建議）：**
+
+1. 在 Synapse 中，前往 **Plugins > Plugin Manager** 並開啟 **Browse Online** 分頁
+2. 瀏覽可用的外掛，點選 **Install** 即可安裝
+3. 外掛會自動下載並安裝 — 重新啟動後新節點會出現在 Node Explorer 中
+
+**手動安裝：**
+
 1. 從 [Synapse-Plugins Releases](https://github.com/m00zu/Synapse-Plugins/releases) 下載 `.synpkg` 檔案
 2. 在 Synapse 中，前往 **Plugins > Install Plugin** 並選擇 `.synpkg` 檔案
 3. 點選 **Plugins > Reload Plugins**，新節點會出現在 Node Explorer 中

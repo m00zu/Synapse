@@ -243,6 +243,51 @@ class ConfocalDatasetData(NodeData):
             })
         return TableData(payload=pd.DataFrame(rows))
 
+class CollectionData(NodeData):
+    """A named collection of NodeData items that flow through the pipeline as one.
+
+    payload is a dict mapping user-defined names to NodeData instances.
+    All items are typically the same type (e.g. all ImageData), but mixed
+    types are allowed.
+
+    The auto-loop in BaseExecutionNode transparently unpacks a collection,
+    runs a single-item node on each entry, and repacks the results — so
+    every existing node works with collections for free.
+    """
+    payload: Any   # dict[str, NodeData]
+
+    @property
+    def names(self) -> list[str]:
+        return list(self.payload.keys())
+
+    @property
+    def inner_type(self) -> type:
+        """The type of the first item (hint for port validation)."""
+        first = next(iter(self.payload.values()), None)
+        return type(first) if first else NodeData
+
+    def __len__(self):
+        return len(self.payload)
+
+    def get(self, name: str):
+        return self.payload.get(name)
+
+    @classmethod
+    def merge(cls, items: list) -> "TableData":
+        """Merge collections into a summary table."""
+        rows = []
+        for item in items:
+            meta = getattr(item, 'metadata', {}) or {}
+            for name in item.names:
+                rows.append({
+                    'frame': meta.get('frame', ''),
+                    'file': meta.get('file', ''),
+                    'collection_item': name,
+                    'object': item.get(name),
+                })
+        return TableData(payload=pd.DataFrame(rows))
+
+
 # class RDMolData(NodeData):
 #     """Wraps the specialized RDMol dictionary."""
 #     payload: RDMol

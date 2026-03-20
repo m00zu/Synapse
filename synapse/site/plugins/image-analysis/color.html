@@ -1277,6 +1277,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#merge-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge Image
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2124,6 +2135,39 @@ blends all channels into one RGB output.</p>
 <li>Change DAPI from blue to cyan</li>
 <li>Show two channels in magenta + green for better contrast</li>
 </ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="merge-image">Merge Image<a class="headerlink" href="#merge-image" title="Permanent link">&para;</a></h3>
+<p>Additively blend multiple images into one output.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Connect any number of images to the input port. The node sums all
+input pixel values and clips to [0, 1]. Useful for combining
+individually color-adjusted channels into a single composite
+(e.g. merge ch1 + ch2 + ch4, skipping DAPI).</p>
+<p>Works with both grayscale and RGB inputs. Grayscale inputs are
+broadcast across all 3 RGB channels.</p>
 </details>
 <table>
 <thead>

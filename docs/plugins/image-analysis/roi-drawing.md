@@ -37,10 +37,32 @@ Crops an image or mask to a rectangle drawn directly on the node.
 
 ### Draw Shape
 
-Draws multiple editable shapes over an input image and outputs the annotated result.
+Draw shapes, text, and annotations on an image.
 
 ??? note "Details"
-    Each shape has independent colour, width, and style. Optionally accepts a mask input and draws the mask outline as well.
+    Shapes: rectangle, ellipse, polygon, arrow, bezier curve, and free text.
+    Each shape has its own color, line width, line style (solid/dashed/dotted),
+    and optional fill with adjustable opacity. Shapes can be moved, resized,
+    and edited interactively on the canvas.
+    
+    Inputs:
+
+    - **image** — background image (optional)
+    - **mask** (multi-input) — binary masks shown as colored contours
+    - **label_image** — segmentation labels shown as colored overlay
+    
+    Controls:
+
+    - Line width, style, and color per shape
+    - Fill toggle + opacity for closed shapes (rectangle, ellipse, polygon)
+    - Auto Fill — fill all mask contours at once
+    - Fill All — apply fill to every mask input
+    - Label overlay opacity — transparency of segmentation label colors
+    - Geometry spinboxes (X, Y, W, H) for precise positioning
+    - Font size for texts
+    - No Preview — skip interactive canvas rendering for speed
+    
+    Hold Shift while drawing to constrain to square/circle.
 
 | Direction | Port | Type |
 |-----------|------|------|
@@ -91,5 +113,28 @@ Draws a calibrated scale bar on a microscopy image.
 | **Output** | `image` | image |
 
 **Properties:** `Bar Length (µm)`, `Position`, `Show Label`, `Text-Bar Gap (px)`
+
+---
+
+### Mask Overlay
+
+Draw a mask contour (or fill) on an image.
+
+??? note "Details"
+    A lightweight alternative to Draw Shape for simple mask visualization.
+    Connect an image and a mask, and the mask boundary is drawn as a colored
+    contour on the output image. Optionally fill the masked region with a
+    semi-transparent color.
+    
+    Controls:
+
+    - Line width, style (solid/dashed/dotted), and color
+    - Fill toggle with adjustable opacity
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `image` | image |
+| **Input** | `mask` | mask |
+| **Output** | `image` | image |
 
 ---

@@ -554,7 +554,8 @@ class FilterTableNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Filter'
     NODE_NAME = 'Filter Table'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
-    
+    _collection_aware = True
+
     def __init__(self):
         super(FilterTableNode, self).__init__(use_progress=False)
         self.add_input('in', color=PORT_COLORS['table'])
@@ -609,7 +610,8 @@ class MathColumnNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Compute'
     NODE_NAME = 'Single Table Math'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
-    
+    _collection_aware = True
+
     def __init__(self):
         super(MathColumnNode, self).__init__(use_progress=False)
         self.add_input('in', color=PORT_COLORS['table'])
@@ -670,6 +672,7 @@ class AggregateTableNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Compute'
     NODE_NAME = 'Aggregate Table'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
     OUTPUT_COLUMNS = {
         'out': {
             'no_group':   ['stat', '...numeric columns (one aggregated value each)'],
@@ -986,6 +989,7 @@ class ReshapeTableNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Transform'
     NODE_NAME = 'Reshape Table'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -1084,6 +1088,7 @@ class SortTableNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Transform'
     NODE_NAME = 'Sort Table'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super(SortTableNode, self).__init__(use_progress=False)
@@ -1155,6 +1160,7 @@ class TopNNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Filter'
     NODE_NAME = 'Top N'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table', 'table']}
+    _collection_aware = True
 
     def __init__(self):
         super(TopNNode, self).__init__(use_progress=False)
@@ -1235,6 +1241,7 @@ class ColumnValueSplitNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Filter'
     NODE_NAME = 'Column Value Split'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table', 'table']}
+    _collection_aware = True
 
     def __init__(self):
         super(ColumnValueSplitNode, self).__init__(use_progress=False)
@@ -1327,6 +1334,7 @@ class TwoTableMathNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Compute'
     NODE_NAME = 'Two Table Math'
     PORT_SPEC = {'inputs': ['table', 'table'], 'outputs': ['table']}
+    _collection_aware = True
     OUTPUT_COLUMNS = {
         'result': ['left_value', 'right_value', 'operation', 'result']
     }
@@ -1436,6 +1444,7 @@ class SelectColumnsNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Transform'
     NODE_NAME = 'Select Columns'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -1518,6 +1527,7 @@ class ExtractObjectNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Util'
     NODE_NAME = 'Extract Object'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['any']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -1580,6 +1590,7 @@ class RandomSampleNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Filter'
     NODE_NAME = 'Random Sample'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table', 'table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -1647,6 +1658,7 @@ class ConcatTablesNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Combine'
     NODE_NAME = 'Concat Tables'
     PORT_SPEC = {'inputs': ['table', 'table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -1720,6 +1732,7 @@ class JoinTablesNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Combine'
     NODE_NAME = 'Join Tables'
     PORT_SPEC = {'inputs': ['table', 'table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -1792,6 +1805,7 @@ class DropFillNaNNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Transform'
     NODE_NAME = 'Drop / Fill NaN'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -1879,6 +1893,7 @@ class NormalizeColumnNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Compute'
     NODE_NAME = 'Normalize Column'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -1969,6 +1984,7 @@ class ValueCountsNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Compute'
     NODE_NAME = 'Value Counts'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -2033,6 +2049,7 @@ class DropDuplicatesNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Filter'
     NODE_NAME = 'Drop Duplicates'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table', 'table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -2098,6 +2115,7 @@ class TypeCastColumnNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Transform'
     NODE_NAME = 'Type Cast Column'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
@@ -2183,6 +2201,7 @@ class StringColumnOpsNode(BaseExecutionNode):
     __identifier__ = 'nodes.dataframe.Transform'
     NODE_NAME = 'String Column Ops'
     PORT_SPEC = {'inputs': ['table'], 'outputs': ['table']}
+    _collection_aware = True
 
     def __init__(self):
         super().__init__(use_progress=False)
