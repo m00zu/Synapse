@@ -832,7 +832,7 @@ class PluginManagerDialog(QtWidgets.QDialog):
             if not name.endswith('.synpkg'):
                 continue
             # "slim" packages are pure Python — always compatible
-            if '-slim-' in name:
+            if '-slim' in name:
                 result.append(a)
                 continue
             # Platform-specific: check os, arch, python version
@@ -908,10 +908,10 @@ class PluginManagerDialog(QtWidgets.QDialog):
         # Group assets by plugin name (strip platform/date suffix)
         for asset in self._store_assets:
             name = asset['name']
-            # Extract plugin name: everything before the first '-' that starts
-            # a platform/slim/date suffix
-            pkg_name = name.split('-slim-')[0].split('-darwin-')[0].split(
-                '-windows-')[0].split('-linux-')[0]
+            # Extract plugin name: everything before the platform/slim suffix
+            base = name.removesuffix('.synpkg')
+            pkg_name = base.split('-slim')[0].split('-darwin-')[0].split(
+                '-windows-')[0].split('-linux-')[0].split('-novendor')[0]
             size_mb  = asset.get('size', 0) / 1024 / 1024
             dl_url   = asset.get('browser_download_url', '')
 
