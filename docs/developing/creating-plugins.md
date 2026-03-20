@@ -9,7 +9,7 @@ This guide walks you through building custom Synapse plugins — from a minimal 
 When Synapse starts, it scans the **plugin directory** for `.py` files and package folders. Any Python class that meets three requirements is auto-registered and appears in the Node Explorer:
 
 1. Inherits from `BaseExecutionNode`
-2. Has `__identifier__` starting with `'plugins.'`
+2. Has a unique `__identifier__` string (e.g. `'plugins.my_nodes'`)
 3. Has a `NODE_NAME` attribute
 
 No configuration files, no manual registration. Drop a file in, click **View > Reload Plugins**, and your nodes appear.
@@ -18,10 +18,13 @@ No configuration files, no manual registration. Drop a file in, click **View > R
 
 | Environment | Path |
 |-------------|------|
-| Development (from source) | `./plugins/` (next to `main.py`) |
+| Development (from source) | `synapse/plugins/` |
 | macOS (frozen app) | `~/Library/Application Support/Synapse/plugins/` |
 | Windows (frozen app) | `%APPDATA%\Synapse\plugins\` |
 | Linux (frozen app) | `~/.synapse/plugins/` |
+| Portable install (any OS) | `plugins/` next to the executable |
+
+For frozen builds, a `plugins/` folder next to the executable takes priority over the OS user directory. This supports portable installs on non-system drives.
 
 You can also open the plugin directory from **Plugins > Plugin Manager > Open Folder**.
 
@@ -88,7 +91,7 @@ Click **View > Reload Plugins** and your node appears under **Plugins > MyPlugin
 
 ```python
 class MyNode(BaseExecutionNode):
-    __identifier__ = 'plugins.Plugins.Category'  # Must start with 'plugins.'
+    __identifier__ = 'plugins.Plugins.Category'  # Controls Node Explorer tree grouping
     NODE_NAME      = 'My Node'                    # Display name in Node Explorer
     PORT_SPEC      = {                            # Port declaration for docs/LLM/tree
         'inputs':  ['image', 'mask'],
@@ -151,6 +154,7 @@ def __init__(self):
 | `'table'` | Blue | Data table | `TableData` (pandas DataFrame) |
 | `'stat'` | Royal blue | Statistics | `StatData` (pandas DataFrame) |
 | `'figure'` | Purple | Plot | `FigureData` (matplotlib Figure) |
+| `'collection'` | Gold | Collection | `CollectionData` (dict of named NodeData) |
 | `'path'` | Gray | File path | `str` |
 | `'any'` | Dark gray | Any type | any Python object |
 
@@ -372,6 +376,7 @@ All data flowing between nodes is wrapped in a `NodeData` subclass (from `data_m
 | `TableData` | `NodeData` | `pd.DataFrame` or `pd.Series` |
 | `StatData` | `TableData` | `pd.DataFrame` |
 | `FigureData` | `NodeData` | `matplotlib.figure.Figure` |
+| `CollectionData` | `NodeData` | `dict[str, NodeData]` — named bundle of items |
 
 Since `MaskData` and `SkeletonData` inherit from `ImageData`, any node that accepts `ImageData` input can also accept a mask or skeleton. Similarly, `StatData` inherits from `TableData`, so it works anywhere a table is expected.
 
@@ -697,7 +702,7 @@ synapse package plugins/my_plugin --slim
 synapse package plugins/my_plugin -o ~/Desktop
 ```
 
-The output filename includes platform, architecture, and Python version automatically (e.g. `my_plugin-darwin-arm64-cp313-20260318.synpkg`).
+The output filename includes platform, architecture, and Python version automatically (e.g. `my_plugin-darwin-arm64-cp313.synpkg`).
 
 To install a `.synpkg` from the command line:
 
@@ -709,12 +714,16 @@ Users can also install via **Plugins > Plugin Manager > Install Plugin...** in t
 
 ### Available Libraries
 
-Plugins can only import libraries bundled with the Synapse app:
+Plugins can import libraries bundled with the Synapse app:
 
-- **numpy**, **scipy**, **pandas** — numerical computing
+- **numpy** — array operations
+- **scipy** — `scipy.ndimage`, `scipy.stats`, `scipy.optimize`, `scipy.spatial`
+- **pandas** — DataFrames and tabular data
 - **PIL / Pillow** — image I/O and manipulation
-- **scikit-image** (skimage) — image processing and analysis
-- **matplotlib** — plotting and figures
+- **scikit-image** (skimage) — `skimage.filters`, `skimage.morphology`, `skimage.measure`, `skimage.segmentation`, `skimage.feature`, `skimage.transform`, `skimage.restoration`, `skimage.exposure`, `skimage.color`, `skimage.draw`, `skimage.graph`
+- **matplotlib** / **seaborn** — plotting and figures
+- **statsmodels** — statistical models and tests
+- **tifffile** — TIFF read/write (including 16-bit)
 - **PySide6** — Qt widgets (for custom node UIs)
 - **pydantic** — data validation (used by `NodeData`)
 
@@ -811,7 +820,7 @@ class ParticleDetectorNode(BaseExecutionNode):
 
 ## Debugging Tips
 
-- **Node doesn't appear?** Check that `__identifier__` starts with `'plugins.'` and `NODE_NAME` is set.
+- **Node doesn't appear?** Check that `__identifier__` and `NODE_NAME` are set, and the class inherits from `BaseExecutionNode`.
 - **Import errors?** Open **Plugins > Plugin Manager** — the Status column shows error messages per file.
 - **Evaluate not called?** Make sure the node is connected and marked dirty. Check that you're returning `(True, None)` or `(False, "message")`.
 - **UI freezes?** Your `evaluate()` runs on a background thread. Never call Qt widget methods directly — use `self.set_progress()` and `self.set_display()` instead.
