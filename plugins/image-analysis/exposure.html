@@ -1294,6 +1294,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#multi-channel-bc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Channel B&amp;C
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2102,6 +2113,73 @@
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>Gamma</code>, <code>Gain</code></p>
+<hr />
+<h3 id="multi-channel-bc">Multi-Channel B&amp;C<a class="headerlink" href="#multi-channel-bc" title="Permanent link">&para;</a></h3>
+<p>Per-channel brightness &amp; contrast with live composite preview.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Connect 1–4 grayscale channels (or a single multi-channel image) and adjust
+each channel's display window independently. Each channel has its own
+histogram with draggable min/max lines, brightness/contrast sliders, and
+a color button. The composite output blends all channels additively.</p>
+<p>Works as a single-channel B&amp;C node when only one input is connected.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>ch1</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>ch2</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>ch3</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>ch4</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>ch1</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>ch2</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>ch3</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>ch4</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>composite</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
 <hr />
 
 

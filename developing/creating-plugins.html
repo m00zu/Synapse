@@ -2211,6 +2211,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#collections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Collections">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#making-a-node-collection-aware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Making a Node Collection-Aware
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use It
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-not-to-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use It
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mixed-inputs-single-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mixed Inputs: Single + Collection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mixed-inputs-two-collections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mixed Inputs: Two Collections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#built-in-collection-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in Collection Nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#node-lifecycle" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2958,6 +3041,60 @@ See the <a href="#api-reference">API Reference</a> at the bottom of this page.</
         <span class="k">return</span> <span class="n">TableData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">))</span>
 </code></pre></div>
 <hr />
+<h2 id="collections">Collections<a class="headerlink" href="#collections" title="Permanent link">&para;</a></h2>
+<p>A <code>CollectionData</code> is a named bundle of <code>NodeData</code> items that travels through the graph as a single wire. Its payload is a <code>dict[str, NodeData]</code> — each key is a user-defined name, each value is a data item (typically all the same type, but mixed types are allowed).</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">data_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionData</span><span class="p">,</span> <span class="n">ImageData</span>
+
+<span class="c1"># A collection of three images</span>
+<span class="n">col</span> <span class="o">=</span> <span class="n">CollectionData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="p">{</span>
+    <span class="s1">&#39;sample_A&#39;</span><span class="p">:</span> <span class="n">ImageData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">arr_a</span><span class="p">),</span>
+    <span class="s1">&#39;sample_B&#39;</span><span class="p">:</span> <span class="n">ImageData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">arr_b</span><span class="p">),</span>
+    <span class="s1">&#39;control&#39;</span><span class="p">:</span>  <span class="n">ImageData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="n">arr_c</span><span class="p">),</span>
+<span class="p">})</span>
+</code></pre></div>
+<h3 id="making-a-node-collection-aware">Making a Node Collection-Aware<a class="headerlink" href="#making-a-node-collection-aware" title="Permanent link">&para;</a></h3>
+<p>Add <code>_collection_aware = True</code> to your class:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">InvertImageNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
+    <span class="n">_collection_aware</span> <span class="o">=</span> <span class="kc">True</span>   <span class="c1"># &lt;-- this is all you need</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Write this as if it handles a single item.</span>
+        <span class="c1"># The engine takes care of the rest.</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_input_image_data</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;No input connected&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_values</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ImageData</span><span class="p">(</span><span class="n">payload</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">data</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_clean</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+</code></pre></div>
+<p>When a <code>CollectionData</code> arrives at a collection-aware node, the execution engine automatically:</p>
+<ol>
+<li>Unpacks the collection into individual items</li>
+<li>Calls <code>evaluate()</code> once per item (swapping in each item as though it were a normal single input)</li>
+<li>Repacks the per-item outputs into a new <code>CollectionData</code> on each output port, preserving the original names</li>
+</ol>
+<p>Your <code>evaluate()</code> code never sees the collection — it just processes one item at a time as usual. The progress bar updates across all items automatically.</p>
+<h3 id="when-to-use-it">When to Use It<a class="headerlink" href="#when-to-use-it" title="Permanent link">&para;</a></h3>
+<p>Set <code>_collection_aware = True</code> on <strong>stateless processing nodes</strong> — nodes that read input, do some computation, and write output. Gaussian blur, threshold, invert, measure properties, that sort of thing. If your node would work correctly called N times in a row with different inputs, it's a good candidate.</p>
+<h3 id="when-not-to-use-it">When NOT to Use It<a class="headerlink" href="#when-not-to-use-it" title="Permanent link">&para;</a></h3>
+<p>Do <strong>not</strong> set <code>_collection_aware = True</code> on nodes that:</p>
+<ul>
+<li>Have embedded editors, drawing canvases, or interactive widgets (ROI drawing, SAM2 click-to-segment)</li>
+<li>Maintain internal state across calls (accumulators, batch writers)</li>
+<li>Display histograms or plots that depend on seeing all items at once</li>
+<li>Natively handle collections themselves (use <code>_handles_collection = True</code> instead)</li>
+</ul>
+<h3 id="mixed-inputs-single-collection">Mixed Inputs: Single + Collection<a class="headerlink" href="#mixed-inputs-single-collection" title="Permanent link">&para;</a></h3>
+<p>If a collection-aware node has two input ports and one receives a <code>CollectionData</code> while the other receives a plain <code>NodeData</code>, the single item is <strong>broadcast</strong> to every iteration. For example, a "Mask Image" node with an <code>image</code> collection (3 items) and a single <code>mask</code> input will apply that same mask to all 3 images.</p>
+<h3 id="mixed-inputs-two-collections">Mixed Inputs: Two Collections<a class="headerlink" href="#mixed-inputs-two-collections" title="Permanent link">&para;</a></h3>
+<p>When both inputs are collections, items are <strong>paired by name</strong>. If collection A has keys <code>['sample_1', 'sample_2']</code> and collection B has keys <code>['sample_1', 'sample_2']</code>, then <code>evaluate()</code> runs twice — once with <code>sample_1</code> from both, once with <code>sample_2</code> from both. If a name exists in one collection but not the other, the engine falls back to the first item of the collection that's missing the key.</p>
+<h3 id="built-in-collection-nodes">Built-in Collection Nodes<a class="headerlink" href="#built-in-collection-nodes" title="Permanent link">&para;</a></h3>
+<p>Two utility nodes handle collection creation and extraction:</p>
+<ul>
+<li><strong>Collect</strong> — has a multi-input port. Connect several items and give each a name. Outputs a single <code>CollectionData</code>. Names auto-populate from upstream port names and are editable.</li>
+<li><strong>Select Collection</strong> — takes a <code>CollectionData</code> input and a dropdown to pick one item by name. Outputs that single item. Useful when you need to pull one specific result out of a collection for further processing.</li>
+</ul>
+<hr />
 <h2 id="node-lifecycle">Node Lifecycle<a class="headerlink" href="#node-lifecycle" title="Permanent link">&para;</a></h2>
 <h3 id="dirty-state">Dirty State<a class="headerlink" href="#dirty-state" title="Permanent link">&para;</a></h3>
 <p>Nodes track whether they need re-execution:</p>
@@ -3354,6 +3491,10 @@ synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<
 <tr>
 <td><code>clear_cache()</code></td>
 <td>Clear <code>output_values</code> and force re-evaluation on next run.</td>
+</tr>
+<tr>
+<td><code>_collection_aware = True</code></td>
+<td>Class attribute. Enables auto-loop over <code>CollectionData</code> inputs — the engine unpacks, runs <code>evaluate()</code> per item, and repacks outputs.</td>
 </tr>
 </tbody>
 </table>

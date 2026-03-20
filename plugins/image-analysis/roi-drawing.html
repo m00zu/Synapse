@@ -1445,6 +1445,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#mask-overlay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mask Overlay
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2014,10 +2025,31 @@
 </table>
 <hr />
 <h3 id="draw-shape">Draw Shape<a class="headerlink" href="#draw-shape" title="Permanent link">&para;</a></h3>
-<p>Draws multiple editable shapes over an input image and outputs the annotated result.</p>
+<p>Draw shapes, text, and annotations on an image.</p>
 <details class="note">
 <summary>Details</summary>
-<p>Each shape has independent colour, width, and style. Optionally accepts a mask input and draws the mask outline as well.</p>
+<p>Shapes: rectangle, ellipse, polygon, arrow, bezier curve, and free text.
+Each shape has its own color, line width, line style (solid/dashed/dotted),
+and optional fill with adjustable opacity. Shapes can be moved, resized,
+and edited interactively on the canvas.</p>
+<p>Inputs:</p>
+<ul>
+<li><strong>image</strong> — background image (optional)</li>
+<li><strong>mask</strong> (multi-input) — binary masks shown as colored contours</li>
+<li><strong>label_image</strong> — segmentation labels shown as colored overlay</li>
+</ul>
+<p>Controls:</p>
+<ul>
+<li>Line width, style, and color per shape</li>
+<li>Fill toggle + opacity for closed shapes (rectangle, ellipse, polygon)</li>
+<li>Auto Fill — fill all mask contours at once</li>
+<li>Fill All — apply fill to every mask input</li>
+<li>Label overlay opacity — transparency of segmentation label colors</li>
+<li>Geometry spinboxes (X, Y, W, H) for precise positioning</li>
+<li>Font size for texts</li>
+<li>No Preview — skip interactive canvas rendering for speed</li>
+</ul>
+<p>Hold Shift while drawing to constrain to square/circle.</p>
 </details>
 <table>
 <thead>
@@ -2124,6 +2156,47 @@ the node reports an error.</p>
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>Bar Length (µm)</code>, <code>Position</code>, <code>Show Label</code>, <code>Text-Bar Gap (px)</code></p>
+<hr />
+<h3 id="mask-overlay">Mask Overlay<a class="headerlink" href="#mask-overlay" title="Permanent link">&para;</a></h3>
+<p>Draw a mask contour (or fill) on an image.</p>
+<details class="note">
+<summary>Details</summary>
+<p>A lightweight alternative to Draw Shape for simple mask visualization.
+Connect an image and a mask, and the mask boundary is drawn as a colored
+contour on the output image. Optionally fill the masked region with a
+semi-transparent color.</p>
+<p>Controls:</p>
+<ul>
+<li>Line width, style (solid/dashed/dotted), and color</li>
+<li>Fill toggle with adjustable opacity</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>mask</code></td>
+<td>mask</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
 <hr />
 
 

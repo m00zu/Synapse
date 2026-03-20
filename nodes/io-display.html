@@ -1037,6 +1037,28 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#collect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#select-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Select Collection
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2486,6 +2508,67 @@ clears them.</p>
 <td><strong>Output</strong></td>
 <td><code>path</code></td>
 <td>path</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="collect">Collect<a class="headerlink" href="#collect" title="Permanent link">&para;</a></h3>
+<p>Pack multiple data items into a named collection.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Connect any number of items to the multi-input port. Each connection
+gets a name (auto-populated from the upstream port name, editable).
+The output is a single CollectionData that flows as one wire.</p>
+<p>Downstream nodes that expect a single item will automatically loop
+over all items in the collection and repack the results.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>any</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="select-collection">Select Collection<a class="headerlink" href="#select-collection" title="Permanent link">&para;</a></h3>
+<p>Extract a single item from a collection by name.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Connect a CollectionData input, pick which item to extract from the
+dropdown. The dropdown auto-populates with available item names.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>out</code></td>
+<td>any</td>
 </tr>
 </tbody>
 </table>
