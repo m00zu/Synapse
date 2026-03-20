@@ -1971,7 +1971,7 @@
 <div class="highlight"><pre><span></span><code>Folder Iterator --&gt; OIR Reader --&gt; Collect --&gt; Scale Bar --&gt; Split Collection --&gt; Save Collection
        └---------&gt; Path Modifier -----------------------------------------------↗
 </code></pre></div>
-<p>Batch-process a folder of multi-channel OIR files. The OIR Reader splits each file into individual channels (ch1–ch4) plus a composite. The Collect node bundles all outputs into a single collection. Scale Bar applies the same scale bar to every channel automatically. Split Collection separates the composite from the individual channels for saving to different folders. Path Modifier controls the output directory and file extension.</p>
+<p>Batch-process a folder of multi-channel OIR files. The OIR Reader splits each file into individual channels (ch1–ch4) plus a composite. The Collect node bundles all outputs into a single collection. Scale Bar applies the same scale bar to every channel automatically. Split Collection separates the composite and ch1 from others and save them to a output folder with extension both determined by Path Modifier.</p>
 <p><img alt="Batch Multi-Channel Export" src="../images/Example_5.png" /></p>
 
 
