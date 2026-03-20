@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from .base import (
     BaseExecutionNode, PORT_COLORS,
-    NodeDirSelector,
+    NodeDirSelector, NodeFileSaver,
 )
 
 
@@ -334,22 +334,31 @@ class CollectNode(BaseExecutionNode):
         connections = port.connected_ports()
         items = {}
 
+        def _dedup(name, existing):
+            base = name
+            counter = 2
+            while name in existing:
+                name = f'{base}_{counter}'
+                counter += 1
+            return name
+
         # Read names from widget (already populated by on_input_connected)
         names = self._naming_widget.get_value()
 
-        # Collect items
+        # Collect items — if an input is a CollectionData, merge its items in
         for i, cp in enumerate(connections):
             data = cp.node().output_values.get(cp.name())
             if data is None:
                 continue
-            name = names[i] if i < len(names) and names[i] else f'item_{i+1}'
-            # Deduplicate names
-            base = name
-            counter = 2
-            while name in items:
-                name = f'{base}_{counter}'
-                counter += 1
-            items[name] = data
+            if isinstance(data, CollectionData):
+                # Merge all items from the incoming collection
+                for key, val in data.payload.items():
+                    key = _dedup(key, items)
+                    items[key] = val
+            else:
+                name = names[i] if i < len(names) and names[i] else f'item_{i+1}'
+                name = _dedup(name, items)
+                items[name] = data
 
         if not items:
             return False, "No data from connected inputs"
@@ -360,35 +369,61 @@ class CollectNode(BaseExecutionNode):
 
 
 # ===========================================================================
-# Select Collection — extract one item from a CollectionData
+# Shared widgets for collection key selection
 # ===========================================================================
 
-class _SelectDropdownWidget(NodeBaseWidget):
-    """Dropdown that auto-populates with collection item names."""
+class _KeySelectWidget(NodeBaseWidget):
+    """Text input + dropdown menu for selecting a single collection key.
+
+    Uses a QToolButton with ▼ that opens a QMenu (same as NodeColumnSelectorWidget).
+    The text field is editable so users can pre-fill before data arrives.
+    """
 
     selection_changed = QtCore.Signal()
     _update_items_sig = QtCore.Signal(list)
 
-    def __init__(self, parent=None):
-        super().__init__(parent, name='_select_key', label='')
+    def __init__(self, parent=None, name='_select_key', label='Key:'):
+        super().__init__(parent, name=name, label='')
+        self._items: list[str] = []
+
         container = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(4)
+        layout.setSpacing(2)
 
-        lbl = QtWidgets.QLabel('Item:')
+        lbl = QtWidgets.QLabel(label)
         lbl.setStyleSheet('color:#ccc; font-size:9px;')
-        self._combo = QtWidgets.QComboBox()
-        self._combo.setMinimumWidth(100)
-        self._combo.currentTextChanged.connect(lambda _: self.selection_changed.emit())
+        self._text = QtWidgets.QLineEdit()
+        self._text.setPlaceholderText('item name')
+        self._text.setMinimumWidth(80)
+        self._text.editingFinished.connect(lambda: self.selection_changed.emit())
+
+        self._btn = QtWidgets.QToolButton()
+        self._btn.setText('▼')
+        self._btn.setFixedWidth(22)
+        self._btn.clicked.connect(self._show_menu)
 
         layout.addWidget(lbl)
-        layout.addWidget(self._combo)
-        layout.addStretch()
+        layout.addWidget(self._text, 1)
+        layout.addWidget(self._btn)
         self.set_custom_widget(container)
 
         self._update_items_sig.connect(self._apply_items,
                                        QtCore.Qt.ConnectionType.QueuedConnection)
+
+    def _show_menu(self):
+        menu = QtWidgets.QMenu(QtWidgets.QApplication.activeWindow())
+        for item in self._items:
+            action = menu.addAction(item)
+            action.triggered.connect(lambda checked, t=item: self._pick(t))
+        if not self._items:
+            a = menu.addAction('(run graph first)')
+            a.setEnabled(False)
+        menu.exec(QtGui.QCursor.pos())
+
+    def _pick(self, text):
+        self._text.setText(text)
+        self.selection_changed.emit()
 
     def update_items(self, names: list[str]):
         import threading
@@ -398,30 +433,109 @@ class _SelectDropdownWidget(NodeBaseWidget):
             self._update_items_sig.emit(names)
 
     def _apply_items(self, names: list[str]):
-        old = self._combo.currentText()
-        self._combo.blockSignals(True)
-        self._combo.clear()
-        self._combo.addItems(names)
-        if old in names:
-            self._combo.setCurrentText(old)
-        self._combo.blockSignals(False)
+        self._items = list(names)
+        if not self._text.text() and names:
+            self._text.setText(names[0])
 
     def get_value(self) -> str:
-        return self._combo.currentText()
+        return self._text.text().strip()
 
     def set_value(self, value):
         if isinstance(value, str):
-            idx = self._combo.findText(value)
-            if idx >= 0:
-                self._combo.setCurrentText(value)
+            self._text.setText(value)
+
+
+class _MultiKeySelectWidget(NodeBaseWidget):
+    """Text input (pipe-separated) + dropdown menu for selecting multiple keys.
+
+    Uses a QToolButton with ▼ that opens a QMenu. Clicking a name toggles
+    it in the text field. Pre-filling works: type names before data arrives.
+    """
+
+    selection_changed = QtCore.Signal()
+    _update_items_sig = QtCore.Signal(list)
+
+    def __init__(self, parent=None, name='_split_keys', label='Select:'):
+        super().__init__(parent, name=name, label='')
+        self._items: list[str] = []
+
+        container = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(container)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(2)
+
+        lbl = QtWidgets.QLabel(label)
+        lbl.setStyleSheet('color:#ccc; font-size:9px;')
+        self._text = QtWidgets.QLineEdit()
+        self._text.setPlaceholderText('key1 | key2 | ...')
+        self._text.setMinimumWidth(120)
+        self._text.editingFinished.connect(lambda: self.selection_changed.emit())
+
+        self._btn = QtWidgets.QToolButton()
+        self._btn.setText('▼')
+        self._btn.setFixedWidth(22)
+        self._btn.clicked.connect(self._show_menu)
+
+        layout.addWidget(lbl)
+        layout.addWidget(self._text, 1)
+        layout.addWidget(self._btn)
+        self.set_custom_widget(container)
+
+        self._update_items_sig.connect(self._apply_items,
+                                       QtCore.Qt.ConnectionType.QueuedConnection)
+
+    def _show_menu(self):
+        existing = set(self.get_keys())
+        menu = QtWidgets.QMenu(QtWidgets.QApplication.activeWindow())
+        for item in self._items:
+            action = menu.addAction(item)
+            action.setCheckable(True)
+            action.setChecked(item in existing)
+            action.triggered.connect(lambda checked, t=item: self._toggle(t))
+        if not self._items:
+            a = menu.addAction('(run graph first)')
+            a.setEnabled(False)
+        menu.exec(QtGui.QCursor.pos())
+
+    def _toggle(self, text):
+        keys = self.get_keys()
+        if text in keys:
+            keys.remove(text)
+        else:
+            keys.append(text)
+        self._text.setText(' | '.join(keys))
+        self.selection_changed.emit()
+
+    def update_items(self, names: list[str]):
+        import threading
+        if threading.current_thread() is threading.main_thread():
+            self._apply_items(names)
+        else:
+            self._update_items_sig.emit(names)
+
+    def _apply_items(self, names: list[str]):
+        self._items = list(names)
+
+    def get_keys(self) -> list[str]:
+        raw = self._text.text().strip()
+        if not raw:
+            return []
+        return [k.strip() for k in raw.split('|') if k.strip()]
+
+    def get_value(self) -> str:
+        return self._text.text().strip()
+
+    def set_value(self, value):
+        if isinstance(value, str):
+            self._text.setText(value)
 
 
 class SelectCollectionNode(BaseExecutionNode):
     """
     Extract a single item from a collection by name.
 
-    Connect a CollectionData input, pick which item to extract from the
-    dropdown. The dropdown auto-populates with available item names.
+    Type a name or pick from the dropdown. The dropdown auto-populates
+    with available item names when the collection is connected.
 
     Keywords: select, extract, unpack, pick, collection, 選擇, 提取, 集合
     """
@@ -435,7 +549,7 @@ class SelectCollectionNode(BaseExecutionNode):
         self.add_input('collection', color=PORT_COLORS['collection'])
         self.add_output('out', color=PORT_COLORS['any'])
 
-        self._select_widget = _SelectDropdownWidget(self.view)
+        self._select_widget = _KeySelectWidget(self.view, label='Item:')
         self._select_widget.selection_changed.connect(self._on_selection_changed)
         self.add_custom_widget(self._select_widget)
 
@@ -455,7 +569,6 @@ class SelectCollectionNode(BaseExecutionNode):
         if not isinstance(data, CollectionData):
             return False, "Input must be a CollectionData"
 
-        # Update dropdown with available names
         self._select_widget.update_items(data.names)
 
         key = self._select_widget.get_value()
@@ -472,3 +585,289 @@ class SelectCollectionNode(BaseExecutionNode):
         self.output_values['out'] = item
         self.mark_clean()
         return True, None
+
+
+# ===========================================================================
+# Pop Collection — extract one item + output the remainder
+# ===========================================================================
+
+class PopCollectionNode(BaseExecutionNode):
+    """
+    Extract one item from a collection and output the rest separately.
+
+    Two outputs: the extracted item on **item**, and a new collection
+    without that item on **rest**.  Type a name or pick from the dropdown.
+
+    Keywords: pop, remove, extract, collection, 彈出, 移除, 集合
+    """
+    __identifier__ = 'nodes.utility'
+    NODE_NAME      = 'Pop Collection'
+    PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['any', 'collection']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__(use_progress=False)
+        self.add_input('collection', color=PORT_COLORS['collection'])
+        self.add_output('item', color=PORT_COLORS['any'])
+        self.add_output('rest', color=PORT_COLORS['collection'])
+
+        self._select_widget = _KeySelectWidget(self.view, label='Pop:')
+        self._select_widget.selection_changed.connect(self._on_selection_changed)
+        self.add_custom_widget(self._select_widget)
+
+    def _on_selection_changed(self):
+        success, _ = self.evaluate()
+        if success:
+            self.mark_clean()
+
+    def evaluate(self):
+        port = self.inputs().get('collection')
+        if not port or not port.connected_ports():
+            return False, "No collection connected"
+
+        cp = port.connected_ports()[0]
+        data = cp.node().output_values.get(cp.name())
+
+        if not isinstance(data, CollectionData):
+            return False, "Input must be a CollectionData"
+
+        self._select_widget.update_items(data.names)
+
+        key = self._select_widget.get_value()
+        if not key:
+            if data.names:
+                key = data.names[0]
+            else:
+                return False, "Collection is empty"
+
+        item = data.get(key)
+        if item is None:
+            return False, f"Item '{key}' not found in collection"
+
+        rest = {k: v for k, v in data.payload.items() if k != key}
+
+        self.output_values['item'] = item
+        self.output_values['rest'] = CollectionData(payload=rest)
+        self.mark_clean()
+        return True, None
+
+
+class SplitCollectionNode(BaseExecutionNode):
+    """
+    Split a collection into two groups by selecting which items go to each output.
+
+    Type item names separated by ' | ' or pick from the dropdown to add.
+    Selected items go to **selected**, the rest go to **rest**.
+
+    Keywords: split, partition, divide, collection, 分割, 分組, 集合
+    """
+    __identifier__ = 'nodes.utility'
+    NODE_NAME      = 'Split Collection'
+    PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['collection', 'collection']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__(use_progress=False)
+        self.add_input('collection', color=PORT_COLORS['collection'])
+        self.add_output('selected', color=PORT_COLORS['collection'])
+        self.add_output('rest', color=PORT_COLORS['collection'])
+
+        self._select_widget = _MultiKeySelectWidget(self.view, label='Select:')
+        self._select_widget.selection_changed.connect(self._on_selection_changed)
+        self.add_custom_widget(self._select_widget)
+
+    def _on_selection_changed(self):
+        success, _ = self.evaluate()
+        if success:
+            self.mark_clean()
+
+    def evaluate(self):
+        port = self.inputs().get('collection')
+        if not port or not port.connected_ports():
+            return False, "No collection connected"
+
+        cp = port.connected_ports()[0]
+        data = cp.node().output_values.get(cp.name())
+
+        if not isinstance(data, CollectionData):
+            return False, "Input must be a CollectionData"
+
+        self._select_widget.update_items(data.names)
+
+        selected_keys = set(self._select_widget.get_keys())
+        if not selected_keys:
+            return False, "No items selected"
+
+        selected = {}
+        rest = {}
+        for k, v in data.payload.items():
+            if k in selected_keys:
+                selected[k] = v
+            else:
+                rest[k] = v
+
+        if not selected:
+            return False, f"None of the selected keys found in collection"
+
+        self.output_values['selected'] = CollectionData(payload=selected)
+        self.output_values['rest'] = CollectionData(payload=rest)
+        self.mark_clean()
+        return True, None
+
+
+class SaveCollectionNode(BaseExecutionNode):
+    """
+    Saves all items in a collection to disk.
+
+    Each item is saved as a separate file using the item name as a suffix.
+    Supports images (TIFF, PNG), tables (CSV, TSV), and figures.
+
+    If a path is connected, it is used as the base — the item name is inserted
+    before the extension.  Otherwise the folder + extension fields are used.
+
+    Keywords: save, collection, batch save, export, 儲存, 集合, 批次儲存
+    """
+    __identifier__ = 'nodes.utility'
+    NODE_NAME = 'Save Collection'
+    PORT_SPEC = {'inputs': ['collection', 'path'], 'outputs': ['table']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__()
+        self.add_input('collection', color=PORT_COLORS.get('collection', (218, 165, 32)))
+        self.add_input('file_path', color=PORT_COLORS.get('path'))
+        self.add_output('status', color=PORT_COLORS.get('table'))
+
+        folder_w = NodeDirSelector(self.view, name='folder', label='Output Folder')
+        self.add_custom_widget(
+            folder_w,
+            widget_type=NodeGraphQt.constants.NodePropWidgetEnum.QLINE_EDIT.value,
+            tab='Properties',
+        )
+        self.add_text_input('prefix', 'Prefix', text='output')
+        self.add_text_input('ext', 'Extension', text='.tif')
+
+    def evaluate(self):
+        import os
+        from pathlib import Path
+
+        self.reset_progress()
+
+        # --- get collection ---
+        col_port = self.inputs().get('collection')
+        if not col_port or not col_port.connected_ports():
+            self.mark_error()
+            return False, "No collection connected"
+
+        cp = col_port.connected_ports()[0]
+        col = cp.node().output_values.get(cp.name())
+        if not isinstance(col, CollectionData):
+            self.mark_error()
+            return False, "Input must be a CollectionData"
+
+        if not col.payload:
+            self.mark_error()
+            return False, "Collection is empty"
+
+        # --- resolve base path ---
+        path_port = self.inputs().get('file_path')
+        base_path = None
+        if path_port and path_port.connected_ports():
+            pc = path_port.connected_ports()[0]
+            upstream = pc.node()
+            port_name = pc.name()
+            base_path = upstream.output_values.get(port_name)
+            if hasattr(base_path, 'payload'):
+                base_path = base_path.payload
+            base_path = str(base_path) if base_path else None
+        else:
+            pass
+
+        saved_rows = []
+        items = list(col.payload.items())
+        total = len(items)
+
+        for idx, (name, item) in enumerate(items):
+            self.set_progress(int((idx / total) * 100))
+
+            # Build file path for this item
+            if base_path:
+                p = Path(base_path)
+                file_path = str(p.parent / f"{p.stem}_{name}{p.suffix}")
+            else:
+                folder = self.get_property('folder') or '.'
+                prefix = self.get_property('prefix') or 'output'
+                ext = self.get_property('ext') or '.tif'
+                if not ext.startswith('.'):
+                    ext = '.' + ext
+                file_path = os.path.join(folder, f"{prefix}_{name}{ext}")
+
+            # Ensure output directory exists
+            os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
+
+            try:
+                self._save_item(item, file_path)
+                saved_rows.append({'name': name, 'path': file_path, 'status': 'ok'})
+            except Exception as e:
+                saved_rows.append({'name': name, 'path': file_path, 'status': str(e)})
+
+        self.output_values['status'] = TableData(payload=pd.DataFrame(saved_rows))
+        ok = sum(1 for r in saved_rows if r['status'] == 'ok')
+        errs = sum(1 for r in saved_rows if r['status'] != 'ok')
+        self.mark_clean()
+        self.set_progress(100)
+        if errs:
+            return True, f"Saved {ok} files, {errs} errors"
+        return True, None
+
+    def _save_item(self, item, file_path):
+        """Save a single NodeData item to disk."""
+        import matplotlib.figure
+
+        ext = file_path.lower().rsplit('.', 1)[-1] if '.' in file_path else ''
+        payload = item.payload if hasattr(item, 'payload') else item
+
+        if isinstance(payload, pd.DataFrame):
+            sep = '\t' if ext == 'tsv' else ','
+            payload.to_csv(file_path, sep=sep, index=False)
+
+        elif isinstance(payload, matplotlib.figure.Figure):
+            payload.tight_layout()
+            payload.savefig(file_path, bbox_inches='tight',
+                            dpi=float(payload.get_dpi()))
+
+        elif isinstance(payload, np.ndarray):
+            bit_depth = getattr(item, 'bit_depth', 8) or 8
+            scale_um = getattr(item, 'scale_um', None)
+
+            if ext in ('tif', 'tiff'):
+                import tifffile
+                from ..nodes.io_nodes import _denormalize_from_float
+                out_arr = _denormalize_from_float(payload, bit_depth)
+                if scale_um and scale_um > 0:
+                    px_per_cm = 10000.0 / scale_um
+                    tifffile.imwrite(file_path, out_arr,
+                                     resolution=(px_per_cm, px_per_cm),
+                                     resolutionunit=3)
+                else:
+                    tifffile.imwrite(file_path, out_arr)
+            else:
+                from ..nodes.io_nodes import _denormalize_from_float
+                out_arr = _denormalize_from_float(payload, 8)
+                from PIL import Image as _PILImage
+                pil = _PILImage.fromarray(out_arr)
+                if scale_um and scale_um > 0:
+                    ppi = int(1_000_000.0 / scale_um / 39.3701)
+                    pil.save(file_path, dpi=(ppi, ppi))
+                else:
+                    pil.save(file_path)
+
+        elif isinstance(payload, Image.Image):
+            scale_um = getattr(item, 'scale_um', None)
+            if scale_um and scale_um > 0:
+                ppi = int(1_000_000.0 / scale_um / 39.3701)
+                payload.save(file_path, dpi=(ppi, ppi))
+            else:
+                payload.save(file_path)
+        else:
+            raise ValueError(f"Unsupported data type: {type(payload).__name__}")

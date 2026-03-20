@@ -3089,11 +3089,36 @@ See the <a href="#api-reference">API Reference</a> at the bottom of this page.</
 <h3 id="mixed-inputs-two-collections">Mixed Inputs: Two Collections<a class="headerlink" href="#mixed-inputs-two-collections" title="Permanent link">&para;</a></h3>
 <p>When both inputs are collections, items are <strong>paired by name</strong>. If collection A has keys <code>['sample_1', 'sample_2']</code> and collection B has keys <code>['sample_1', 'sample_2']</code>, then <code>evaluate()</code> runs twice — once with <code>sample_1</code> from both, once with <code>sample_2</code> from both. If a name exists in one collection but not the other, the engine falls back to the first item of the collection that's missing the key.</p>
 <h3 id="built-in-collection-nodes">Built-in Collection Nodes<a class="headerlink" href="#built-in-collection-nodes" title="Permanent link">&para;</a></h3>
-<p>Two utility nodes handle collection creation and extraction:</p>
-<ul>
-<li><strong>Collect</strong> — has a multi-input port. Connect several items and give each a name. Outputs a single <code>CollectionData</code>. Names auto-populate from upstream port names and are editable.</li>
-<li><strong>Select Collection</strong> — takes a <code>CollectionData</code> input and a dropdown to pick one item by name. Outputs that single item. Useful when you need to pull one specific result out of a collection for further processing.</li>
-</ul>
+<table>
+<thead>
+<tr>
+<th>Node</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Collect</strong></td>
+<td>Multi-input port. Connect several items, name each one. Outputs a single <code>CollectionData</code>. Also accepts existing collections as input and merges their items in.</td>
+</tr>
+<tr>
+<td><strong>Select Collection</strong></td>
+<td>Pick one item by name from a collection. Text field + dropdown menu.</td>
+</tr>
+<tr>
+<td><strong>Pop Collection</strong></td>
+<td>Extract one item by name. Two outputs: the extracted <strong>item</strong> and the <strong>rest</strong> (collection without it).</td>
+</tr>
+<tr>
+<td><strong>Split Collection</strong></td>
+<td>Split a collection into two groups. Type names separated by <code>\|</code> or pick from the checkable dropdown. Outputs <strong>selected</strong> and <strong>rest</strong>.</td>
+</tr>
+<tr>
+<td><strong>Save Collection</strong></td>
+<td>Save all items to disk. Accepts a path input (from Path Modifier) or manual folder + extension. Each item is saved with its name as a suffix.</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="node-lifecycle">Node Lifecycle<a class="headerlink" href="#node-lifecycle" title="Permanent link">&para;</a></h2>
 <h3 id="dirty-state">Dirty State<a class="headerlink" href="#dirty-state" title="Permanent link">&para;</a></h3>

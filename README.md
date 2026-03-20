@@ -109,6 +109,19 @@ Batch-convert Olympus OIR microscopy files to TIFF. The iterator feeds each `.oi
   <img src="docs/images/Example_4.png" alt="Batch OIR Conversion" width="800">
 </p>
 
+### Batch multi-channel export with collections
+
+```
+Folder Iterator --> OIR Reader --> Collect --> Scale Bar --> Split Collection --> Save Collection
+       └---------> Path Modifier -----------------------------------------------↗
+```
+
+Batch-process a folder of multi-channel OIR files. The OIR Reader splits each file into individual channels (ch1–ch4) plus a composite. The Collect node bundles all outputs into a single collection. Scale Bar applies the same scale bar to every channel automatically. Split Collection separates the composite and ch1 from others and saves them to an output folder with extension both determined by Path Modifier.
+
+<p align="center">
+  <img src="docs/images/Example_5.png" alt="Batch Multi-Channel Export" width="800">
+</p>
+
 ### Collagen area measurement (video)
 
 https://github.com/user-attachments/assets/a3772ee9-da64-4fe1-ad58-ee22ac6f41aa

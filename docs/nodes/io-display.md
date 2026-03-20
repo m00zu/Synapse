@@ -283,12 +283,62 @@ Pack multiple data items into a named collection.
 Extract a single item from a collection by name.
 
 ??? note "Details"
-    Connect a CollectionData input, pick which item to extract from the
-    dropdown. The dropdown auto-populates with available item names.
+    Type a name or pick from the dropdown. The dropdown auto-populates
+    with available item names when the collection is connected.
 
 | Direction | Port | Type |
 |-----------|------|------|
 | **Input** | `collection` | collection |
 | **Output** | `out` | any |
+
+---
+
+### Pop Collection
+
+Extract one item from a collection and output the rest separately.
+
+??? note "Details"
+    Two outputs: the extracted item on **item**, and a new collection
+    without that item on **rest**.  Type a name or pick from the dropdown.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `collection` | collection |
+| **Output** | `item` | any |
+| **Output** | `rest` | collection |
+
+---
+
+### Split Collection
+
+Split a collection into two groups by selecting which items go to each output.
+
+??? note "Details"
+    Type item names separated by ' | ' or pick from the dropdown to add.
+    Selected items go to **selected**, the rest go to **rest**.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `collection` | collection |
+| **Output** | `selected` | collection |
+| **Output** | `rest` | collection |
+
+---
+
+### Save Collection
+
+Saves all items in a collection to disk.
+
+??? note "Details"
+    Each item is saved as a separate file using the item name as a suffix.
+    Supports images (TIFF, PNG), tables (CSV, TSV), and figures.
+    
+    If a path is connected, it is used as the base — the item name is inserted
+    before the extension.  Otherwise the folder + extension fields are used.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `file_path` | path |
+| **Output** | `status` | table |
 
 ---

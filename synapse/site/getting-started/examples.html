@@ -492,6 +492,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#batch-multi-channel-export-with-collections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch multi-channel export with collections
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1956,6 +1967,12 @@
 </code></pre></div>
 <p>Batch-convert Olympus OIR microscopy files to TIFF. The iterator feeds each <code>.oir</code> path to both the reader (decodes the image) and the path modifier (swaps the extension to <code>.tif</code> and redirects to an output folder). Both connect to the saver.</p>
 <p><img alt="Batch OIR Conversion" src="../images/Example_4.png" /></p>
+<h2 id="batch-multi-channel-export-with-collections">Batch multi-channel export with collections<a class="headerlink" href="#batch-multi-channel-export-with-collections" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Folder Iterator --&gt; OIR Reader --&gt; Collect --&gt; Scale Bar --&gt; Split Collection --&gt; Save Collection
+       └---------&gt; Path Modifier -----------------------------------------------↗
+</code></pre></div>
+<p>Batch-process a folder of multi-channel OIR files. The OIR Reader splits each file into individual channels (ch1–ch4) plus a composite. The Collect node bundles all outputs into a single collection. Scale Bar applies the same scale bar to every channel automatically. Split Collection separates the composite from the individual channels for saving to different folders. Path Modifier controls the output directory and file extension.</p>
+<p><img alt="Batch Multi-Channel Export" src="../images/Example_5.png" /></p>
 
 
 

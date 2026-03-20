@@ -34,3 +34,14 @@ Folder Iterator --> Image Reader  --> Data Saver
 Batch-convert Olympus OIR microscopy files to TIFF. The iterator feeds each `.oir` path to both the reader (decodes the image) and the path modifier (swaps the extension to `.tif` and redirects to an output folder). Both connect to the saver.
 
 ![Batch OIR Conversion](../images/Example_4.png)
+
+## Batch multi-channel export with collections
+
+```
+Folder Iterator --> OIR Reader --> Collect --> Scale Bar --> Split Collection --> Save Collection
+       └---------> Path Modifier -----------------------------------------------↗
+```
+
+Batch-process a folder of multi-channel OIR files. The OIR Reader splits each file into individual channels (ch1–ch4) plus a composite. The Collect node bundles all outputs into a single collection. Scale Bar applies the same scale bar to every channel automatically. Split Collection separates the composite and ch1 from others and save them to a output folder with extension both determined by Path Modifier.
+
+![Batch Multi-Channel Export](../images/Example_5.png)

@@ -25,7 +25,8 @@ from .custom_nodes import (
     DisplayNode, DataTableCellNode, DataFigureCellNode, ImageCellNode, SvgEditorNode,
     # Core utility
     UniversalDataNode, PathModifierNode,
-    CollectNode, SelectCollectionNode,
+    CollectNode, SelectCollectionNode, PopCollectionNode,
+    SplitCollectionNode, SaveCollectionNode,
     # Core dataframe ops
     EditableTableNode, FilterTableNode, MathColumnNode, AggregateTableNode, RenameGroupNode,
     ReshapeTableNode, SortTableNode, TopNNode, ColumnValueSplitNode, TwoTableMathNode,
@@ -668,10 +669,10 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.nodes_tree.set_category_order([
             'nodes.io',
             'nodes.display',
+            'nodes.utility',
             'nodes.dataframe',
             'nodes.plotting',
             'nodes.analysis',
-            'nodes.utility',
             'nodes.image_process',
             'nodes.data',
             'plugins.Plugins',
@@ -1036,7 +1037,8 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             ImageCellNode, SvgEditorNode,
             # Utility
             UniversalDataNode, PathModifierNode,
-            CollectNode, SelectCollectionNode,
+            CollectNode, SelectCollectionNode, PopCollectionNode,
+    SplitCollectionNode, SaveCollectionNode,
             # DataFrame operations
             EditableTableNode, FilterTableNode, MathColumnNode,
             AggregateTableNode, RenameGroupNode, ReshapeTableNode,

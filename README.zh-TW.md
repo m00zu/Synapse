@@ -109,6 +109,19 @@ Folder Iterator --> Image Reader  --> Data Saver
   <img src="docs/images/Example_4.png" alt="批次 OIR 轉檔" width="800">
 </p>
 
+### 批次多通道匯出（使用 Collection）
+
+```
+Folder Iterator --> OIR Reader --> Collect --> Scale Bar --> Split Collection --> Save Collection
+       └---------> Path Modifier -----------------------------------------------↗
+```
+
+批次處理多個 channel 的 OIR 檔案。OIR Reader 將每個檔案拆分為個別 channel（ch1–ch4）及一個合成影像。Collect 將所有輸出打包成單一 Collection。Scale Bar 自動套用相同比例尺到每個通道。Split Collection 將合成影像與 ch1 分離出來，儲存到由 Path Modifier 指定的輸出資料夾與副檔名。
+
+<p align="center">
+  <img src="docs/images/Example_5.png" alt="批次多通道匯出" width="800">
+</p>
+
 ### 膠原蛋白面積測量 (影片)
 
 https://github.com/user-attachments/assets/a3772ee9-da64-4fe1-ad58-ee22ac6f41aa

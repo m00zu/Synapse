@@ -49,6 +49,9 @@ from .utility_nodes import (
     PathModifierNode,
     CollectNode,
     SelectCollectionNode,
+    PopCollectionNode,
+    SplitCollectionNode,
+    SaveCollectionNode,
 )
 
 from .dataframe_nodes import (
@@ -92,7 +95,8 @@ __all__ = [
     'ImageCellNode', 'SvgEditorNode',
     # Utility
     'UniversalDataNode', 'PathModifierNode',
-    'CollectNode', 'SelectCollectionNode',
+    'CollectNode', 'SelectCollectionNode', 'PopCollectionNode',
+    'SplitCollectionNode', 'SaveCollectionNode',
     # DataFrame Operations
     'EditableTableNode', 'FilterTableNode', 'MathColumnNode',
     'AggregateTableNode', 'RenameGroupNode', 'ReshapeTableNode',

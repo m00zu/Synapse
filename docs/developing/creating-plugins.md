@@ -489,10 +489,13 @@ When both inputs are collections, items are **paired by name**. If collection A 
 
 ### Built-in Collection Nodes
 
-Two utility nodes handle collection creation and extraction:
-
-- **Collect** — has a multi-input port. Connect several items and give each a name. Outputs a single `CollectionData`. Names auto-populate from upstream port names and are editable.
-- **Select Collection** — takes a `CollectionData` input and a dropdown to pick one item by name. Outputs that single item. Useful when you need to pull one specific result out of a collection for further processing.
+| Node | Purpose |
+|------|---------|
+| **Collect** | Multi-input port. Connect several items, name each one. Outputs a single `CollectionData`. Also accepts existing collections as input and merges their items in. |
+| **Select Collection** | Pick one item by name from a collection. Text field + dropdown menu. |
+| **Pop Collection** | Extract one item by name. Two outputs: the extracted **item** and the **rest** (collection without it). |
+| **Split Collection** | Split a collection into two groups. Type names separated by `\|` or pick from the checkable dropdown. Outputs **selected** and **rest**. |
+| **Save Collection** | Save all items to disk. Accepts a path input (from Path Modifier) or manual folder + extension. Each item is saved with its name as a suffix. |
 
 ---
 
