@@ -32,7 +32,7 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
         self.setZValue(Z_VAL_PIPE)
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
-        self.setCacheMode(ITEM_CACHE_MODE)
+        self.setCacheMode(QtWidgets.QGraphicsItem.CacheMode.NoCache)
 
         self._color = PipeEnum.COLOR.value
         self._style = PipeEnum.DRAW_TYPE_DEFAULT.value
@@ -94,6 +94,27 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
         painter.setRenderHint(painter.RenderHint.Antialiasing, True)
 
         pen = self.pen()
+        # Ensure pen matches port color and default width when idle
+        if not (self._active or self._highlight) and self._input_port and self._output_port:
+            pc = self._port_color()
+            c = pen.color()
+            if (c.red(), c.green(), c.blue()) != pc[:3] or pen.width() != 2:
+                qc = QtGui.QColor(*pc)
+                pen = QtGui.QPen()
+                pen.setColor(qc)
+                pen.setWidth(2)
+                pen.setStyle(PIPE_STYLES.get(self._style))
+                pen.setJoinStyle(QtCore.Qt.MiterJoin)
+                pen.setCapStyle(QtCore.Qt.RoundCap)
+                self.setPen(pen)
+                ap = QtGui.QPen()
+                ap.setColor(qc)
+                ap.setWidth(2)
+                ap.setJoinStyle(QtCore.Qt.MiterJoin)
+                ap.setCapStyle(QtCore.Qt.RoundCap)
+                self._dir_pointer.setPen(ap)
+                self._dir_pointer.setBrush(qc.darker(200))
+
         if self.disabled():
             if not self._active:
                 pen.setColor(QtGui.QColor(*PipeEnum.DISABLED_COLOR.value))
@@ -460,24 +481,24 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
             width (int): pipe width.
             style (int): pipe style.
         """
-        pen = self.pen()
+        qc = QtGui.QColor(*color)
+        pen = QtGui.QPen()
         pen.setWidth(width)
-        pen.setColor(QtGui.QColor(*color))
+        pen.setColor(qc)
         pen.setStyle(PIPE_STYLES.get(style))
         pen.setJoinStyle(QtCore.Qt.MiterJoin)
         pen.setCapStyle(QtCore.Qt.RoundCap)
         self.setPen(pen)
         self.setBrush(QtGui.QBrush(QtCore.Qt.NoBrush))
 
-        pen = self._dir_pointer.pen()
-        pen.setJoinStyle(QtCore.Qt.MiterJoin)
-        pen.setCapStyle(QtCore.Qt.RoundCap)
-        pen.setWidth(width)
-        pen.setColor(QtGui.QColor(*color))
-        self._dir_pointer.setPen(pen)
-        self._dir_pointer.setBrush(QtGui.QColor(*color).darker(200))
+        arrow_pen = QtGui.QPen()
+        arrow_pen.setJoinStyle(QtCore.Qt.MiterJoin)
+        arrow_pen.setCapStyle(QtCore.Qt.RoundCap)
+        arrow_pen.setWidth(width)
+        arrow_pen.setColor(qc)
+        self._dir_pointer.setPen(arrow_pen)
+        self._dir_pointer.setBrush(qc.darker(200))
 
-        # Invalidate the DeviceCoordinateCache so the new pen color is painted.
         self.update()
 
     def activate(self):
@@ -548,6 +569,10 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
         self.output_port = ports[PortTypeEnum.OUT.value]
         ports[PortTypeEnum.IN.value].add_pipe(self)
         ports[PortTypeEnum.OUT.value].add_pipe(self)
+        # Set pipe base color from port color so reset() uses it
+        port_color = self._port_color()
+        self._color = port_color
+        self.set_pipe_styling(color=port_color, width=2, style=self.style)
 
     def disabled(self):
         """

@@ -451,7 +451,9 @@ def _is_draggable(elem, tick_text_ids=frozenset()) -> bool:
     if eid in tick_text_ids:
         return False
     # User-added annotations are always draggable
-    if eid.startswith('annotation_'):
+    if any(eid.startswith(p) for p in
+           ('annotation_', 'rect_ann_', 'ellipse_ann_',
+            'line_ann_', 'arrow_ann_')):
         return True
     if _has_text_descendant(elem):
         return True
@@ -485,6 +487,100 @@ _MARKER_PATHS = {
 }
 
 _MARKER_NAMES = list(_MARKER_PATHS.keys())
+
+
+def _change_marker_shape_for_group(group_elem, new_d, svg_root):
+    """Change marker shape for one scatter group without affecting others.
+
+    If the <defs> path is referenced by other groups (shared),
+    clone it with a unique ID and redirect this group's <use>
+    elements to the clone.
+    """
+    if svg_root is None:
+        return
+
+    # 1. Find what path ID this group's <use> elements reference
+    use_elems = [ue for ue in group_elem.iter() if _ltag(ue) == 'use']
+    if not use_elems:
+        # Fallback: try inline <defs> within the group
+        for de in group_elem.iter():
+            if _ltag(de) == 'defs':
+                for pe in de:
+                    if _ltag(pe) == 'path':
+                        pe.set('d', new_d)
+        return
+
+    # Get the href from the first <use>
+    href = None
+    for attr_name in [f'{{{_XLINK_NS}}}href', 'href']:
+        href = use_elems[0].get(attr_name)
+        if href:
+            break
+    if not href or not href.startswith('#'):
+        return
+    old_path_id = href[1:]
+
+    # 2. Find the referenced <path> element
+    path_elem = None
+    for el in svg_root.iter():
+        if _ltag(el) == 'path' and el.get('id') == old_path_id:
+            path_elem = el
+            break
+    if path_elem is None:
+        return
+
+    # 3. Check if other groups also reference this path
+    all_uses = [ue for ue in svg_root.iter() if _ltag(ue) == 'use']
+    other_refs = False
+    for ue in all_uses:
+        if ue in use_elems:
+            continue
+        for attr_name in [f'{{{_XLINK_NS}}}href', 'href']:
+            if ue.get(attr_name) == f'#{old_path_id}':
+                other_refs = True
+                break
+        if other_refs:
+            break
+
+    if not other_refs:
+        # No other group uses this path — safe to modify in place
+        path_elem.set('d', new_d)
+    else:
+        # Shared path — clone with a new ID
+        import copy as _copy
+        new_path = _copy.deepcopy(path_elem)
+        # Generate unique ID
+        counter = 1
+        while True:
+            new_id = f'{old_path_id}_{counter}'
+            if svg_root.find(f'.//*[@id="{new_id}"]') is None:
+                break
+            counter += 1
+        new_path.set('id', new_id)
+        new_path.set('d', new_d)
+
+        # Insert clone next to original
+        parent = None
+        for candidate in svg_root.iter():
+            if path_elem in list(candidate):
+                parent = candidate
+                break
+        if parent is not None:
+            idx = list(parent).index(path_elem)
+            parent.insert(idx + 1, new_path)
+        else:
+            defs_el = svg_root.find(f'{{{_SVG_NS}}}defs')
+            if defs_el is None:
+                import xml.etree.ElementTree as _ET_local
+                defs_el = _ET_local.SubElement(svg_root, f'{{{_SVG_NS}}}defs')
+                svg_root.insert(0, defs_el)
+            defs_el.append(new_path)
+
+        # Redirect this group's <use> elements to the clone
+        for ue in use_elems:
+            for attr_name in [f'{{{_XLINK_NS}}}href', 'href']:
+                if ue.get(attr_name):
+                    ue.set(attr_name, f'#{new_id}')
 
 
 def _detect_marker_shape(elem):
@@ -809,10 +905,6 @@ class _SvgEditorView(object):
                                       args: (element_id, dx_svg, dy_svg)
     """
 
-    _MAX_W  = 2000
-    _MAX_H  = 2500
-    _RSCALE = 2      # render at 2× default size for crispness
-
     # Skip these SVG tag types when building overlays
     _SKIP_TAGS = frozenset({
         'defs', 'metadata', 'style', 'clipPath', 'symbol',
@@ -830,13 +922,11 @@ class _SvgEditorView(object):
             element_moved          = QtCore.Signal(str, float, float)
             delete_requested       = QtCore.Signal(str)   # eid
 
-            _MAX_W  = _SvgEditorView._MAX_W
-            _MAX_H  = _SvgEditorView._MAX_H
-            _RSCALE = _SvgEditorView._RSCALE
             _SKIP   = _SvgEditorView._SKIP_TAGS
 
             def __init__(self):
                 super().__init__()
+                from PySide6.QtSvgWidgets import QGraphicsSvgItem
                 self._sc = QtWidgets.QGraphicsScene(self)
                 self.setScene(self._sc)
                 self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
@@ -852,7 +942,7 @@ class _SvgEditorView(object):
                 self.setMinimumSize(540, 440)
 
                 self._renderer = None
-                self._bg       = None      # QGraphicsPixmapItem
+                self._bg       = None      # QGraphicsSvgItem (vector)
                 self._overlays = {}        # eid → overlay item
                 self.svg_root  = None      # ET.Element
                 self._tree     = None      # ET.ElementTree
@@ -864,6 +954,7 @@ class _SvgEditorView(object):
 
             # ── public ────────────────────────────────────────────────────
             def load_svg(self, svg_bytes: bytes):
+                from PySide6.QtSvgWidgets import QGraphicsSvgItem
                 self._sc.clear()
                 self._overlays.clear()
                 self._renderer = self._bg = None
@@ -885,20 +976,14 @@ class _SvgEditorView(object):
                     return
 
                 self._vbox = self._renderer.viewBoxF()
-                ds = self._renderer.defaultSize()
-                pw = min(ds.width()  * self._RSCALE, self._MAX_W)
-                ph = min(ds.height() * self._RSCALE, self._MAX_H)
-                ar = ds.width() / max(ds.height(), 1.0)
-                if pw / max(ph, 1.0) > ar:
-                    pw = ph * ar
-                else:
-                    ph = pw / max(ar, 1e-6)
-                pw, ph = max(int(pw), 2), max(int(ph), 2)
+                # Scene coordinates = viewBox coordinates (1:1 mapping)
+                self._sx = 1.0
+                self._sy = 1.0
 
-                self._sx = pw / max(self._vbox.width(),  1.0)
-                self._sy = ph / max(self._vbox.height(), 1.0)
-
-                self._bg = self._render_bg(pw, ph)
+                self._bg = QGraphicsSvgItem()
+                self._bg.setSharedRenderer(self._renderer)
+                self._bg.setCacheMode(QtWidgets.QGraphicsItem.CacheMode.NoCache)
+                self._bg.setZValue(0)
                 self._sc.addItem(self._bg)
                 self._create_overlays()
                 self.fitInView(
@@ -914,16 +999,15 @@ class _SvgEditorView(object):
                 if not r.isValid():
                     return
                 self._renderer = r
-                if self._bg:
-                    sz = self._bg.pixmap().size()
-                    new_pix = QtGui.QPixmap(sz)
-                    new_pix.fill(QtGui.QColor('#ffffff'))
-                    p = QtGui.QPainter(new_pix)
-                    r.render(p)
-                    p.end()
-                    self._bg.setPixmap(new_pix)
+                self._vbox = r.viewBoxF()
+                self._sx = 1.0
+                self._sy = 1.0
 
-                # Recreate overlays (positions may have changed after a move)
+                # Update the vector background
+                if self._bg:
+                    self._bg.setSharedRenderer(r)
+
+                # Recreate overlays
                 for ov in list(self._overlays.values()):
                     self._sc.removeItem(ov)
                 self._overlays.clear()
@@ -945,16 +1029,6 @@ class _SvgEditorView(object):
                         QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
             # ── private ───────────────────────────────────────────────────
-            def _render_bg(self, pw, ph):
-                pix = QtGui.QPixmap(pw, ph)
-                pix.fill(QtGui.QColor('#ffffff'))
-                p = QtGui.QPainter(pix)
-                self._renderer.render(p)
-                p.end()
-                item = QtWidgets.QGraphicsPixmapItem(pix)
-                item.setZValue(0)
-                return item
-
             def _create_overlays(self):
                 if not self.svg_root or not self._renderer:
                     return
@@ -1159,8 +1233,10 @@ class _SvgEditorView(object):
                     for it in self._sc.selectedItems():
                         if hasattr(it, 'eid'):
                             self.delete_requested.emit(it.eid)
-                            break
-                    e.accept()
+                            e.accept()
+                            return
+                    # No overlay selected — let the event propagate
+                    # so NodeGraphQt can delete the node itself
                     return
                 # Ctrl+Z / Ctrl+Shift+Z handled by widget
                 super().keyPressEvent(e)
@@ -1230,6 +1306,7 @@ class _SvgPropsPanel(object):
                 self.setMinimumWidth(300)
                 self._eid      = None
                 self._xml_elem = None
+                self._svg_root = None
                 self._wmap     = {}   # key → widget with ._gv() value getter
 
                 outer = QtWidgets.QVBoxLayout(self)
@@ -1288,6 +1365,10 @@ class _SvgPropsPanel(object):
                 self._debounce.timeout.connect(self._on_apply)
 
             # ── public ────────────────────────────────────────────────────
+            def set_svg_root(self, root):
+                """Store reference to SVG root for marker shape operations."""
+                self._svg_root = root
+
             def load(self, eid: str, xml_elem):
                 self._debounce.stop()   # cancel pending auto-apply
                 self._eid      = eid
@@ -1562,6 +1643,74 @@ class _SvgPropsPanel(object):
                     lbl2.setStyleSheet("color: #aaa; font-size: 9pt;")
                     self._fl.addRow(lbl2, te)
 
+                # ── Geometry controls for annotation shapes ──────────────
+                is_ann_shape = any(eid.startswith(p) for p in
+                                   ('rect_ann_', 'ellipse_ann_',
+                                    'line_ann_', 'arrow_ann_'))
+                if is_ann_shape:
+                    sep_g = QtWidgets.QFrame()
+                    sep_g.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+                    sep_g.setStyleSheet("color: #444;")
+                    self._fl.addRow(sep_g)
+
+                    _SB_SS = ("QDoubleSpinBox { background: #1e1e1e;"
+                              " border: 1px solid #444; color: #eee;"
+                              " padding: 2px; }")
+
+                    if tag == 'rect':
+                        for attr, label in [('x', 'X'), ('y', 'Y'),
+                                            ('width', 'W'), ('height', 'H')]:
+                            val = float(xml_elem.get(attr, 0))
+                            sb = QtWidgets.QDoubleSpinBox()
+                            sb.setRange(-9999, 9999)
+                            sb.setDecimals(1)
+                            sb.setSingleStep(1.0)
+                            sb.setValue(val)
+                            sb.setStyleSheet(_SB_SS)
+                            sb._gv = lambda s=sb: str(s.value())
+                            sb.valueChanged.connect(
+                                lambda _v: self._debounce.start())
+                            self._wmap[f'attr:{attr}'] = sb
+                            lbl_g = QtWidgets.QLabel(label)
+                            lbl_g.setStyleSheet("color: #aaa; font-size: 9pt;")
+                            self._fl.addRow(lbl_g, sb)
+
+                    elif tag == 'ellipse':
+                        for attr, label in [('cx', 'CX'), ('cy', 'CY'),
+                                            ('rx', 'RX'), ('ry', 'RY')]:
+                            val = float(xml_elem.get(attr, 0))
+                            sb = QtWidgets.QDoubleSpinBox()
+                            sb.setRange(-9999, 9999)
+                            sb.setDecimals(1)
+                            sb.setSingleStep(1.0)
+                            sb.setValue(val)
+                            sb.setStyleSheet(_SB_SS)
+                            sb._gv = lambda s=sb: str(s.value())
+                            sb.valueChanged.connect(
+                                lambda _v: self._debounce.start())
+                            self._wmap[f'attr:{attr}'] = sb
+                            lbl_g = QtWidgets.QLabel(label)
+                            lbl_g.setStyleSheet("color: #aaa; font-size: 9pt;")
+                            self._fl.addRow(lbl_g, sb)
+
+                    elif tag == 'line':
+                        for attr, label in [('x1', 'X1'), ('y1', 'Y1'),
+                                            ('x2', 'X2'), ('y2', 'Y2')]:
+                            val = float(xml_elem.get(attr, 0))
+                            sb = QtWidgets.QDoubleSpinBox()
+                            sb.setRange(-9999, 9999)
+                            sb.setDecimals(1)
+                            sb.setSingleStep(1.0)
+                            sb.setValue(val)
+                            sb.setStyleSheet(_SB_SS)
+                            sb._gv = lambda s=sb: str(s.value())
+                            sb.valueChanged.connect(
+                                lambda _v: self._debounce.start())
+                            self._wmap[f'attr:{attr}'] = sb
+                            lbl_g = QtWidgets.QLabel(label)
+                            lbl_g.setStyleSheet("color: #aaa; font-size: 9pt;")
+                            self._fl.addRow(lbl_g, sb)
+
                 self._fc.adjustSize()
 
             # ── private ───────────────────────────────────────────────────
@@ -1668,6 +1817,11 @@ class _SvgPropsPanel(object):
                         user_changed[prop] = val
                         css[prop] = val
 
+                    elif key.startswith('attr:'):
+                        # Direct SVG attribute (x, y, width, height, etc.)
+                        attr_name = key[5:]
+                        elem.set(attr_name, val)
+
                     elif key == 'text:content':
                         for sub in elem.iter():
                             lt = _ltag(sub)
@@ -1679,31 +1833,29 @@ class _SvgPropsPanel(object):
                                 break
 
                     elif key == 'marker:shape':
-                        # Replace path d in <defs> for PathCollection
+                        # Replace marker path for THIS group only.
                         new_d = _MARKER_PATHS.get(val)
                         if new_d:
-                            for de in elem.iter():
-                                if _ltag(de) == 'defs':
-                                    for pe in de:
-                                        if _ltag(pe) == 'path':
-                                            pe.set('d', new_d)
+                            _change_marker_shape_for_group(
+                                elem, new_d, self._svg_root)
 
                     elif key == 'marker:size':
-                        # Scale <use> elements' transforms
+                        # Scale <use> elements around their own center.
+                        # Matplotlib positions <use> with x/y attrs, so a bare
+                        # scale() would also scale the x/y offset from origin.
+                        # Use translate(cx,cy) scale(s) translate(-cx,-cy) to
+                        # scale in place.
                         try:
                             new_scale = float(val)
                             if new_scale > 0:
                                 for ue in elem.iter():
                                     if _ltag(ue) == 'use':
-                                        t = ue.get('transform', '')
-                                        if 'scale(' in t:
-                                            t = re.sub(
-                                                r'scale\([\d.e+-]+\)',
-                                                f'scale({new_scale:.4g})',
-                                                t)
-                                        else:
-                                            t = f'scale({new_scale:.4g}) {t}'
-                                        ue.set('transform', t.strip())
+                                        cx = float(ue.get('x', 0))
+                                        cy = float(ue.get('y', 0))
+                                        ue.set('transform',
+                                               f'translate({cx:.4g},{cy:.4g}) '
+                                               f'scale({new_scale:.4g}) '
+                                               f'translate({-cx:.4g},{-cy:.4g})')
                         except (ValueError, TypeError):
                             pass
 
@@ -1726,10 +1878,13 @@ class _SvgPropsPanel(object):
                                 inner_g.set('transform', t)
                     except (ValueError, TypeError):
                         pass
-                    # Don't write font-size as CSS — it has no effect
-                    # on matplotlib glyph-path text.
-                    css.pop('font-size', None)
-                    user_changed.pop('font-size', None)
+                    # For matplotlib glyph-path text, font-size via CSS has
+                    # no effect — size is controlled by the scale transform.
+                    # But for annotation <text> elements, CSS font-size works.
+                    is_annotation = self._eid and self._eid.startswith('annotation_')
+                    if not is_annotation:
+                        css.pop('font-size', None)
+                        user_changed.pop('font-size', None)
 
                 # Write CSS back to element
                 if css:
@@ -1805,8 +1960,8 @@ class NodeSvgEditorWidget(object):
                 _MAX_UNDO = 50
 
                 ctr = QtWidgets.QWidget()
-                ctr.setMinimumWidth(800)
-                ctr.setMinimumHeight(640)
+                ctr.setMinimumWidth(1100)
+                ctr.setMinimumHeight(800)
                 root = QtWidgets.QVBoxLayout(ctr)
                 root.setContentsMargins(2, 2, 2, 2)
                 root.setSpacing(2)
@@ -1940,6 +2095,35 @@ class NodeSvgEditorWidget(object):
                 tb2.addStretch()
                 root.addLayout(tb2)
 
+                # ── toolbar row 3: canvas padding ─────────────────────────
+                tb3 = QtWidgets.QHBoxLayout()
+                pad_lbl = QtWidgets.QLabel("Padding:")
+                pad_lbl.setStyleSheet("color: #aaa; font-size: 8pt;")
+                tb3.addWidget(pad_lbl)
+                for side, label in [('top', 'T'), ('bottom', 'B'),
+                                    ('left', 'L'), ('right', 'R')]:
+                    sl = QtWidgets.QLabel(label)
+                    sl.setStyleSheet("color:#888; font-size:8pt;")
+                    sb = QtWidgets.QSpinBox()
+                    sb.setRange(0, 500)
+                    sb.setValue(0)
+                    sb.setSuffix('px')
+                    sb.setFixedWidth(65)
+                    sb.setFixedHeight(22)
+                    sb.setStyleSheet(
+                        "QSpinBox { background:#3a3a3a; color:#ddd;"
+                        " border:1px solid #555; border-radius:3px; }")
+                    setattr(self, f'_pad_{side}', sb)
+                    tb3.addWidget(sl)
+                    tb3.addWidget(sb)
+                apply_pad_btn = QtWidgets.QPushButton('Apply Padding')
+                apply_pad_btn.setFixedHeight(22)
+                apply_pad_btn.setStyleSheet(_TB_SS)
+                apply_pad_btn.clicked.connect(self._on_apply_padding)
+                tb3.addWidget(apply_pad_btn)
+                tb3.addStretch()
+                root.addLayout(tb3)
+
                 # ── splitter: view  |  properties panel ───────────────────
                 self._sp = QtWidgets.QSplitter(
                     QtCore.Qt.Orientation.Horizontal)
@@ -1949,7 +2133,7 @@ class NodeSvgEditorWidget(object):
 
                 self._props = _SvgPropsPanel()
                 self._sp.addWidget(self._props)
-                self._sp.setSizes([640, 0])   # props hidden until dbl-click
+                self._sp.setSizes([860, 0])   # props hidden until dbl-click
 
                 root.addWidget(self._sp, stretch=1)
 
@@ -2078,9 +2262,11 @@ class NodeSvgEditorWidget(object):
                 short = eid if len(eid) <= 34 else eid[:31] + '…'
                 self._tip.setText(f"Selected: {short}")
                 if self._sp.sizes()[1] < 50:
-                    self._sp.setSizes([420, 220])
+                    total = sum(self._sp.sizes())
+                    self._sp.setSizes([int(total * 0.78), int(total * 0.22)])
                 if self._view.svg_root is not None:
                     elem = _find_id(self._view.svg_root, eid)
+                    self._props.set_svg_root(self._view.svg_root)
                     self._props.load(eid, elem)
 
             def _on_dbl(self, eid: str):
@@ -2093,9 +2279,47 @@ class NodeSvgEditorWidget(object):
                 if elem is None:
                     return
                 self._snapshot()
-                existing = elem.get('transform', '')
-                new_t = f"translate({dx:.4f} {dy:.4f})"
-                elem.set('transform', (f"{new_t} {existing}").strip())
+                tag = _ltag(elem)
+                is_ann = any(eid.startswith(p) for p in
+                             ('annotation_', 'rect_ann_', 'ellipse_ann_',
+                              'line_ann_', 'arrow_ann_'))
+
+                if is_ann and tag in ('rect', 'ellipse', 'line', 'text'):
+                    # Move annotation shapes by updating their coordinates
+                    # directly instead of stacking translate transforms.
+                    if tag == 'rect' or tag == 'text':
+                        for attr in ('x', 'y'):
+                            old = float(elem.get(attr, 0))
+                            delta = dx if attr == 'x' else dy
+                            elem.set(attr, f'{old + delta:.2f}')
+                    elif tag == 'ellipse':
+                        for attr in ('cx', 'cy'):
+                            old = float(elem.get(attr, 0))
+                            delta = dx if attr == 'cx' else dy
+                            elem.set(attr, f'{old + delta:.2f}')
+                    elif tag == 'line':
+                        for attr in ('x1', 'x2'):
+                            old = float(elem.get(attr, 0))
+                            elem.set(attr, f'{old + dx:.2f}')
+                        for attr in ('y1', 'y2'):
+                            old = float(elem.get(attr, 0))
+                            elem.set(attr, f'{old + dy:.2f}')
+                else:
+                    # For other elements (matplotlib text groups etc.),
+                    # accumulate into a single translate.
+                    existing = elem.get('transform', '')
+                    m = re.search(
+                        r'translate\(([\d.e+-]+)[,\s]+([\d.e+-]+)\)', existing)
+                    if m:
+                        old_dx = float(m.group(1))
+                        old_dy = float(m.group(2))
+                        new_t = f'translate({old_dx + dx:.4f} {old_dy + dy:.4f})'
+                        existing = re.sub(
+                            r'translate\([\d.e+-]+[,\s]+[\d.e+-]+\)',
+                            new_t, existing, count=1)
+                    else:
+                        existing = f'translate({dx:.4f} {dy:.4f}) {existing}'
+                    elem.set('transform', existing.strip())
                 self._reserialize(eid)
 
             def _on_apply(self, eid: str):
@@ -2268,9 +2492,149 @@ class NodeSvgEditorWidget(object):
                     f"Palette applied to {len(series_groups)} series.")
 
             # ── reserialize ───────────────────────────────────────────────
+            def _expand_canvas(self):
+                """Expand the SVG canvas (viewBox, width/height, bg rect)
+                to encompass all annotation elements."""
+                root = self._view.svg_root
+                if root is None:
+                    return
+                vb_str = root.get('viewBox', '')
+                if not vb_str:
+                    return
+                try:
+                    parts = vb_str.split()
+                    vx, vy, vw, vh = (float(parts[0]), float(parts[1]),
+                                      float(parts[2]), float(parts[3]))
+                except (ValueError, IndexError):
+                    return
+
+                margin = 10
+                min_x, min_y = vx, vy
+                max_x, max_y = vx + vw, vy + vh
+
+                for elem in root.iter():
+                    eid = elem.get('id', '')
+                    if not any(eid.startswith(p) for p in
+                               ('annotation_', 'rect_ann_', 'ellipse_ann_',
+                                'line_ann_', 'arrow_ann_')):
+                        continue
+                    tag = _ltag(elem)
+                    # Also account for translate transforms on the element
+                    tx_off, ty_off = 0.0, 0.0
+                    t_str = elem.get('transform', '')
+                    t_match = re.search(
+                        r'translate\(([\d.e+-]+)[,\s]+([\d.e+-]+)\)', t_str)
+                    if t_match:
+                        tx_off = float(t_match.group(1))
+                        ty_off = float(t_match.group(2))
+
+                    if tag == 'rect':
+                        ex = float(elem.get('x', 0)) + tx_off
+                        ey = float(elem.get('y', 0)) + ty_off
+                        ew = float(elem.get('width', 0))
+                        eh = float(elem.get('height', 0))
+                        min_x = min(min_x, ex - margin)
+                        min_y = min(min_y, ey - margin)
+                        max_x = max(max_x, ex + ew + margin)
+                        max_y = max(max_y, ey + eh + margin)
+                    elif tag == 'ellipse':
+                        cx = float(elem.get('cx', 0)) + tx_off
+                        cy = float(elem.get('cy', 0)) + ty_off
+                        rx = float(elem.get('rx', 0))
+                        ry = float(elem.get('ry', 0))
+                        min_x = min(min_x, cx - rx - margin)
+                        min_y = min(min_y, cy - ry - margin)
+                        max_x = max(max_x, cx + rx + margin)
+                        max_y = max(max_y, cy + ry + margin)
+                    elif tag == 'line':
+                        x1 = float(elem.get('x1', 0)) + tx_off
+                        y1 = float(elem.get('y1', 0)) + ty_off
+                        x2 = float(elem.get('x2', 0)) + tx_off
+                        y2 = float(elem.get('y2', 0)) + ty_off
+                        min_x = min(min_x, x1 - margin, x2 - margin)
+                        min_y = min(min_y, y1 - margin, y2 - margin)
+                        max_x = max(max_x, x1 + margin, x2 + margin)
+                        max_y = max(max_y, y1 + margin, y2 + margin)
+                    elif tag == 'text':
+                        tx = float(elem.get('x', 0)) + tx_off
+                        ty = float(elem.get('y', 0)) + ty_off
+                        min_x = min(min_x, tx - margin)
+                        min_y = min(min_y, ty - 20 - margin)
+                        max_x = max(max_x, tx + 100 + margin)
+                        max_y = max(max_y, ty + margin)
+
+                new_vw = max_x - min_x
+                new_vh = max_y - min_y
+                if min_x < vx or min_y < vy or new_vw > vw or new_vh > vh:
+                    root.set('viewBox',
+                             f'{min_x:.2f} {min_y:.2f} {new_vw:.2f} {new_vh:.2f}')
+                    # Update SVG width/height to match
+                    root.set('width', f'{new_vw:.2f}pt')
+                    root.set('height', f'{new_vh:.2f}pt')
+                    # Expand the background rect (first <rect> in root, usually
+                    # matplotlib's figure patch)
+                    for child in root:
+                        if _ltag(child) == 'rect':
+                            child.set('x', f'{min_x:.2f}')
+                            child.set('y', f'{min_y:.2f}')
+                            child.set('width', f'{new_vw:.2f}')
+                            child.set('height', f'{new_vh:.2f}')
+                            break
+
+            def _on_apply_padding(self):
+                """Add user-specified padding around the SVG canvas."""
+                root = self._view.svg_root
+                if root is None:
+                    return
+                vb_str = root.get('viewBox', '')
+                if not vb_str:
+                    return
+                try:
+                    parts = vb_str.split()
+                    vx, vy, vw, vh = (float(parts[0]), float(parts[1]),
+                                      float(parts[2]), float(parts[3]))
+                except (ValueError, IndexError):
+                    return
+
+                pt = self._pad_top.value()
+                pb = self._pad_bottom.value()
+                pl = self._pad_left.value()
+                pr = self._pad_right.value()
+
+                if pt == 0 and pb == 0 and pl == 0 and pr == 0:
+                    return
+
+                self._snapshot()
+                new_x = vx - pl
+                new_y = vy - pt
+                new_w = vw + pl + pr
+                new_h = vh + pt + pb
+
+                root.set('viewBox',
+                         f'{new_x:.2f} {new_y:.2f} {new_w:.2f} {new_h:.2f}')
+                root.set('width', f'{new_w:.2f}pt')
+                root.set('height', f'{new_h:.2f}pt')
+                # Expand background rect
+                for child in root:
+                    if _ltag(child) == 'rect':
+                        child.set('x', f'{new_x:.2f}')
+                        child.set('y', f'{new_y:.2f}')
+                        child.set('width', f'{new_w:.2f}')
+                        child.set('height', f'{new_h:.2f}')
+                        break
+
+                # Reset spinboxes after applying
+                self._pad_top.setValue(0)
+                self._pad_bottom.setValue(0)
+                self._pad_left.setValue(0)
+                self._pad_right.setValue(0)
+
+                self._reserialize()
+
             def _reserialize(self, keep_eid: str = None):
                 if self._view._tree is None:
                     return
+                self._expand_canvas()
                 _ET.register_namespace('', _SVG_NS)
                 _ET.register_namespace('xlink', _XLINK_NS)
                 try:
@@ -2360,8 +2724,18 @@ class SvgEditorNode(BaseExecutionNode):
         self.set_property('_svg_data', '', push_undo=False)
         fig = self._get_upstream_fig()
         if fig is not None:
+            import matplotlib
+            old_fonttype = matplotlib.rcParams.get('svg.fonttype', 'path')
+            old_font = matplotlib.rcParams.get('font.family', ['sans-serif'])
+            old_sans = matplotlib.rcParams.get('font.sans-serif', [])
+            matplotlib.rcParams['svg.fonttype'] = 'none'
+            matplotlib.rcParams['font.family'] = ['sans-serif']
+            matplotlib.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'sans-serif']
             buf = _io.BytesIO()
             fig.savefig(buf, format='svg', bbox_inches='tight')
+            matplotlib.rcParams['svg.fonttype'] = old_fonttype
+            matplotlib.rcParams['font.family'] = old_font
+            matplotlib.rcParams['font.sans-serif'] = old_sans
             svg_bytes = buf.getvalue()
             self.set_property('_svg_data', svg_bytes.decode('utf-8'),
                                push_undo=False)
@@ -2397,8 +2771,19 @@ class SvgEditorNode(BaseExecutionNode):
         existing = self.get_property('_svg_data')
         if not existing:
             # First run or after reset: generate fresh SVG
+            # Use 'none' fonttype so text is real <text> elements, not paths
+            import matplotlib
+            old_fonttype = matplotlib.rcParams.get('svg.fonttype', 'path')
+            old_font = matplotlib.rcParams.get('font.family', ['sans-serif'])
+            old_sans = matplotlib.rcParams.get('font.sans-serif', [])
+            matplotlib.rcParams['svg.fonttype'] = 'none'
+            matplotlib.rcParams['font.family'] = ['sans-serif']
+            matplotlib.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'sans-serif']
             buf = _io.BytesIO()
             fig.savefig(buf, format='svg', bbox_inches='tight')
+            matplotlib.rcParams['svg.fonttype'] = old_fonttype
+            matplotlib.rcParams['font.family'] = old_font
+            matplotlib.rcParams['font.sans-serif'] = old_sans
             svg_bytes = buf.getvalue()
             self.set_property('_svg_data',
                                svg_bytes.decode('utf-8'), push_undo=False)
