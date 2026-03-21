@@ -22,7 +22,7 @@ from .custom_nodes import (
     ImageReadNode, SaveNode,
     BatchAccumulatorNode, BatchGateNode,
     # Core display
-    DisplayNode, DataTableCellNode, DataFigureCellNode, ImageCellNode, SvgEditorNode,
+    DisplayNode, DataTableCellNode, DataFigureCellNode, ImageCellNode,
     # Core utility
     UniversalDataNode, PathModifierNode,
     CollectNode, SelectCollectionNode, PopCollectionNode,
@@ -1066,7 +1066,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             BatchAccumulatorNode, BatchGateNode,
             # Display
             DisplayNode, DataTableCellNode, DataFigureCellNode,
-            ImageCellNode, SvgEditorNode,
+            ImageCellNode,
             # Utility
             UniversalDataNode, PathModifierNode,
             CollectNode, SelectCollectionNode, PopCollectionNode,

@@ -41,7 +41,6 @@ from .display_nodes import (
     DataTableCellNode,
     DataFigureCellNode,
     ImageCellNode,
-    SvgEditorNode,
 )
 
 from .utility_nodes import (
@@ -96,7 +95,7 @@ __all__ = [
     'parse_channels',
     # Display
     'DisplayNode', 'DataTableCellNode', 'DataFigureCellNode',
-    'ImageCellNode', 'SvgEditorNode',
+    'ImageCellNode',
     # Utility
     'UniversalDataNode', 'PathModifierNode',
     'CollectNode', 'SelectCollectionNode', 'PopCollectionNode',

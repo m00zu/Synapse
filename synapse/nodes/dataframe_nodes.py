@@ -194,7 +194,7 @@ class EditableNodeTableWidget(NodeBaseWidget):
                 QtWidgets.QMessageBox.warning(self._table, "Invalid Name", "Column name already exists!")
                 return
                 
-            self._df[new_name] = np.nan
+            self._df[new_name] = pd.Series([None] * len(self._df), dtype=object)
             
             # Refresh UI
             self._is_updating_ui = True
@@ -280,10 +280,16 @@ class EditableNodeTableWidget(NodeBaseWidget):
         col_type = self._df.dtypes.iloc[col]
         try:
             if pd.api.types.is_numeric_dtype(col_type):
-                if pd.api.types.is_integer_dtype(col_type):
-                    new_val = int(new_val_str)
-                else:
-                    new_val = float(new_val_str)
+                try:
+                    if pd.api.types.is_integer_dtype(col_type):
+                        new_val = int(new_val_str)
+                    else:
+                        new_val = float(new_val_str)
+                except (ValueError, TypeError):
+                    # User typed a string into a numeric column — convert column to object
+                    col_name = self._df.columns[col]
+                    self._df[col_name] = self._df[col_name].astype(object)
+                    new_val = str(new_val_str)
             elif pd.api.types.is_bool_dtype(col_type):
                 new_val = new_val_str.lower() in ('true', '1', 't', 'yes', 'y')
             else:
