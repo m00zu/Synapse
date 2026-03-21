@@ -37,6 +37,8 @@ STRINGS: dict[str, str] = {
     "Node Explorer":        "節點總管",
     "AI Assistant":         "AI 助理",
     "Node Help":            "節點說明",
+    "Execution Order":      "執行順序",
+    "Refresh":              "重新整理",
     "Execution":            "執行",
 
     # ── Menu titles ──────────────────────────────────────────────────────────

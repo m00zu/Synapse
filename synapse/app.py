@@ -752,6 +752,35 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.tabifyDockWidget(self.dockWidgetLLM, self.dockWidgetHelp)
         self.dockWidgetHelp.raise_()
 
+        # ── Execution Order Dock ──
+        self._exec_order_widget = QtWidgets.QWidget()
+        exec_lay = QtWidgets.QVBoxLayout(self._exec_order_widget)
+        exec_lay.setContentsMargins(4, 4, 4, 4)
+        exec_lay.setSpacing(2)
+
+        self._exec_order_list = QtWidgets.QListWidget()
+        self._exec_order_list.setStyleSheet(
+            "QListWidget { font-size: 11px; }"
+            "QListWidget::item { padding: 3px 6px; }"
+        )
+        self._exec_order_list.itemClicked.connect(self._on_exec_order_item_clicked)
+
+        btn_row = QtWidgets.QHBoxLayout()
+        btn_refresh = QtWidgets.QPushButton(tr("Refresh"))
+        btn_refresh.clicked.connect(self._refresh_execution_order)
+        btn_row.addWidget(btn_refresh)
+        btn_row.addStretch()
+
+        exec_lay.addWidget(self._exec_order_list, 1)
+        exec_lay.addLayout(btn_row)
+
+        self.dockWidgetExecOrder = QtWidgets.QDockWidget(tr("Execution Order"))
+        self.dockWidgetExecOrder.setWidget(self._exec_order_widget)
+        self.dockWidgetExecOrder.setMinimumWidth(200)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea,
+                           self.dockWidgetExecOrder)
+        self.dockWidgetExecOrder.hide()
+
         # Update tooltip stylesheet to match current theme, and keep in sync on toggle
         self._update_theme_stylesheet()
         self.theme_manager.theme_changed.connect(lambda _: self._update_theme_stylesheet())
@@ -1290,6 +1319,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         view_menu.addAction(self.dockWidgetProperties.toggleViewAction())
         view_menu.addAction(self.dockWidgetNodes.toggleViewAction())
         view_menu.addAction(self.dockWidgetLLM.toggleViewAction())
+        view_menu.addAction(self.dockWidgetExecOrder.toggleViewAction())
 
         minimap_action = QtGui.QAction(tr("Minimap"), self)
         minimap_action.setCheckable(True)
@@ -2585,6 +2615,65 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             pass
         self.statusBar().showMessage(tr("Execution failed."), 5000)
         QtWidgets.QMessageBox.critical(self, tr("Execution Error"), message)
+
+    # ── Execution Order panel helpers ──
+
+    def _compute_topo_order(self):
+        """Compute topological execution order. Returns list of nodes or None on cycle."""
+        all_nodes = self.graph.all_nodes()
+        if not all_nodes:
+            return []
+        visited = set()
+        in_stack = set()
+        sorted_nodes = []
+        _cycle = False
+
+        def visit(node):
+            nonlocal _cycle
+            if _cycle or node in visited:
+                return
+            if node in in_stack:
+                _cycle = True
+                return
+            in_stack.add(node)
+            for port in node.connected_input_nodes().values():
+                for upstream in port:
+                    visit(upstream)
+            in_stack.discard(node)
+            visited.add(node)
+            sorted_nodes.append(node)
+
+        for n in all_nodes:
+            visit(n)
+        return sorted_nodes if not _cycle else None
+
+    def _refresh_execution_order(self):
+        """Rebuild the execution order list widget."""
+        self._exec_order_list.clear()
+        order = self._compute_topo_order()
+        if order is None:
+            item = QtWidgets.QListWidgetItem("Cycle detected!")
+            item.setForeground(QtGui.QColor(255, 80, 80))
+            self._exec_order_list.addItem(item)
+            return
+
+        self._exec_order_nodes = order  # store for click lookup
+        for i, node in enumerate(order):
+            label = f"{i + 1}. {node.name()}"
+            item = QtWidgets.QListWidgetItem(label)
+            item.setData(QtCore.Qt.ItemDataRole.UserRole, node.id)
+            self._exec_order_list.addItem(item)
+
+    def _on_exec_order_item_clicked(self, item):
+        """Select and center the clicked node on the canvas."""
+        node_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
+        if not node_id:
+            return
+        node = self.graph.get_node_by_id(node_id)
+        if node:
+            self.graph.clear_selection()
+            node.set_selected(True)
+            self.graph.fit_to_selection()
 
 
 def main():
