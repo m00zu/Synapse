@@ -2092,10 +2092,17 @@
 <summary>Details</summary>
 <p>Tests:</p>
 <ul>
-<li><em>T-test</em> — parametric, assumes normal distribution</li>
+<li><em>Student's T-test</em> — parametric, assumes equal variance and normal distribution</li>
+<li><em>Welch's T-test</em> — parametric, does not assume equal variance</li>
 <li><em>Mann-Whitney U</em> — non-parametric rank-based test</li>
+<li><em>Kolmogorov-Smirnov</em> — tests whether two groups come from the same distribution</li>
+<li><em>Tukey HSD</em> — post-hoc test after ANOVA</li>
+<li><em>Dunn</em> — non-parametric post-hoc test (requires scikit-posthocs)</li>
 <li>
-<p><em>Tukey HSD</em> — post-hoc test after ANOVA</p>
+<p><em>Fisher's Z</em> — compare correlation coefficients between groups (target column = r values)</p>
+</li>
+<li>
+<p><strong>Alternative</strong> — two-sided (default), greater (group1 &gt; group2), or less (group1 &lt; group2). Tukey HSD and Dunn are always two-sided.</p>
 </li>
 <li>
 <p><strong>P-Adj Method</strong> — multiple comparison correction (Bonferroni, Holm, BH).</p>
@@ -2123,7 +2130,7 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Properties:</strong> <code>Statistical Method</code>, <code>P-Adj Method</code></p>
+<p><strong>Properties:</strong> <code>Statistical Method</code>, <code>Alternative</code>, <code>P-Adj Method</code></p>
 <hr />
 <h3 id="normality-test">Normality Test<a class="headerlink" href="#normality-test" title="Permanent link">&para;</a></h3>
 <p>Tests whether each numerical column in a DataFrame follows a normal distribution.</p>
