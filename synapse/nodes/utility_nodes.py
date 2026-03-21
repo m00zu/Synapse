@@ -205,9 +205,10 @@ class _CollectNamingWidget(NodeBaseWidget):
         self._update_sig.connect(self._apply_update,
                                  QtCore.Qt.ConnectionType.QueuedConnection)
 
-    def update_connections(self, port_names: list[str]):
+    def update_connections(self, port_names: list[str], user_names: list[str] | None = None):
         """Update the list to show one editable row per connected input.
-        Thread-safe."""
+        Thread-safe. If user_names provided, use those instead of port_names for text."""
+        self._pending_user_names = user_names
         import threading
         if threading.current_thread() is threading.main_thread():
             self._apply_update(port_names)
@@ -228,7 +229,8 @@ class _CollectNamingWidget(NodeBaseWidget):
         self._edits.clear()
 
         # Create rows — each is: "1. [name_field]"
-        # Always use the upstream port name directly — connected_ports()
+        user_names = getattr(self, '_pending_user_names', None)
+        self._pending_user_names = None
         for i, upstream_name in enumerate(port_names):
             row = QtWidgets.QHBoxLayout()
             row.setSpacing(4)
@@ -238,7 +240,10 @@ class _CollectNamingWidget(NodeBaseWidget):
             lbl.setFixedWidth(18)
             edit = QtWidgets.QLineEdit()
             edit.setPlaceholderText(upstream_name or f'item_{i+1}')
-            edit.setText(upstream_name or f'item_{i+1}')
+            # Use user's custom name if available, otherwise default
+            display_name = (user_names[i] if user_names and i < len(user_names)
+                            else upstream_name or f'item_{i+1}')
+            edit.setText(display_name)
             edit.setStyleSheet('font-size:10px; padding: 2px 4px;')
             edit.setFixedHeight(22)
             edit.setMinimumWidth(120)
@@ -321,6 +326,13 @@ class CollectNode(BaseExecutionNode):
         if not port:
             return
 
+        # Save user-edited names keyed by connection key
+        old_user_names = {}
+        old_names = self._naming_widget.get_value()
+        for i, key in enumerate(self._connection_order):
+            if i < len(old_names) and old_names[i]:
+                old_user_names[key] = old_names[i]
+
         # Build lookup from connected ports
         cp_map = {}
         for cp in port.connected_ports():
@@ -334,14 +346,19 @@ class CollectNode(BaseExecutionNode):
 
         # Rebuild in connection order, then append any that aren't tracked
         port_names = []
+        user_names = []
         for key in self._connection_order:
             if key in cp_map:
-                port_names.append(cp_map.pop(key))
+                default_name = cp_map.pop(key)
+                port_names.append(default_name)
+                # Restore user's custom name if they edited it
+                user_names.append(old_user_names.get(key, default_name))
         # Any remaining (shouldn't happen but safety)
-        for name in cp_map.values():
+        for key, name in cp_map.items():
             port_names.append(name)
+            user_names.append(old_user_names.get(key, name))
 
-        self._naming_widget.update_connections(port_names)
+        self._naming_widget.update_connections(port_names, user_names)
 
     def _on_names_changed(self):
         """User edited a name — re-evaluate to update output."""
