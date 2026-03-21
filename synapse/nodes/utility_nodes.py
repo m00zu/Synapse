@@ -215,9 +215,6 @@ class _CollectNamingWidget(NodeBaseWidget):
             self._update_sig.emit(port_names)
 
     def _apply_update(self, port_names: list[str]):
-        # Preserve existing names where possible
-        old_names = self.get_value()
-
         # Clear existing widgets
         while self._list_layout.count():
             item = self._list_layout.takeAt(0)
@@ -231,6 +228,7 @@ class _CollectNamingWidget(NodeBaseWidget):
         self._edits.clear()
 
         # Create rows — each is: "1. [name_field]"
+        # Always use the upstream port name directly — connected_ports()
         for i, upstream_name in enumerate(port_names):
             row = QtWidgets.QHBoxLayout()
             row.setSpacing(4)
@@ -240,10 +238,7 @@ class _CollectNamingWidget(NodeBaseWidget):
             lbl.setFixedWidth(18)
             edit = QtWidgets.QLineEdit()
             edit.setPlaceholderText(upstream_name or f'item_{i+1}')
-            if i < len(old_names) and old_names[i]:
-                edit.setText(old_names[i])
-            else:
-                edit.setText(upstream_name or f'item_{i+1}')
+            edit.setText(upstream_name or f'item_{i+1}')
             edit.setStyleSheet('font-size:10px; padding: 2px 4px;')
             edit.setFixedHeight(22)
             edit.setMinimumWidth(120)
@@ -287,7 +282,7 @@ class CollectNode(BaseExecutionNode):
 
     Keywords: collect, pack, bundle, group, collection, batch, 收集, 打包, 集合
     """
-    __identifier__ = 'nodes.utility'
+    __identifier__ = 'nodes.Collection'
     NODE_NAME      = 'Collect'
     PORT_SPEC      = {'inputs': ['any'], 'outputs': ['collection']}
     _handles_collection = True
@@ -301,23 +296,51 @@ class CollectNode(BaseExecutionNode):
         self._naming_widget._node = self  # back-reference for node resize
         self._naming_widget.names_changed.connect(self._on_names_changed)
         self.add_custom_widget(self._naming_widget)
+        # Track connection order — connected_ports() doesn't guarantee order
+        self._connection_order = []  # list of (node_id, port_name) tuples
 
     def on_input_connected(self, in_port, out_port):
         """Update naming widget when a new wire is connected (main thread)."""
         super().on_input_connected(in_port, out_port)
+        key = (out_port.node().id, out_port.name())
+        if key not in self._connection_order:
+            self._connection_order.append(key)
         self._refresh_naming_widget()
 
     def on_input_disconnected(self, in_port, out_port):
         """Update naming widget when a wire is disconnected (main thread)."""
         super().on_input_disconnected(in_port, out_port)
+        key = (out_port.node().id, out_port.name())
+        if key in self._connection_order:
+            self._connection_order.remove(key)
         self._refresh_naming_widget()
 
     def _refresh_naming_widget(self):
-        """Rebuild the naming list from current connections."""
+        """Rebuild the naming list from current connections, preserving connection order."""
         port = self.inputs().get('in')
         if not port:
             return
-        port_names = [cp.name() for cp in port.connected_ports()]
+
+        # Build lookup from connected ports
+        cp_map = {}
+        for cp in port.connected_ports():
+            key = (cp.node().id, cp.name())
+            node_name = cp.node().name()
+            port_name = cp.name()
+            if node_name.strip():
+                cp_map[key] = f'{node_name}_{port_name}'
+            else:
+                cp_map[key] = port_name
+
+        # Rebuild in connection order, then append any that aren't tracked
+        port_names = []
+        for key in self._connection_order:
+            if key in cp_map:
+                port_names.append(cp_map.pop(key))
+        # Any remaining (shouldn't happen but safety)
+        for name in cp_map.values():
+            port_names.append(name)
+
         self._naming_widget.update_connections(port_names)
 
     def _on_names_changed(self):
@@ -331,7 +354,20 @@ class CollectNode(BaseExecutionNode):
         if not port or not port.connected_ports():
             return False, "No inputs connected"
 
-        connections = port.connected_ports()
+        # Build ordered connection list using our tracked order
+        cp_by_key = {}
+        for cp in port.connected_ports():
+            key = (cp.node().id, cp.name())
+            cp_by_key[key] = cp
+
+        ordered_cps = []
+        for key in self._connection_order:
+            if key in cp_by_key:
+                ordered_cps.append(cp_by_key.pop(key))
+        # Append any untracked (safety)
+        for cp in cp_by_key.values():
+            ordered_cps.append(cp)
+
         items = {}
 
         def _dedup(name, existing):
@@ -346,7 +382,7 @@ class CollectNode(BaseExecutionNode):
         names = self._naming_widget.get_value()
 
         # Collect items — if an input is a CollectionData, merge its items in
-        for i, cp in enumerate(connections):
+        for i, cp in enumerate(ordered_cps):
             data = cp.node().output_values.get(cp.name())
             if data is None:
                 continue
@@ -539,7 +575,7 @@ class SelectCollectionNode(BaseExecutionNode):
 
     Keywords: select, extract, unpack, pick, collection, 選擇, 提取, 集合
     """
-    __identifier__ = 'nodes.utility'
+    __identifier__ = 'nodes.Collection'
     NODE_NAME      = 'Select Collection'
     PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['any']}
     _handles_collection = True
@@ -600,7 +636,7 @@ class PopCollectionNode(BaseExecutionNode):
 
     Keywords: pop, remove, extract, collection, 彈出, 移除, 集合
     """
-    __identifier__ = 'nodes.utility'
+    __identifier__ = 'nodes.Collection'
     NODE_NAME      = 'Pop Collection'
     PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['any', 'collection']}
     _handles_collection = True
@@ -661,7 +697,7 @@ class SplitCollectionNode(BaseExecutionNode):
 
     Keywords: split, partition, divide, collection, 分割, 分組, 集合
     """
-    __identifier__ = 'nodes.utility'
+    __identifier__ = 'nodes.Collection'
     NODE_NAME      = 'Split Collection'
     PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['collection', 'collection']}
     _handles_collection = True
@@ -727,7 +763,7 @@ class SaveCollectionNode(BaseExecutionNode):
 
     Keywords: save, collection, batch save, export, 儲存, 集合, 批次儲存
     """
-    __identifier__ = 'nodes.utility'
+    __identifier__ = 'nodes.Collection'
     NODE_NAME = 'Save Collection'
     PORT_SPEC = {'inputs': ['collection', 'path'], 'outputs': ['table']}
     _handles_collection = True
@@ -871,3 +907,355 @@ class SaveCollectionNode(BaseExecutionNode):
                 payload.save(file_path)
         else:
             raise ValueError(f"Unsupported data type: {type(payload).__name__}")
+
+
+# ---------------------------------------------------------------------------
+#  Rename Collection — table-based mapping widget
+# ---------------------------------------------------------------------------
+
+from PySide6 import QtCore, QtWidgets, QtGui
+from NodeGraphQt.widgets.node_widgets import NodeBaseWidget
+
+class _RenameCollectionWidget(NodeBaseWidget):
+    """2-column table: Original Name (read-only) | New Name (editable)."""
+    mapping_edited = QtCore.Signal(dict)
+    update_table_signal = QtCore.Signal(dict)
+
+    def __init__(self, parent=None):
+        super().__init__(parent, name='collection_rename_table', label='Rename Mapping')
+        self._table = QtWidgets.QTableWidget(0, 2)
+        self._table.setHorizontalHeaderLabels(['Original', 'New Name'])
+        self._table.setStyleSheet(
+            "QTableWidget { background-color: #222; color: #ddd; gridline-color: #444; border: 1px solid #555; }"
+            "QHeaderView::section { background-color: #333; color: #fff; padding: 4px; border: 1px solid #444; }"
+        )
+        self._table.horizontalHeader().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self._table.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self._table.verticalHeader().setVisible(False)
+        self._is_updating = False
+        self._table.itemChanged.connect(self._on_item_changed)
+        self.update_table_signal.connect(self._sync_table, QtCore.Qt.QueuedConnection)
+
+        container = QtWidgets.QWidget()
+        lay = QtWidgets.QVBoxLayout(container)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(self._table)
+        self._table.setMinimumHeight(100)
+        self._table.setMaximumHeight(200)
+        self.set_custom_widget(container)
+
+    def _sync_table(self, mapping: dict):
+        self._is_updating = True
+        self._table.setRowCount(0)
+        for old, new in mapping.items():
+            row = self._table.rowCount()
+            self._table.insertRow(row)
+            item_k = QtWidgets.QTableWidgetItem(str(old))
+            item_k.setFlags(item_k.flags() ^ QtCore.Qt.ItemFlag.ItemIsEditable)
+            item_k.setBackground(QtGui.QColor('#2a2a2a'))
+            self._table.setItem(row, 0, item_k)
+            self._table.setItem(row, 1, QtWidgets.QTableWidgetItem(str(new) if new else ''))
+        self._is_updating = False
+
+    def _on_item_changed(self, item):
+        if self._is_updating:
+            return
+        mapping = {}
+        for row in range(self._table.rowCount()):
+            k_item = self._table.item(row, 0)
+            v_item = self._table.item(row, 1)
+            if k_item:
+                mapping[k_item.text().strip()] = (v_item.text().strip() if v_item else '')
+        self.mapping_edited.emit(mapping)
+
+    def get_value(self):
+        return ''
+
+    def set_value(self, value):
+        pass
+
+
+class RenameCollectionNode(BaseExecutionNode):
+    """Rename items in a collection using a visual mapping table.
+
+    When a collection is connected, the table auto-populates with original
+    names. Edit the 'New Name' column to rename items. Leave blank to keep
+    the original name.
+
+    Keywords: rename, collection, map, relabel, 重新命名, 集合
+    """
+    __identifier__ = 'nodes.Collection'
+    NODE_NAME      = 'Rename Collection'
+    PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['collection']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__(use_progress=False)
+        self.add_input('collection', color=PORT_COLORS.get('collection', (200, 170, 50)))
+        self.add_output('collection', color=PORT_COLORS.get('collection', (200, 170, 50)))
+
+        import json as _json
+        self.create_property('mapping_json', '{}',
+                             widget_type=NodeGraphQt.constants.NodePropWidgetEnum.HIDDEN.value)
+
+        self._rename_widget = _RenameCollectionWidget(self.view)
+        self._rename_widget.mapping_edited.connect(self._on_table_edited)
+        self.add_custom_widget(self._rename_widget)
+
+    def _on_table_edited(self, mapping: dict):
+        import json as _json
+        self.set_property('mapping_json', _json.dumps(mapping))
+
+    def evaluate(self):
+        import json as _json
+
+        port = self.inputs().get('collection')
+        if not port or not port.connected_ports():
+            return False, "No collection connected"
+
+        cp = port.connected_ports()[0]
+        data = cp.node().output_values.get(cp.name())
+        if not isinstance(data, CollectionData):
+            return False, "Input must be a CollectionData"
+
+        # Load saved mapping
+        try:
+            current_mapping = _json.loads(self.get_property('mapping_json'))
+        except (Exception,):
+            current_mapping = {}
+
+        # Update mapping with current collection names
+        new_mapping = {}
+        changed = False
+        for name in data.payload:
+            if name in current_mapping:
+                new_mapping[name] = current_mapping[name]
+            else:
+                new_mapping[name] = ''
+                changed = True
+        if len(new_mapping) != len(current_mapping):
+            changed = True
+
+        current_mapping = new_mapping
+        if changed:
+            self._rename_widget.update_table_signal.emit(current_mapping)
+            self.set_property('mapping_json', _json.dumps(current_mapping))
+
+        # Apply renames
+        new_payload = {}
+        for name, item in data.payload.items():
+            new_name = current_mapping.get(name, '').strip() or name
+            base = new_name
+            counter = 2
+            while new_name in new_payload:
+                new_name = f'{base}_{counter}'
+                counter += 1
+            new_payload[new_name] = item
+
+        self.output_values['collection'] = CollectionData(payload=new_payload)
+        self.mark_clean()
+        return True, None
+
+
+# ---------------------------------------------------------------------------
+#  Collection Info
+# ---------------------------------------------------------------------------
+
+class CollectionInfoNode(BaseExecutionNode):
+    """Outputs a table listing item names, types, shapes, and metadata.
+
+    All number and string valued metadata fields are included as extra columns.
+
+    Keywords: info, inspect, debug, collection, list, 資訊, 集合, 檢查
+    """
+    __identifier__ = 'nodes.Collection'
+    NODE_NAME      = 'Collection Info'
+    PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['table']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__(use_progress=False)
+        self.add_input('collection', color=PORT_COLORS.get('collection', (200, 170, 50)))
+        self.add_output('info', color=PORT_COLORS['table'])
+
+    def evaluate(self):
+        port = self.inputs().get('collection')
+        if not port or not port.connected_ports():
+            return False, "No collection connected"
+
+        cp = port.connected_ports()[0]
+        data = cp.node().output_values.get(cp.name())
+        if not isinstance(data, CollectionData):
+            return False, "Input must be a CollectionData"
+
+        rows = []
+        for name, item in data.payload.items():
+            row = {'name': name, 'type': type(item).__name__}
+            payload = getattr(item, 'payload', None)
+            if hasattr(payload, 'shape'):
+                row['shape'] = str(payload.shape)
+                row['dtype'] = str(payload.dtype)
+            elif isinstance(payload, pd.DataFrame):
+                row['shape'] = f'({len(payload)}, {len(payload.columns)})'
+                row['dtype'] = 'DataFrame'
+            elif payload is not None:
+                row['shape'] = ''
+                row['dtype'] = type(payload).__name__
+            else:
+                row['shape'] = ''
+                row['dtype'] = ''
+
+            # Known typed fields
+            if hasattr(item, 'bit_depth'):
+                row['bit_depth'] = item.bit_depth
+            if hasattr(item, 'scale_um') and item.scale_um:
+                row['scale_um'] = item.scale_um
+
+            # All number/string metadata
+            meta = getattr(item, 'metadata', None) or {}
+            for k, v in meta.items():
+                if isinstance(v, (int, float, str)):
+                    row[f'meta_{k}'] = v
+
+            rows.append(row)
+
+        self.output_values['info'] = TableData(payload=pd.DataFrame(rows))
+        self.mark_clean()
+        return True, None
+
+
+# ---------------------------------------------------------------------------
+#  Filter Collection
+# ---------------------------------------------------------------------------
+
+class FilterCollectionNode(BaseExecutionNode):
+    """Keep or remove items by pattern matching on names.
+
+    Supports simple wildcards (* and ?) or exact names.
+    Multiple patterns separated by | (pipe).
+
+    Mode:
+    - *Keep* — only matching items pass through
+    - *Remove* — matching items are excluded
+
+    Keywords: filter, collection, pattern, wildcard, keep, remove, 過濾, 集合
+    """
+    __identifier__ = 'nodes.Collection'
+    NODE_NAME      = 'Filter Collection'
+    PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['collection']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__(use_progress=False)
+        self.add_input('collection', color=PORT_COLORS.get('collection', (200, 170, 50)))
+        self.add_output('matched', color=PORT_COLORS.get('collection', (200, 170, 50)))
+        self.add_output('rest', color=PORT_COLORS.get('collection', (200, 170, 50)))
+        self.add_text_input('pattern', 'Pattern', text='*',
+                            placeholder_text='*ch* | composite')
+        self.add_combo_menu('mode', 'Mode', items=['Keep', 'Remove'])
+
+    def evaluate(self):
+        import fnmatch
+
+        port = self.inputs().get('collection')
+        if not port or not port.connected_ports():
+            return False, "No collection connected"
+
+        cp = port.connected_ports()[0]
+        data = cp.node().output_values.get(cp.name())
+        if not isinstance(data, CollectionData):
+            return False, "Input must be a CollectionData"
+
+        raw = str(self.get_property('pattern') or '*').strip()
+        patterns = [p.strip() for p in raw.split('|') if p.strip()]
+        mode = self.get_property('mode')
+
+        def matches(name):
+            return any(fnmatch.fnmatch(name, p) for p in patterns)
+
+        matched = {}
+        rest = {}
+        for name, item in data.payload.items():
+            if matches(name):
+                if mode == 'Keep':
+                    matched[name] = item
+                else:
+                    rest[name] = item
+            else:
+                if mode == 'Keep':
+                    rest[name] = item
+                else:
+                    matched[name] = item
+
+        self.output_values['matched'] = CollectionData(payload=matched)
+        self.output_values['rest'] = CollectionData(payload=rest)
+        self.mark_clean()
+        return True, None
+
+
+# ---------------------------------------------------------------------------
+#  Map Names
+# ---------------------------------------------------------------------------
+
+class MapNamesNode(BaseExecutionNode):
+    """Batch rename collection items using find/replace, prefix, or suffix.
+
+    Operations (applied in order):
+    1. Find/Replace — replace substring in all names
+    2. Prefix — add text before each name
+    3. Suffix — add text after each name
+
+    Keywords: map, rename, batch, prefix, suffix, find, replace, 批次重新命名, 集合
+    """
+    __identifier__ = 'nodes.Collection'
+    NODE_NAME      = 'Map Names'
+    PORT_SPEC      = {'inputs': ['collection'], 'outputs': ['collection']}
+    _handles_collection = True
+
+    def __init__(self):
+        super().__init__(use_progress=False)
+        self.add_input('collection', color=PORT_COLORS.get('collection', (200, 170, 50)))
+        self.add_output('collection', color=PORT_COLORS.get('collection', (200, 170, 50)))
+        self.add_text_input('find', 'Find', text='')
+        self.add_text_input('replace', 'Replace', text='')
+        self.add_text_input('prefix', 'Prefix', text='')
+        self.add_text_input('suffix', 'Suffix', text='')
+
+    def evaluate(self):
+        port = self.inputs().get('collection')
+        if not port or not port.connected_ports():
+            return False, "No collection connected"
+
+        cp = port.connected_ports()[0]
+        data = cp.node().output_values.get(cp.name())
+        if not isinstance(data, CollectionData):
+            return False, "Input must be a CollectionData"
+
+        find = str(self.get_property('find') or '')
+        replace = str(self.get_property('replace') or '')
+        prefix = str(self.get_property('prefix') or '')
+        suffix = str(self.get_property('suffix') or '')
+
+        new_payload = {}
+        for name, item in data.payload.items():
+            new_name = name
+            if find:
+                new_name = new_name.replace(find, replace)
+            if prefix:
+                new_name = prefix + new_name
+            if suffix:
+                new_name = new_name + suffix
+
+            # Dedup
+            base = new_name
+            counter = 2
+            while new_name in new_payload:
+                new_name = f'{base}_{counter}'
+                counter += 1
+            new_payload[new_name] = item
+
+        self.output_values['collection'] = CollectionData(payload=new_payload)
+        self.mark_clean()
+        return True, None

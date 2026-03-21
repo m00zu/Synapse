@@ -27,6 +27,7 @@ from .custom_nodes import (
     UniversalDataNode, PathModifierNode,
     CollectNode, SelectCollectionNode, PopCollectionNode,
     SplitCollectionNode, SaveCollectionNode,
+    RenameCollectionNode, CollectionInfoNode, FilterCollectionNode, MapNamesNode,
     # Core dataframe ops
     EditableTableNode, FilterTableNode, MathColumnNode, AggregateTableNode, RenameGroupNode,
     ReshapeTableNode, SortTableNode, TopNNode, ColumnValueSplitNode, TwoTableMathNode,
@@ -669,6 +670,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.nodes_tree.set_category_order([
             'nodes.io',
             'nodes.display',
+            'nodes.Collection',
             'nodes.utility',
             'nodes.dataframe',
             'nodes.plotting',
@@ -692,6 +694,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.nodes_tree.set_category_label('plugins.Plugins.confocal', tr('Confocal Analysis'))
         self.nodes_tree.set_category_label('nodes.io', tr('Input / Output'))
         self.nodes_tree.set_category_label('nodes.utility', tr('Common Utilities'))
+        self.nodes_tree.set_category_label('nodes.Collection', tr('Collection'))
         self.nodes_tree.set_category_label('nodes.display', tr('Display'))
         self.nodes_tree.set_category_label('nodes.image_process', tr('Image Processing'))
         self.nodes_tree.set_category_label('nodes.image_process.color', tr('Color'))
@@ -1039,6 +1042,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             UniversalDataNode, PathModifierNode,
             CollectNode, SelectCollectionNode, PopCollectionNode,
     SplitCollectionNode, SaveCollectionNode,
+    RenameCollectionNode, CollectionInfoNode, FilterCollectionNode, MapNamesNode,
             # DataFrame operations
             EditableTableNode, FilterTableNode, MathColumnNode,
             AggregateTableNode, RenameGroupNode, ReshapeTableNode,

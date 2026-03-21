@@ -17,6 +17,7 @@ STRINGS: dict[str, str] = {
     "Confocal Analysis":    "共焦分析",
     "Input / Output":       "輸入 / 輸出",
     "Common Utilities":     "常用工具",
+    "Collection":           "集合",
     "Display":              "顯示",
     "Image Processing":     "影像處理",
     "Color":                "色彩",

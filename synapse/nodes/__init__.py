@@ -52,6 +52,10 @@ from .utility_nodes import (
     PopCollectionNode,
     SplitCollectionNode,
     SaveCollectionNode,
+    RenameCollectionNode,
+    CollectionInfoNode,
+    FilterCollectionNode,
+    MapNamesNode,
 )
 
 from .dataframe_nodes import (
@@ -97,6 +101,7 @@ __all__ = [
     'UniversalDataNode', 'PathModifierNode',
     'CollectNode', 'SelectCollectionNode', 'PopCollectionNode',
     'SplitCollectionNode', 'SaveCollectionNode',
+    'RenameCollectionNode', 'CollectionInfoNode', 'FilterCollectionNode', 'MapNamesNode',
     # DataFrame Operations
     'EditableTableNode', 'FilterTableNode', 'MathColumnNode',
     'AggregateTableNode', 'RenameGroupNode', 'ReshapeTableNode',

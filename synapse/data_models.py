@@ -17,6 +17,52 @@ class NodeData(BaseModel):
         """Merge a list of same-typed NodeData objects into one. Override in subclasses."""
         raise NotImplementedError(f"{cls.__name__} does not support merging.")
 
+class CollectionData(NodeData):
+    """A named collection of NodeData items that flow through the pipeline as one.
+
+    payload is a dict mapping user-defined names to NodeData instances.
+    All items are typically the same type (e.g. all ImageData), but mixed
+    types are allowed.
+
+    The auto-loop in BaseExecutionNode transparently unpacks a collection,
+    runs a single-item node on each entry, and repacks the results — so
+    every existing node works with collections for free.
+    """
+    payload: Any   # dict[str, NodeData]
+
+    @property
+    def names(self) -> list[str]:
+        return list(self.payload.keys())
+
+    @property
+    def inner_type(self) -> type:
+        """The type of the first item (hint for port validation)."""
+        first = next(iter(self.payload.values()), None)
+        return type(first) if first else NodeData
+
+    def __len__(self):
+        return len(self.payload)
+
+    def get(self, name: str):
+        return self.payload.get(name)
+
+    @classmethod
+    def merge(cls, items: list):
+        """Flatten collections: merge all items across iterations into one collection."""
+        d = {}
+        for item in items:
+            meta = getattr(item, 'metadata', {}) or {}
+            prefix = meta.get('batch_key') or meta.get('file') or ''
+            for name, val in item.payload.items():
+                key = f'{prefix}_{name}' if prefix else name
+                base = key
+                counter = 2
+                while key in d:
+                    key = f'{base}_{counter}'
+                    counter += 1
+                d[key] = val
+        return cls(payload=d)
+
 class TableData(NodeData):
     """Wraps a pandas DataFrame or Series."""
     payload: Union[pd.DataFrame, pd.Series]
@@ -29,17 +75,20 @@ class TableData(NodeData):
 
     @classmethod
     def merge(cls, items: list) -> "TableData":
-        """Concatenate all DataFrames, injecting frame/file from batch metadata."""
+        """Concatenate all DataFrames, injecting batch_key/frame/file from batch metadata."""
         dfs = []
         for item in items:
             df = item.df.copy()
             meta = getattr(item, 'metadata', {}) or {}
-            # Inject frame/file columns from batch context (don't overwrite existing)
+            # Inject batch context columns (don't overwrite existing)
             if 'frame' in meta and 'frame' not in df.columns:
                 df.insert(0, 'frame', meta['frame'])
             if 'file' in meta and 'file' not in df.columns:
                 col_pos = 1 if 'frame' in df.columns else 0
                 df.insert(col_pos, 'file', meta['file'])
+            elif 'batch_key' in meta and 'file' not in df.columns:
+                col_pos = 1 if 'frame' in df.columns else 0
+                df.insert(col_pos, 'file', meta['batch_key'])
             dfs.append(df)
         return cls(payload=pd.concat(dfs, ignore_index=True))
 
@@ -85,16 +134,19 @@ class ImageData(NodeData):
 
     @classmethod
     def merge(cls, items: list):
-        """Merge images into a TableData with frame, file, and object columns."""
-        rows = []
-        for item in items:
+        """Merge images into a CollectionData keyed by batch_key/file/frame."""
+        d = {}
+        for i, item in enumerate(items):
             meta = getattr(item, 'metadata', {}) or {}
-            rows.append({
-                'frame': meta.get('frame', ''),
-                'file': meta.get('file', ''),
-                'object': item,
-            })
-        return TableData(payload=pd.DataFrame(rows))
+            key = meta.get('batch_key') or meta.get('file') or meta.get('frame') or f'item_{i}'
+            # Dedup
+            base = key
+            counter = 2
+            while key in d:
+                key = f'{base}_{counter}'
+                counter += 1
+            d[key] = item
+        return CollectionData(payload=d)
 
 
 def array_to_pil(arr, bit_depth=8, display_min=None, display_max=None):
@@ -191,16 +243,18 @@ class LabelData(NodeData):
 
     @classmethod
     def merge(cls, items: list):
-        """Merge label arrays into a TableData with frame, file, and object columns."""
-        rows = []
-        for item in items:
+        """Merge label arrays into a CollectionData keyed by batch_key/file/frame."""
+        d = {}
+        for i, item in enumerate(items):
             meta = getattr(item, 'metadata', {}) or {}
-            rows.append({
-                'frame': meta.get('frame', ''),
-                'file': meta.get('file', ''),
-                'object': item,
-            })
-        return TableData(payload=pd.DataFrame(rows))
+            key = meta.get('batch_key') or meta.get('file') or meta.get('frame') or f'item_{i}'
+            base = key
+            counter = 2
+            while key in d:
+                key = f'{base}_{counter}'
+                counter += 1
+            d[key] = item
+        return CollectionData(payload=d)
 
 class FigureData(NodeData):
     """Wraps a matplotlib Figure."""
@@ -213,18 +267,20 @@ class FigureData(NodeData):
 
     @classmethod
     def merge(cls, items: list):
-        """Merge figures into a TableData with frame, file, and object columns."""
-        rows = []
-        for item in items:
+        """Merge figures into a CollectionData keyed by batch_key/file/frame."""
+        d = {}
+        for i, item in enumerate(items):
             if item.payload is None:
                 continue
             meta = getattr(item, 'metadata', {}) or {}
-            rows.append({
-                'frame': meta.get('frame', ''),
-                'file': meta.get('file', ''),
-                'object': item,
-            })
-        return TableData(payload=pd.DataFrame(rows))
+            key = meta.get('batch_key') or meta.get('file') or meta.get('frame') or f'item_{i}'
+            base = key
+            counter = 2
+            while key in d:
+                key = f'{base}_{counter}'
+                counter += 1
+            d[key] = item
+        return CollectionData(payload=d)
 
 class ConfocalDatasetData(NodeData):
     """Wraps the specialized confocal dataset dictionary."""
@@ -232,60 +288,19 @@ class ConfocalDatasetData(NodeData):
 
     @classmethod
     def merge(cls, items: list):
-        """Merge confocal datasets into a TableData with frame, file, and object columns."""
-        rows = []
-        for item in items:
+        """Merge confocal datasets into a CollectionData keyed by batch_key/file/frame."""
+        d = {}
+        for i, item in enumerate(items):
             meta = getattr(item, 'metadata', {}) or {}
-            rows.append({
-                'frame': meta.get('frame', ''),
-                'file': meta.get('file', ''),
-                'object': item,
-            })
-        return TableData(payload=pd.DataFrame(rows))
+            key = meta.get('batch_key') or meta.get('file') or meta.get('frame') or f'item_{i}'
+            base = key
+            counter = 2
+            while key in d:
+                key = f'{base}_{counter}'
+                counter += 1
+            d[key] = item
+        return CollectionData(payload=d)
 
-class CollectionData(NodeData):
-    """A named collection of NodeData items that flow through the pipeline as one.
-
-    payload is a dict mapping user-defined names to NodeData instances.
-    All items are typically the same type (e.g. all ImageData), but mixed
-    types are allowed.
-
-    The auto-loop in BaseExecutionNode transparently unpacks a collection,
-    runs a single-item node on each entry, and repacks the results — so
-    every existing node works with collections for free.
-    """
-    payload: Any   # dict[str, NodeData]
-
-    @property
-    def names(self) -> list[str]:
-        return list(self.payload.keys())
-
-    @property
-    def inner_type(self) -> type:
-        """The type of the first item (hint for port validation)."""
-        first = next(iter(self.payload.values()), None)
-        return type(first) if first else NodeData
-
-    def __len__(self):
-        return len(self.payload)
-
-    def get(self, name: str):
-        return self.payload.get(name)
-
-    @classmethod
-    def merge(cls, items: list) -> "TableData":
-        """Merge collections into a summary table."""
-        rows = []
-        for item in items:
-            meta = getattr(item, 'metadata', {}) or {}
-            for name in item.names:
-                rows.append({
-                    'frame': meta.get('frame', ''),
-                    'file': meta.get('file', ''),
-                    'collection_item': name,
-                    'object': item.get(name),
-                })
-        return TableData(payload=pd.DataFrame(rows))
 
 
 # class RDMolData(NodeData):

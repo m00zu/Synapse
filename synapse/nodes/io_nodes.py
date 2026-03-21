@@ -841,6 +841,8 @@ class BatchAccumulatorNode(BaseExecutionNode):
             if hasattr(value, 'metadata'):
                 value.metadata['frame'] = self._iteration
                 value.metadata['file'] = batch_file
+                # For future, just in case?
+                value.metadata['batch_key'] = batch_file or str(self._iteration)
             if hasattr(value, 'source_path') and not value.source_path:
                 value.source_path = batch_file
             self._collected.append(value)
