@@ -200,6 +200,32 @@ Creates a histogram with optional grouping and KDE overlay.
 
 ---
 
+### Joint Plot
+
+Creates a joint plot — scatter with marginal distributions on each axis.
+
+??? note "Details"
+    Columns:
+
+    - **x_col** — numeric column for the X axis
+    - **y_col** — numeric column for the Y axis
+    - **hue_col** — optional column for colour-coding by group
+    
+    Options:
+
+    - *kind* — scatter, kde, hex, hist, or reg (scatter + regression)
+    - *marginal* — histogram, kde, or both for the marginal distributions
+    - *palette* — colour palette for hue groups
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `data` | table |
+| **Output** | `plot` | figure |
+
+**Properties:** `Kind`, `Marginal`, `Palette`
+
+---
+
 ### KDE Plot
 
 Creates a kernel density estimate plot for smooth distribution visualisation.

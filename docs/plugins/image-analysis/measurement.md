@@ -43,14 +43,21 @@ Computes colocalization metrics between two channels.
     - *M2* — fraction of ch2 intensity where ch1 is above its Otsu threshold
     - *ICQ* — Li's Intensity Correlation Quotient (-0.5 to 0.5)
     
-    Outputs a 1-row table and a scatter plot of ch1 vs ch2 intensities.
+    Accepts an optional label image — when connected, metrics are computed
+    per-label (one row per region) instead of for the whole image.
+    
+    Plot options: Scatter, Regression (with fit line per label), or Bar Chart
+    (Pearson r per label).
 
 | Direction | Port | Type |
 |-----------|------|------|
 | **Input** | `ch1` | image |
 | **Input** | `ch2` | image |
+| **Input** | `label_image` | label |
 | **Output** | `table` | table |
 | **Output** | `figure` | figure |
+
+**Properties:** `Plot Type`
 
 ---
 

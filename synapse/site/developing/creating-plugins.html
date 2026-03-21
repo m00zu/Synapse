@@ -2597,7 +2597,7 @@
 <p>When Synapse starts, it scans the <strong>plugin directory</strong> for <code>.py</code> files and package folders. Any Python class that meets three requirements is auto-registered and appears in the Node Explorer:</p>
 <ol>
 <li>Inherits from <code>BaseExecutionNode</code></li>
-<li>Has <code>__identifier__</code> starting with <code>'plugins.'</code></li>
+<li>Has a unique <code>__identifier__</code> string (e.g. <code>'plugins.my_nodes'</code>)</li>
 <li>Has a <code>NODE_NAME</code> attribute</li>
 </ol>
 <p>No configuration files, no manual registration. Drop a file in, click <strong>View &gt; Reload Plugins</strong>, and your nodes appear.</p>
@@ -2612,7 +2612,7 @@
 <tbody>
 <tr>
 <td>Development (from source)</td>
-<td><code>./plugins/</code> (next to <code>main.py</code>)</td>
+<td><code>synapse/plugins/</code></td>
 </tr>
 <tr>
 <td>macOS (frozen app)</td>
@@ -2626,8 +2626,13 @@
 <td>Linux (frozen app)</td>
 <td><code>~/.synapse/plugins/</code></td>
 </tr>
+<tr>
+<td>Portable install (any OS)</td>
+<td><code>plugins/</code> next to the executable</td>
+</tr>
 </tbody>
 </table>
+<p>For frozen builds, a <code>plugins/</code> folder next to the executable takes priority over the OS user directory. This supports portable installs on non-system drives.</p>
 <p>You can also open the plugin directory from <strong>Plugins &gt; Plugin Manager &gt; Open Folder</strong>.</p>
 <hr />
 <h2 id="quick-start-minimal-plugin">Quick Start: Minimal Plugin<a class="headerlink" href="#quick-start-minimal-plugin" title="Permanent link">&para;</a></h2>
@@ -2683,7 +2688,7 @@ See the <a href="#api-reference">API Reference</a> at the bottom of this page.</
 <h2 id="anatomy-of-a-node-class">Anatomy of a Node Class<a class="headerlink" href="#anatomy-of-a-node-class" title="Permanent link">&para;</a></h2>
 <h3 id="required-attributes">Required Attributes<a class="headerlink" href="#required-attributes" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MyNode</span><span class="p">(</span><span class="n">BaseExecutionNode</span><span class="p">):</span>
-    <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.Category&#39;</span>  <span class="c1"># Must start with &#39;plugins.&#39;</span>
+    <span class="n">__identifier__</span> <span class="o">=</span> <span class="s1">&#39;plugins.Plugins.Category&#39;</span>  <span class="c1"># Controls Node Explorer tree grouping</span>
     <span class="n">NODE_NAME</span>      <span class="o">=</span> <span class="s1">&#39;My Node&#39;</span>                    <span class="c1"># Display name in Node Explorer</span>
     <span class="n">PORT_SPEC</span>      <span class="o">=</span> <span class="p">{</span>                            <span class="c1"># Port declaration for docs/LLM/tree</span>
         <span class="s1">&#39;inputs&#39;</span><span class="p">:</span>  <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;mask&#39;</span><span class="p">],</span>
@@ -2789,6 +2794,12 @@ See the <a href="#api-reference">API Reference</a> at the bottom of this page.</
 <td>Purple</td>
 <td>Plot</td>
 <td><code>FigureData</code> (matplotlib Figure)</td>
+</tr>
+<tr>
+<td><code>'collection'</code></td>
+<td>Gold</td>
+<td>Collection</td>
+<td><code>CollectionData</code> (dict of named NodeData)</td>
 </tr>
 <tr>
 <td><code>'path'</code></td>
@@ -2998,6 +3009,11 @@ See the <a href="#api-reference">API Reference</a> at the bottom of this page.</
 <td><code>FigureData</code></td>
 <td><code>NodeData</code></td>
 <td><code>matplotlib.figure.Figure</code></td>
+</tr>
+<tr>
+<td><code>CollectionData</code></td>
+<td><code>NodeData</code></td>
+<td><code>dict[str, NodeData]</code> — named bundle of items</td>
 </tr>
 </tbody>
 </table>
@@ -3266,18 +3282,22 @@ synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<
 <span class="c1"># Custom output directory</span>
 synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<span class="w"> </span>-o<span class="w"> </span>~/Desktop
 </code></pre></div>
-<p>The output filename includes platform, architecture, and Python version automatically (e.g. <code>my_plugin-darwin-arm64-cp313-20260318.synpkg</code>).</p>
+<p>The output filename includes platform, architecture, and Python version automatically (e.g. <code>my_plugin-darwin-arm64-cp313.synpkg</code>).</p>
 <p>To install a <code>.synpkg</code> from the command line:</p>
 <div class="highlight"><pre><span></span><code>synapse<span class="w"> </span>package<span class="w"> </span>--install<span class="w"> </span>my_plugin.synpkg
 </code></pre></div>
 <p>Users can also install via <strong>Plugins &gt; Plugin Manager &gt; Install Plugin...</strong> in the app.</p>
 <h3 id="available-libraries">Available Libraries<a class="headerlink" href="#available-libraries" title="Permanent link">&para;</a></h3>
-<p>Plugins can only import libraries bundled with the Synapse app:</p>
+<p>Plugins can import libraries bundled with the Synapse app:</p>
 <ul>
-<li><strong>numpy</strong>, <strong>scipy</strong>, <strong>pandas</strong> — numerical computing</li>
+<li><strong>numpy</strong> — array operations</li>
+<li><strong>scipy</strong> — <code>scipy.ndimage</code>, <code>scipy.stats</code>, <code>scipy.optimize</code>, <code>scipy.spatial</code></li>
+<li><strong>pandas</strong> — DataFrames and tabular data</li>
 <li><strong>PIL / Pillow</strong> — image I/O and manipulation</li>
-<li><strong>scikit-image</strong> (skimage) — image processing and analysis</li>
-<li><strong>matplotlib</strong> — plotting and figures</li>
+<li><strong>scikit-image</strong> (skimage) — <code>skimage.filters</code>, <code>skimage.morphology</code>, <code>skimage.measure</code>, <code>skimage.segmentation</code>, <code>skimage.feature</code>, <code>skimage.transform</code>, <code>skimage.restoration</code>, <code>skimage.exposure</code>, <code>skimage.color</code>, <code>skimage.draw</code>, <code>skimage.graph</code></li>
+<li><strong>matplotlib</strong> / <strong>seaborn</strong> — plotting and figures</li>
+<li><strong>statsmodels</strong> — statistical models and tests</li>
+<li><strong>tifffile</strong> — TIFF read/write (including 16-bit)</li>
 <li><strong>PySide6</strong> — Qt widgets (for custom node UIs)</li>
 <li><strong>pydantic</strong> — data validation (used by <code>NodeData</code>)</li>
 </ul>
@@ -3368,7 +3388,7 @@ synapse<span class="w"> </span>package<span class="w"> </span>plugins/my_plugin<
 <hr />
 <h2 id="debugging-tips">Debugging Tips<a class="headerlink" href="#debugging-tips" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Node doesn't appear?</strong> Check that <code>__identifier__</code> starts with <code>'plugins.'</code> and <code>NODE_NAME</code> is set.</li>
+<li><strong>Node doesn't appear?</strong> Check that <code>__identifier__</code> and <code>NODE_NAME</code> are set, and the class inherits from <code>BaseExecutionNode</code>.</li>
 <li><strong>Import errors?</strong> Open <strong>Plugins &gt; Plugin Manager</strong> — the Status column shows error messages per file.</li>
 <li><strong>Evaluate not called?</strong> Make sure the node is connected and marked dirty. Check that you're returning <code>(True, None)</code> or <code>(False, "message")</code>.</li>
 <li><strong>UI freezes?</strong> Your <code>evaluate()</code> runs on a background thread. Never call Qt widget methods directly — use <code>self.set_progress()</code> and <code>self.set_display()</code> instead.</li>

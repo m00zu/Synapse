@@ -1630,6 +1630,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#joint-plot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Joint Plot
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#kde-plot" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2388,6 +2399,46 @@ run.</p>
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>Palette</code>, ``</p>
+<hr />
+<h3 id="joint-plot">Joint Plot<a class="headerlink" href="#joint-plot" title="Permanent link">&para;</a></h3>
+<p>Creates a joint plot — scatter with marginal distributions on each axis.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Columns:</p>
+<ul>
+<li><strong>x_col</strong> — numeric column for the X axis</li>
+<li><strong>y_col</strong> — numeric column for the Y axis</li>
+<li><strong>hue_col</strong> — optional column for colour-coding by group</li>
+</ul>
+<p>Options:</p>
+<ul>
+<li><em>kind</em> — scatter, kde, hex, hist, or reg (scatter + regression)</li>
+<li><em>marginal</em> — histogram, kde, or both for the marginal distributions</li>
+<li><em>palette</em> — colour palette for hue groups</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>data</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>plot</code></td>
+<td>figure</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Kind</code>, <code>Marginal</code>, <code>Palette</code></p>
 <hr />
 <h3 id="kde-plot">KDE Plot<a class="headerlink" href="#kde-plot" title="Permanent link">&para;</a></h3>
 <p>Creates a kernel density estimate plot for smooth distribution visualisation.</p>

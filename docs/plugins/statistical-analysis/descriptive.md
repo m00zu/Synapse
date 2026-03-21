@@ -77,9 +77,15 @@ Performs pairwise comparisons between groups using parametric or non-parametric 
 ??? note "Details"
     Tests:
 
-    - *T-test* — parametric, assumes normal distribution
+    - *Student's T-test* — parametric, assumes equal variance and normal distribution
+    - *Welch's T-test* — parametric, does not assume equal variance
     - *Mann-Whitney U* — non-parametric rank-based test
+    - *Kolmogorov-Smirnov* — tests whether two groups come from the same distribution
     - *Tukey HSD* — post-hoc test after ANOVA
+    - *Dunn* — non-parametric post-hoc test (requires scikit-posthocs)
+    - *Fisher's Z* — compare correlation coefficients between groups (target column = r values)
+    
+    - **Alternative** — two-sided (default), greater (group1 > group2), or less (group1 < group2). Tukey HSD and Dunn are always two-sided.
     
     - **P-Adj Method** — multiple comparison correction (Bonferroni, Holm, BH).
 
@@ -88,7 +94,7 @@ Performs pairwise comparisons between groups using parametric or non-parametric 
 | **Input** | `in` | table |
 | **Output** | `stats_table` | stat |
 
-**Properties:** `Statistical Method`, `P-Adj Method`
+**Properties:** `Statistical Method`, `Alternative`, `P-Adj Method`
 
 ---
 

@@ -342,3 +342,73 @@ Saves all items in a collection to disk.
 | **Output** | `status` | table |
 
 ---
+
+### Rename Collection
+
+Rename items in a collection using a visual mapping table.
+
+??? note "Details"
+    When a collection is connected, the table auto-populates with original
+    names. Edit the 'New Name' column to rename items. Leave blank to keep
+    the original name.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `collection` | collection |
+| **Output** | `collection` | collection |
+
+---
+
+### Collection Info
+
+Outputs a table listing item names, types, shapes, and metadata.
+
+??? note "Details"
+    All number and string valued metadata fields are included as extra columns.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `collection` | collection |
+| **Output** | `info` | table |
+
+---
+
+### Filter Collection
+
+Keep or remove items by pattern matching on names.
+
+??? note "Details"
+    Supports simple wildcards (* and ?) or exact names.
+    Multiple patterns separated by | (pipe).
+    
+    Mode:
+
+    - *Keep* — only matching items pass through
+    - *Remove* — matching items are excluded
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `collection` | collection |
+| **Output** | `matched` | collection |
+| **Output** | `rest` | collection |
+
+**Properties:** `Mode`
+
+---
+
+### Map Names
+
+Batch rename collection items using find/replace, prefix, or suffix.
+
+??? note "Details"
+    Operations (applied in order):
+    1. Find/Replace — replace substring in all names
+    2. Prefix — add text before each name
+    3. Suffix — add text after each name
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `collection` | collection |
+| **Output** | `collection` | collection |
+
+---

@@ -1092,6 +1092,50 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#rename-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rename Collection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collection-info" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collection Info
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filter-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter Collection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map Names
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2701,6 +2745,135 @@ before the extension.  Otherwise the folder + extension fields are used.</p>
 <td><strong>Output</strong></td>
 <td><code>status</code></td>
 <td>table</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="rename-collection">Rename Collection<a class="headerlink" href="#rename-collection" title="Permanent link">&para;</a></h3>
+<p>Rename items in a collection using a visual mapping table.</p>
+<details class="note">
+<summary>Details</summary>
+<p>When a collection is connected, the table auto-populates with original
+names. Edit the 'New Name' column to rename items. Leave blank to keep
+the original name.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="collection-info">Collection Info<a class="headerlink" href="#collection-info" title="Permanent link">&para;</a></h3>
+<p>Outputs a table listing item names, types, shapes, and metadata.</p>
+<details class="note">
+<summary>Details</summary>
+<p>All number and string valued metadata fields are included as extra columns.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>info</code></td>
+<td>table</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="filter-collection">Filter Collection<a class="headerlink" href="#filter-collection" title="Permanent link">&para;</a></h3>
+<p>Keep or remove items by pattern matching on names.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Supports simple wildcards (* and ?) or exact names.
+Multiple patterns separated by | (pipe).</p>
+<p>Mode:</p>
+<ul>
+<li><em>Keep</em> — only matching items pass through</li>
+<li><em>Remove</em> — matching items are excluded</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>matched</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>rest</code></td>
+<td>collection</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Mode</code></p>
+<hr />
+<h3 id="map-names">Map Names<a class="headerlink" href="#map-names" title="Permanent link">&para;</a></h3>
+<p>Batch rename collection items using find/replace, prefix, or suffix.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Operations (applied in order):
+1. Find/Replace — replace substring in all names
+2. Prefix — add text before each name
+3. Suffix — add text after each name</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>collection</code></td>
+<td>collection</td>
 </tr>
 </tbody>
 </table>

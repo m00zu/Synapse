@@ -2061,7 +2061,10 @@ using <code>skimage.feature.blob_log</code>.</p>
 <li><em>M2</em> — fraction of ch2 intensity where ch1 is above its Otsu threshold</li>
 <li><em>ICQ</em> — Li's Intensity Correlation Quotient (-0.5 to 0.5)</li>
 </ul>
-<p>Outputs a 1-row table and a scatter plot of ch1 vs ch2 intensities.</p>
+<p>Accepts an optional label image — when connected, metrics are computed
+per-label (one row per region) instead of for the whole image.</p>
+<p>Plot options: Scatter, Regression (with fit line per label), or Bar Chart
+(Pearson r per label).</p>
 </details>
 <table>
 <thead>
@@ -2083,6 +2086,11 @@ using <code>skimage.feature.blob_log</code>.</p>
 <td>image</td>
 </tr>
 <tr>
+<td><strong>Input</strong></td>
+<td><code>label_image</code></td>
+<td>label</td>
+</tr>
+<tr>
 <td><strong>Output</strong></td>
 <td><code>table</code></td>
 <td>table</td>
@@ -2094,6 +2102,7 @@ using <code>skimage.feature.blob_log</code>.</p>
 </tr>
 </tbody>
 </table>
+<p><strong>Properties:</strong> <code>Plot Type</code></p>
 <hr />
 <h3 id="glcm-texture">GLCM Texture<a class="headerlink" href="#glcm-texture" title="Permanent link">&para;</a></h3>
 <p>Computes Haralick texture features from a Grey-Level Co-occurrence Matrix (GLCM).</p>
