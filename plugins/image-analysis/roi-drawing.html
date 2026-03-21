@@ -1456,6 +1456,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#label-overlay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Label Overlay
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2189,6 +2200,42 @@ semi-transparent color.</p>
 <td><strong>Input</strong></td>
 <td><code>mask</code></td>
 <td>mask</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="label-overlay">Label Overlay<a class="headerlink" href="#label-overlay" title="Permanent link">&para;</a></h3>
+<p>Overlay a label image on top of a base image with automatic coloring.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Each unique label gets a distinct color from the selected colormap.
+Background (label 0) is always transparent.</p>
+<p>Controls:</p>
+<ul>
+<li>Opacity of the label overlay</li>
+<li>Colormap (tab10, tab20, Set1, Set3, etc.)</li>
+<li>Line width and style for contour-only mode</li>
+<li>Fill toggle: filled regions or contour outlines only</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>label_image</code></td>
+<td>label</td>
 </tr>
 <tr>
 <td><strong>Output</strong></td>
