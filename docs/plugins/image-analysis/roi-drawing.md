@@ -138,3 +138,25 @@ Draw a mask contour (or fill) on an image.
 | **Output** | `image` | image |
 
 ---
+
+### Label Overlay
+
+Overlay a label image on top of a base image with automatic coloring.
+
+??? note "Details"
+    Each unique label gets a distinct color from the selected colormap.
+    Background (label 0) is always transparent.
+    
+    Controls:
+
+    - Opacity of the label overlay
+    - Colormap (tab10, tab20, Set1, Set3, etc.)
+    - Line width and style for contour-only mode
+    - Fill toggle: filled regions or contour outlines only
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `label_image` | label |
+| **Output** | `image` | image |
+
+---
