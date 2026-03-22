@@ -138,7 +138,7 @@ The core handles data I/O, table operations, and display. Domain-specific nodes 
 
 1. In Synapse, go to **Plugins > Plugin Manager** and open the **Browse Online** tab
 2. Browse available plugins, then click **Install** on the ones you need
-3. The plugin is downloaded and installed automatically — new nodes appear in the Node Explorer after restart
+3. The plugin is downloaded and installed automatically, click **Plugins > Reload Plugins** to load the new nodes
 
 **Manual install:**
 
