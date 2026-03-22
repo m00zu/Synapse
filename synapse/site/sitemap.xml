@@ -2,146 +2,146 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://m00zu.github.io/Synapse/index.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/shortcuts.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/concepts/batch-processing.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/concepts/data-types.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/concepts/nodes-and-connections.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/developing/creating-plugins.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/ai-assistant.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/examples.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/installation.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/interface.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/plugins.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/quick-start.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/nodes/io-display.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/nodes/data-tables/combine.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/nodes/data-tables/compute.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/nodes/data-tables/filter.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/nodes/data-tables/transform.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/nodes/data-tables/util.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/cellpose.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/cheminformatics.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/figure-plotting.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/filopodia.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/sam2.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/video-tracking.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/volume.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/color.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/exposure.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/filters.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/measurement.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/morphology.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/roi-drawing.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/transform.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/statistical-analysis/descriptive.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/statistical-analysis/regression.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/workflows/batch-analysis.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/workflows/cell-counting.html</loc>
-         <lastmod>2026-03-21</lastmod>
+         <lastmod>2026-03-22</lastmod>
     </url>
 </urlset>

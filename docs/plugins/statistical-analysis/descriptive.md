@@ -63,8 +63,8 @@ Tests whether there are significant differences among two or more groups.
 
 | Direction | Port | Type |
 |-----------|------|------|
-| **Input** | `in` | in |
-| **Output** | `stats_table` | stats_table |
+| **Input** | `in` | table |
+| **Output** | `stats_table` | stat |
 
 **Properties:** `Statistical Method`
 
@@ -81,6 +81,8 @@ Performs pairwise comparisons between groups using parametric or non-parametric 
     - *Welch's T-test* — parametric, does not assume equal variance
     - *Mann-Whitney U* — non-parametric rank-based test
     - *Kolmogorov-Smirnov* — tests whether two groups come from the same distribution
+    - *Two-sample Z-test* — compares means when variance is known or n is large
+    - *Permutation test* — non-parametric, no distributional assumptions, resampling-based
     - *Tukey HSD* — post-hoc test after ANOVA
     - *Dunn* — non-parametric post-hoc test (requires scikit-posthocs)
     - *Fisher's Z* — compare correlation coefficients between groups (target column = r values)
@@ -88,13 +90,15 @@ Performs pairwise comparisons between groups using parametric or non-parametric 
     - **Alternative** — two-sided (default), greater (group1 > group2), or less (group1 < group2). Tukey HSD and Dunn are always two-sided.
     
     - **P-Adj Method** — multiple comparison correction (Bonferroni, Holm, BH).
+    
+    - **N Permutations** — number of resampling iterations for the permutation test (default 10,000).
 
 | Direction | Port | Type |
 |-----------|------|------|
 | **Input** | `in` | table |
 | **Output** | `stats_table` | stat |
 
-**Properties:** `Statistical Method`, `Alternative`, `P-Adj Method`
+**Properties:** `Statistical Method`, `Alternative`, `N Permutations`, `P-Adj Method`
 
 ---
 
@@ -140,5 +144,33 @@ Computes a pairwise correlation or distance matrix for all numeric columns and v
 | **Output** | `figure` | figure |
 
 **Properties:** `Metric`, `Colormap`, ``, ``
+
+---
+
+### Variance Test
+
+Tests whether two or more groups have equal variance (homoscedasticity).
+
+??? note "Details"
+    Use this to decide between Student's t-test (equal variance) and Welch's t-test
+    (unequal variance), or to check ANOVA assumptions.
+    
+    Tests:
+
+    - *Levene's test* — robust, works for non-normal data (recommended default)
+    - *Bartlett's test* — more powerful but assumes normality
+    - *F-test* — classical variance ratio test for exactly 2 groups (sensitive to non-normality)
+    
+    Outputs a table with test statistic and p-value per group pair (F-test) or
+    for all groups at once (Levene, Bartlett).
+    
+    A significant p-value (< 0.05) means variances are NOT equal — use Welch's t-test.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `in` | table |
+| **Output** | `stats_table` | stat |
+
+**Properties:** `Test`
 
 ---

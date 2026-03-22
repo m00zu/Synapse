@@ -160,3 +160,20 @@ Overlay a label image on top of a base image with automatic coloring.
 | **Output** | `image` | image |
 
 ---
+
+### Label Editor
+
+Interactively edits a multi-label image by drawing shapes and applying operations.
+
+??? note "Details"
+    Supports rect, ellipse, polygon, lasso, brush, and flood-fill tools.
+    Each label is assigned a distinct color. Outputs the label array and a summary table.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `image` | image |
+| **Input** | `label_image` | label_image |
+| **Output** | `label_image` | label_image |
+| **Output** | `table` | table |
+
+---

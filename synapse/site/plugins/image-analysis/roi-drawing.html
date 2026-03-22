@@ -1467,6 +1467,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#label-editor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Label Editor
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2241,6 +2252,45 @@ Background (label 0) is always transparent.</p>
 <td><strong>Output</strong></td>
 <td><code>image</code></td>
 <td>image</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="label-editor">Label Editor<a class="headerlink" href="#label-editor" title="Permanent link">&para;</a></h3>
+<p>Interactively edits a multi-label image by drawing shapes and applying operations.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Supports rect, ellipse, polygon, lasso, brush, and flood-fill tools.
+Each label is assigned a distinct color. Outputs the label array and a summary table.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>label_image</code></td>
+<td>label_image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>label_image</code></td>
+<td>label_image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>table</code></td>
+<td>table</td>
 </tr>
 </tbody>
 </table>

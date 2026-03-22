@@ -1359,11 +1359,16 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 
         # ── Help menu ──
         help_menu = menubar.addMenu(tr("&Help"))
-        open_manual_action = QtGui.QAction(tr("Open Manual"), self)
+        open_manual_action = QtGui.QAction(tr("Open Manual (Offline)"), self)
         open_manual_action.setShortcut("F1")
         open_manual_action.triggered.connect(self._open_manual)
         help_menu.addAction(open_manual_action)
 
+        open_online_action = QtGui.QAction(tr("Open Online Manual"), self)
+        open_online_action.triggered.connect(self._open_online_manual)
+        help_menu.addAction(open_online_action)
+
+        help_menu.addSeparator()
         toggle_help_action = QtGui.QAction(tr("Node Help Panel"), self)
         toggle_help_action.setCheckable(True)
         toggle_help_action.setChecked(True)
@@ -1372,6 +1377,11 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self._toggle_help_action = toggle_help_action
         toggle_help_action.toggled.connect(self.dockWidgetHelp.setVisible)
         self.dockWidgetHelp.visibilityChanged.connect(toggle_help_action.setChecked)
+
+    def _open_online_manual(self):
+        """Open the online manual (GitHub Pages) in the default browser."""
+        QtGui.QDesktopServices.openUrl(
+            QtCore.QUrl("https://m00zu.github.io/Synapse/"))
 
     def _open_manual(self):
         """Open the bundled HTML manual in the default browser."""
@@ -1384,8 +1394,8 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 url = QtCore.QUrl.fromLocalFile(os.path.abspath(site_index))
                 QtGui.QDesktopServices.openUrl(url)
                 return
-        QtGui.QDesktopServices.openUrl(
-            QtCore.QUrl("https://github.com/m00zu/Synapse/tree/main/docs"))
+        # No bundled docs — fall back to online
+        self._open_online_manual()
 
     @staticmethod
     def _docstring_to_html(doc: str) -> str:

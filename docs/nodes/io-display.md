@@ -201,30 +201,6 @@ Displays a PIL Image directly on the node surface for quick inline inspection.
 
 ---
 
-### SVG Editor
-
-Converts an upstream matplotlib Figure to SVG for interactive element editing.
-
-??? note "Details"
-    Usage:
-
-    - Click any highlighted element to select it.
-    - Double-click to open the properties panel (fill, stroke, opacity, etc.).
-    - Drag text labels (orange cursor) to reposition them.
-    - Click "Apply" in the properties panel to commit changes.
-    - Click "Reset SVG" to discard edits and reload from the figure.
-    
-    Edits are stored in the `_svg_data` node property and survive
-    re-evaluation as long as the upstream figure is unchanged. Reset SVG
-    clears them.
-
-| Direction | Port | Type |
-|-----------|------|------|
-| **Input** | `in` | figure |
-| **Output** | `out` | figure |
-
----
-
 ### Universal Node
 
 Executes arbitrary Python code to process multiple inputs and push results to outputs.
