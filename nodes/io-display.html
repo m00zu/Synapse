@@ -1005,17 +1005,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#svg-editor" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        SVG Editor
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#universal-node" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2482,44 +2471,6 @@ independently at their own step in the topological evaluation order.</p>
 <td><strong>Input</strong></td>
 <td><code>in</code></td>
 <td>image</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h3 id="svg-editor">SVG Editor<a class="headerlink" href="#svg-editor" title="Permanent link">&para;</a></h3>
-<p>Converts an upstream matplotlib Figure to SVG for interactive element editing.</p>
-<details class="note">
-<summary>Details</summary>
-<p>Usage:</p>
-<ul>
-<li>Click any highlighted element to select it.</li>
-<li>Double-click to open the properties panel (fill, stroke, opacity, etc.).</li>
-<li>Drag text labels (orange cursor) to reposition them.</li>
-<li>Click "Apply" in the properties panel to commit changes.</li>
-<li>Click "Reset SVG" to discard edits and reload from the figure.</li>
-</ul>
-<p>Edits are stored in the <code>_svg_data</code> node property and survive
-re-evaluation as long as the upstream figure is unchanged. Reset SVG
-clears them.</p>
-</details>
-<table>
-<thead>
-<tr>
-<th>Direction</th>
-<th>Port</th>
-<th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Input</strong></td>
-<td><code>in</code></td>
-<td>figure</td>
-</tr>
-<tr>
-<td><strong>Output</strong></td>
-<td><code>out</code></td>
-<td>figure</td>
 </tr>
 </tbody>
 </table>

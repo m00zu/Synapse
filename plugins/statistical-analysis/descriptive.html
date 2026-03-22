@@ -1543,6 +1543,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#variance-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variance Test
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2075,12 +2086,12 @@
 <tr>
 <td><strong>Input</strong></td>
 <td><code>in</code></td>
-<td>in</td>
+<td>table</td>
 </tr>
 <tr>
 <td><strong>Output</strong></td>
 <td><code>stats_table</code></td>
-<td>stats_table</td>
+<td>stat</td>
 </tr>
 </tbody>
 </table>
@@ -2096,6 +2107,8 @@
 <li><em>Welch's T-test</em> — parametric, does not assume equal variance</li>
 <li><em>Mann-Whitney U</em> — non-parametric rank-based test</li>
 <li><em>Kolmogorov-Smirnov</em> — tests whether two groups come from the same distribution</li>
+<li><em>Two-sample Z-test</em> — compares means when variance is known or n is large</li>
+<li><em>Permutation test</em> — non-parametric, no distributional assumptions, resampling-based</li>
 <li><em>Tukey HSD</em> — post-hoc test after ANOVA</li>
 <li><em>Dunn</em> — non-parametric post-hoc test (requires scikit-posthocs)</li>
 <li>
@@ -2106,6 +2119,9 @@
 </li>
 <li>
 <p><strong>P-Adj Method</strong> — multiple comparison correction (Bonferroni, Holm, BH).</p>
+</li>
+<li>
+<p><strong>N Permutations</strong> — number of resampling iterations for the permutation test (default 10,000).</p>
 </li>
 </ul>
 </details>
@@ -2130,7 +2146,7 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Properties:</strong> <code>Statistical Method</code>, <code>Alternative</code>, <code>P-Adj Method</code></p>
+<p><strong>Properties:</strong> <code>Statistical Method</code>, <code>Alternative</code>, <code>N Permutations</code>, <code>P-Adj Method</code></p>
 <hr />
 <h3 id="normality-test">Normality Test<a class="headerlink" href="#normality-test" title="Permanent link">&para;</a></h3>
 <p>Tests whether each numerical column in a DataFrame follows a normal distribution.</p>
@@ -2206,6 +2222,45 @@
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>Metric</code>, <code>Colormap</code>, <code>,</code></p>
+<hr />
+<h3 id="variance-test">Variance Test<a class="headerlink" href="#variance-test" title="Permanent link">&para;</a></h3>
+<p>Tests whether two or more groups have equal variance (homoscedasticity).</p>
+<details class="note">
+<summary>Details</summary>
+<p>Use this to decide between Student's t-test (equal variance) and Welch's t-test
+(unequal variance), or to check ANOVA assumptions.</p>
+<p>Tests:</p>
+<ul>
+<li><em>Levene's test</em> — robust, works for non-normal data (recommended default)</li>
+<li><em>Bartlett's test</em> — more powerful but assumes normality</li>
+<li><em>F-test</em> — classical variance ratio test for exactly 2 groups (sensitive to non-normality)</li>
+</ul>
+<p>Outputs a table with test statistic and p-value per group pair (F-test) or
+for all groups at once (Levene, Bartlett).</p>
+<p>A significant p-value (&lt; 0.05) means variances are NOT equal — use Welch's t-test.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>stats_table</code></td>
+<td>stat</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Test</code></p>
 <hr />
 
 
