@@ -11,12 +11,12 @@ on:
         description: 'Build Windows'
         type: boolean
         default: true
+      windows_standalone:
+        description: 'Also build Windows standalone (folder zip)'
+        type: boolean
+        default: false
       build_macos_arm:
         description: 'Build macOS ARM (M-series)'
-        type: boolean
-        default: true
-      build_macos_intel:
-        description: 'Build macOS Intel'
         type: boolean
         default: true
 
@@ -35,6 +35,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+          cache: 'pip'
+
+      - name: Cache Nuitka compilation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/Nuitka
+            ${{ github.workspace }}/**/*.build
+          key: nuitka-win-${{ hashFiles('synapse/**/*.py', 'main.py') }}
+          restore-keys: nuitka-win-
 
       - name: Install dependencies
         run: |
@@ -42,20 +52,49 @@ jobs:
           pip install nuitka ordered-set zstandard
           pip install oir_reader_rs image_process_rs --find-links https://github.com/m00zu/Synapse/releases/expanded_assets/rust-v0.1.1
 
-      - name: Build Windows exe
+      # ── If standalone selected: build standalone first (faster) ──
+      - name: Build Windows standalone
+        if: inputs.windows_standalone
         env:
           PYTHONPATH: ./util
         run: |
-          python -m nuitka --show-progress --show-scons --onefile --windows-console-mode=attach --windows-icon-from-ico="./synapse/icons/synapse_icon.ico" --windows-product-name="Synapse" --product-name="Synapse" --onefile-tempdir-spec="{CACHE_DIR}/{PRODUCT}/{VERSION}" --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse.exe" --output-dir=dist --jobs=4 --lto=no --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --product-version="0.1.1" main.py
+          python -m nuitka --show-progress --show-scons --standalone --windows-console-mode=attach --windows-icon-from-ico="./synapse/icons/synapse_icon.ico" --windows-product-name="Synapse" --product-name="Synapse" --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse.exe" --output-dir=dist-standalone --jobs=8 --lto=no --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --nofollow-import-to=unittest --nofollow-import-to=doctest --product-version="0.1.1" main.py
 
-      - name: Upload artifact
+      - name: Zip standalone folder
+        if: inputs.windows_standalone
+        run: |
+          Compress-Archive -Path dist-standalone/main.dist/* -DestinationPath dist/Synapse-Windows-standalone.zip
+
+      - name: Upload standalone artifact
+        if: inputs.windows_standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: Synapse-Windows-Standalone
+          path: dist/Synapse-Windows-standalone.zip
+          if-no-files-found: error
+
+      - name: Upload standalone to release
+        if: inputs.windows_standalone && inputs.tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: dist/Synapse-Windows-standalone.zip
+
+      # ── Always build onefile (reuses compiled C if standalone ran first) ──
+      - name: Build Windows onefile
+        env:
+          PYTHONPATH: ./util
+        run: |
+          python -m nuitka --show-progress --show-scons --onefile --windows-console-mode=attach --windows-icon-from-ico="./synapse/icons/synapse_icon.ico" --windows-product-name="Synapse" --product-name="Synapse" --onefile-tempdir-spec="{CACHE_DIR}/{PRODUCT}/{VERSION}" --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse.exe" --output-dir=dist --jobs=8 --lto=no --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --nofollow-import-to=unittest --nofollow-import-to=doctest --product-version="0.1.1" main.py
+
+      - name: Upload onefile artifact
         uses: actions/upload-artifact@v4
         with:
           name: Synapse-Windows
           path: dist/*.exe
           if-no-files-found: error
 
-      - name: Upload to release
+      - name: Upload onefile to release
         if: inputs.tag != ''
         uses: softprops/action-gh-release@v2
         with:
