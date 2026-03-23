@@ -26,7 +26,7 @@ permissions:
 jobs:
   # ── Windows ──────────────────────────────────────────────────────────────
   build-windows:
-    if: inputs.build_windows
+    if: inputs.build_windows || github.event_name == 'schedule'
     runs-on: windows-latest
 
     steps:
@@ -104,7 +104,7 @@ jobs:
 
   # ── macOS ARM (M-series) ─────────────────────────────────────────────────
   build-macos-arm:
-    if: inputs.build_macos_arm
+    if: inputs.build_macos_arm || github.event_name == 'schedule'
     runs-on: macos-14
 
     steps:
