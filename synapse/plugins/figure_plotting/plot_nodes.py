@@ -1883,7 +1883,7 @@ class PlotToolboxMixin:
             "QToolButton:hover { background: #444; }")
         btn._columns = []
 
-        def _show_menu(b=btn, e=edit, n=name):
+        def _show_menu(_checked=False, b=btn, e=edit, n=name):
             menu = QtWidgets.QMenu()
             for col in b._columns:
                 action = menu.addAction(str(col))
@@ -3182,7 +3182,7 @@ def _draw_stat_brackets(ax, stat_df, group_to_x_idx: dict, y_max_per_group: dict
         # Mark as stat bracket so legend can exclude it
         line._is_stat_bracket = True
         ax.text((i1 + i2) / 2, curr_h, lbl, ha='center', va='bottom',
-                fontsize=text_size, fontweight='bold', color=text_color,
+                fontsize=text_size, color=text_color,
                 gid=f'stat_text:{_stat_lbl}')
 
         for g in heights:

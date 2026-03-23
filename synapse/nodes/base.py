@@ -1366,24 +1366,34 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
     def on_input_connected(self, in_port, out_port):
         self.mark_dirty()
         # Auto-populate column selectors from upstream DataFrame
-        if self._column_selector_names:
+        has_col_selectors = self._column_selector_names
+        has_tb_col_buttons = hasattr(self, '_tb_col_buttons') and self._tb_col_buttons
+        if has_col_selectors or has_tb_col_buttons:
             self._auto_refresh_column_selectors()
 
     def _auto_refresh_column_selectors(self):
         """Try to read a DataFrame from the first connected table port and refresh all column selectors."""
         try:
+            import pandas as _pd
             for port_name, port in self.inputs().items():
                 for cp in port.connected_ports():
                     data = cp.node().output_values.get(cp.name())
                     df = None
                     if hasattr(data, 'df'):
                         df = data.df
-                    elif hasattr(data, 'payload') and isinstance(data.payload, __import__('pandas').DataFrame):
+                    elif hasattr(data, 'payload') and isinstance(data.payload, _pd.DataFrame):
                         df = data.payload
-                    elif isinstance(data, __import__('pandas').DataFrame):
+                    elif isinstance(data, _pd.DataFrame):
                         df = data
                     if df is not None:
-                        self._refresh_column_selectors(df, *self._column_selector_names)
+                        # Refresh NodeColumnSelectorWidget instances
+                        if self._column_selector_names:
+                            self._refresh_column_selectors(df, *self._column_selector_names)
+                        # Refresh toolbox column selector buttons (plot nodes)
+                        if hasattr(self, '_tb_col_buttons') and self._tb_col_buttons:
+                            columns = list(df.columns)
+                            for btn in self._tb_col_buttons.values():
+                                btn._columns = columns
                         return
         except Exception:
             pass
