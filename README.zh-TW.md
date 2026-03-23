@@ -33,7 +33,7 @@
 
 ## 下載
 
-獨立執行檔 (不需要安裝 Python)：
+獨立執行檔 (不需安裝 Python)：
 
 | 作業系統 | 下載 |
 |------|------|
@@ -41,6 +41,14 @@
 | Windows (64-bit) | [Synapse.exe](https://github.com/m00zu/Synapse/releases/latest/download/Synapse.exe) |
 
 所有版本請參見 [Releases 頁面](https://github.com/m00zu/Synapse/releases)。
+
+> **macOS 首次開啟**：macOS 可能會因為應用程式未簽署而封鎖。請在應用程式上按右鍵 → **打開** → 在對話框中點選 **打開**。或在終端機執行：
+> ```bash
+> xattr -cr /Applications/Synapse.app
+> ```
+> 此操作只需執行一次。
+
+> **Windows 首次開啟**：Windows SmartScreen 可能會顯示警告。點選 **更多資訊** → **仍要執行**。此操作只需執行一次。
 
 ## 從原始碼安裝
 

@@ -63,6 +63,7 @@ jobs:
       - name: Zip standalone folder
         if: inputs.windows_standalone
         run: |
+          New-Item -ItemType Directory -Force -Path dist
           Compress-Archive -Path dist-standalone/main.dist/* -DestinationPath dist/Synapse-Windows-standalone.zip
 
       - name: Upload standalone artifact
@@ -125,6 +126,10 @@ jobs:
         run: |
           python -m nuitka --show-progress --show-scons --macos-create-app-bundle --macos-app-name="Synapse" --macos-app-icon=synapse/icons/synapse_icon.png --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse" --output-dir=dist --jobs=8 --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --product-version="0.1.1" main.py
 
+      - name: Rename app bundle
+        run: |
+          mv dist/main.app dist/Synapse.app
+
       - name: Create DMG
         run: |
           brew install create-dmg || true
@@ -134,14 +139,18 @@ jobs:
             --icon "Synapse.app" 150 200 \
             --app-drop-link 450 200 \
             "dist/Synapse-macOS-arm64.dmg" \
-            "dist/main.app/" || \
-          hdiutil create -volname "Synapse" -srcfolder "dist/main.app" -ov -format UDZO "dist/Synapse-macOS-arm64.dmg"
+            "dist/Synapse.app/" || \
+          hdiutil create -volname "Synapse" -srcfolder "dist/Synapse.app" -ov -format UDZO "dist/Synapse-macOS-arm64.dmg"
+
+      - name: Clean temp DMGs
+        run: |
+          find dist -name "rw.*.dmg" -delete 2>/dev/null || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Synapse-macOS-arm64
-          path: dist/*.dmg
+          path: dist/Synapse-macOS-arm64.dmg
           if-no-files-found: error
 
       - name: Upload to release

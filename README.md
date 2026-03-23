@@ -42,6 +42,14 @@ Standalone builds (no Python needed):
 
 See all releases on the [Releases page](https://github.com/m00zu/Synapse/releases).
 
+> **First launch on macOS**: macOS may block the app because it is not signed. Right-click the app → **Open** → click **Open** in the dialog. Or run in Terminal:
+> ```bash
+> xattr -cr /Applications/Synapse.app
+> ```
+> This only needs to be done once.
+
+> **First launch on Windows**: Windows SmartScreen may show a warning. Click **More info** → **Run anyway**. This only needs to be done once.
+
 ## Installation (from source)
 
 Tested on Python 3.13 and 3.14.
