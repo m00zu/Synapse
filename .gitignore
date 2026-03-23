@@ -75,6 +75,7 @@ sync_plugins.sh
 
 # Legacy / scratch scripts
 _*.py
+_*.ipynb
 !__init__.py
 test_*.py
 benchmark_*.py

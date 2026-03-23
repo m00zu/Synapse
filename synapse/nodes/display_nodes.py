@@ -288,7 +288,21 @@ class DataFigureCellNode(BaseExecutionNode):
             self._figure_widget.set_value(data)
             self.view.draw_node()
         elif isinstance(data, matplotlib.figure.Figure):
-            data.tight_layout()
+            # Exclude stat bracket lines from legend before layout
+            for ax in data.get_axes():
+                legend = ax.get_legend()
+                if legend is not None:
+                    handles, labels = ax.get_legend_handles_labels()
+                    clean = [(h, l) for h, l in zip(handles, labels)
+                             if not getattr(h, '_is_stat_bracket', False)]
+                    if clean:
+                        ax.legend(*zip(*clean))
+                    else:
+                        legend.remove()
+            try:
+                data.tight_layout()
+            except Exception:
+                pass
             self._figure_widget.set_value(data)
             self.view.draw_node()
         else:

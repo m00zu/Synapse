@@ -1086,6 +1086,8 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         self.view.add_widget(w)
         self.view.draw_node()
 
+    _column_selector_names = None  # lazily initialized set of property names
+
     def _add_column_selector(self, name, label='', text='', mode='single', tab=None):
         """Embed a text input with a column dropdown button.
 
@@ -1099,6 +1101,9 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         w = NodeColumnSelectorWidget(self.view, name=name, label=label,
                                      text=text, mode=mode)
         self.add_custom_widget(w, tab=tab)
+        if self._column_selector_names is None:
+            self._column_selector_names = set()
+        self._column_selector_names.add(name)
         return w
 
     def _refresh_column_selectors(self, df, *prop_names):
@@ -1360,6 +1365,28 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         
     def on_input_connected(self, in_port, out_port):
         self.mark_dirty()
+        # Auto-populate column selectors from upstream DataFrame
+        if self._column_selector_names:
+            self._auto_refresh_column_selectors()
+
+    def _auto_refresh_column_selectors(self):
+        """Try to read a DataFrame from the first connected table port and refresh all column selectors."""
+        try:
+            for port_name, port in self.inputs().items():
+                for cp in port.connected_ports():
+                    data = cp.node().output_values.get(cp.name())
+                    df = None
+                    if hasattr(data, 'df'):
+                        df = data.df
+                    elif hasattr(data, 'payload') and isinstance(data.payload, __import__('pandas').DataFrame):
+                        df = data.payload
+                    elif isinstance(data, __import__('pandas').DataFrame):
+                        df = data
+                    if df is not None:
+                        self._refresh_column_selectors(df, *self._column_selector_names)
+                        return
+        except Exception:
+            pass
         
     def on_input_disconnected(self, in_port, out_port):
         self.mark_dirty()
