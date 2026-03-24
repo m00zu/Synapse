@@ -1039,6 +1039,8 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         self.is_disabled = False
         self.output_values = {}
         self._active_dialogs = [] # Keep references to popups to prevent GC
+        self._eval_version = 0    # incremented on each parameter change, for stale eval detection
+        self._eval_version_at_start = 0  # captured at evaluate start
         
         # Ensure we start in the "Dirty" (Blue) state immediately.
         # Since nodes are always created on the Main Thread, we can call this directly.
@@ -1363,6 +1365,11 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         """Re-enabled = back to dirty state."""
         self._mark_dirty_ui()
         
+    def _is_eval_stale(self) -> bool:
+        """Check if parameters changed since evaluate started.
+        Call this during long evaluations to bail early."""
+        return self._eval_version != self._eval_version_at_start
+
     def on_input_connected(self, in_port, out_port):
         self.mark_dirty()
         # Auto-populate column selectors from upstream DataFrame
@@ -1412,6 +1419,7 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
             
         super(BaseExecutionNode, self).set_property(name, value, push_undo)
         if name not in ['color', 'pos', 'selected', 'name', 'progress', 'table_view', 'image_view', 'show_preview', 'live_preview']:
+            self._eval_version += 1
             self.mark_dirty()
 
 
@@ -1492,12 +1500,16 @@ class BaseImageProcessNode(BaseExecutionNode):
                 self._display_ui(self._last_display_data)
         else:
             if name not in self._UI_PROPS and self.get_property('live_preview'):
-                # Check for collection input — use auto-loop if needed
+                # Capture version before evaluate — if it changes during
+                # evaluation (user moved slider again), discard the result
+                ver = self._eval_version
                 col_info = self._check_collection_inputs() if self._collection_aware else None
                 if col_info:
                     success, err = self._evaluate_collection_loop(*col_info)
                 else:
                     success, err = self.evaluate()
+                if self._eval_version != ver:
+                    return  # stale — a newer evaluation will follow
                 if success:
                     self.mark_clean()
                 else:
