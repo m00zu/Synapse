@@ -2700,6 +2700,12 @@ def main():
     app.setApplicationDisplayName("Synapse")
     app.setStyle("Fusion")
 
+    # Set application icon (taskbar, dock, window icon)
+    import pathlib
+    _icon_path = pathlib.Path(__file__).parent / 'icons' / 'synapse_icon.png'
+    if _icon_path.exists():
+        app.setWindowIcon(QtGui.QIcon(str(_icon_path)))
+
     # ThemeManager applies the initial dark palette and owns all theme transitions
     theme_manager = ThemeManager(app)
 
