@@ -138,7 +138,7 @@ https://github.com/user-attachments/assets/a3772ee9-da64-4fe1-ad58-ee22ac6f41aa
 
 ## Plugins
 
-The core handles data I/O, table operations, and display. Domain-specific nodes ship as plugins with their dependencies bundled in.
+The core handles data I/O and display. Domain-specific nodes ship as plugins with their dependencies bundled in.
 
 ### Installing plugins
 
@@ -160,6 +160,7 @@ You can also drop `.py` files or extracted plugin folders directly into the `plu
 
 | Plugin | Description |
 |--------|-------------|
+| Data Processing | Table filter, sort, math column, aggregate, concat, join (installed by default) |
 | Image Analysis | Filters, thresholding, morphology, segmentation, measurements, ROI |
 | Statistical Analysis | t-tests, ANOVA, regression, survival analysis, PCA |
 | Figure Plotting | Scatter, box, violin, heatmap, volcano, regression plots |

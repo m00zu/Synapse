@@ -138,7 +138,7 @@ https://github.com/user-attachments/assets/a3772ee9-da64-4fe1-ad58-ee22ac6f41aa
 
 ## 外掛
 
-核心功能只包含進行資料 I/O、表格操作與顯示結果，而特定領域的節點以外掛形式發布。
+核心功能只包含資料 I/O 與顯示結果，而特定領域的節點以外掛形式發布。
 
 ### 安裝外掛
 
@@ -160,6 +160,7 @@ https://github.com/user-attachments/assets/a3772ee9-da64-4fe1-ad58-ee22ac6f41aa
 
 | 外掛 | 說明 |
 |------|------|
+| Data Processing | 表格篩選、排序、數學欄位、彙總、合併、連接（預設安裝）|
 | Image Analysis | 濾波、二值化、形態學、分割、測量、ROI |
 | Statistical Analysis | t 檢定、ANOVA、迴歸、存活分析、PCA |
 | Figure Plotting | 散佈圖、箱型圖、小提琴圖、熱圖、火山圖、迴歸圖 |

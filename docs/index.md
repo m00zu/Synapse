@@ -35,12 +35,12 @@ Synapse lets you build analysis pipelines by connecting nodes on a canvas. Each 
 | Category | Docs |
 |----------|------|
 | I/O & Display | [IO & Display](nodes/io-display.md) |
-| Data & Tables | [Filter](nodes/data-tables/filter.md) · [Compute](nodes/data-tables/compute.md) · [Transform](nodes/data-tables/transform.md) · [Combine](nodes/data-tables/combine.md) · [Utility](nodes/data-tables/util.md) |
 
-### Plugins (install separately)
+### Plugins
 
 | Plugin | Docs |
 |--------|------|
+| Data Processing | [Filter](nodes/data-tables/filter.md) · [Compute](nodes/data-tables/compute.md) · [Transform](nodes/data-tables/transform.md) · [Combine](nodes/data-tables/combine.md) · [Utility](nodes/data-tables/util.md) |
 | Image Analysis | [Color](plugins/image-analysis/color.md) · [Exposure](plugins/image-analysis/exposure.md) · [Filters](plugins/image-analysis/filters.md) · [Transform](plugins/image-analysis/transform.md) · [Morphology](plugins/image-analysis/morphology.md) · [Measurement](plugins/image-analysis/measurement.md) · [ROI & Drawing](plugins/image-analysis/roi-drawing.md) |
 | Statistical Analysis | [Descriptive](plugins/statistical-analysis/descriptive.md) · [Regression](plugins/statistical-analysis/regression.md) |
 | Figure Plotting | [Plots](plugins/figure-plotting.md) |

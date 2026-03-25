@@ -1096,6 +1096,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#blank-subtract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blank Subtract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#row-normalize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row Normalize
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#drop-rows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drop Rows
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1985,6 +2018,105 @@ item by row index and outputs it as its original data type.</p>
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>Row Index (1-based)</code></p>
+<hr />
+<h3 id="blank-subtract">Blank Subtract<a class="headerlink" href="#blank-subtract" title="Permanent link">&para;</a></h3>
+<p>Subtract a reference row's value from all rows in a column.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Common use: subtract background (BG) measurement from all cells.</p>
+<ul>
+<li><strong>Reference Column</strong> — the column containing group/cell labels (e.g. 'cell')</li>
+<li><strong>Reference Value</strong> — the label of the reference row (e.g. 'BG')</li>
+<li><strong>Target Columns</strong> — columns to subtract from (comma-separated, or leave empty for all numeric)</li>
+</ul>
+<p>The reference row's value is subtracted from every row in each target column.
+The reference row itself is kept (will become 0).</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>table</code></td>
+<td>table</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="row-normalize">Row Normalize<a class="headerlink" href="#row-normalize" title="Permanent link">&para;</a></h3>
+<p>Normalize all rows by a reference row's value (divide instead of subtract).</p>
+<details class="note">
+<summary>Details</summary>
+<p>Useful for fold-change calculations: value / reference.</p>
+<ul>
+<li><strong>Reference Column</strong> — column containing group labels</li>
+<li><strong>Reference Value</strong> — label of the reference row (e.g. 'Control', 'BG')</li>
+<li><strong>Target Columns</strong> — columns to normalize (comma-separated, or empty for all numeric)</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>table</code></td>
+<td>table</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="drop-rows">Drop Rows<a class="headerlink" href="#drop-rows" title="Permanent link">&para;</a></h3>
+<p>Drop rows where a column matches any of the specified values.</p>
+<details class="note">
+<summary>Details</summary>
+<ul>
+<li><strong>Column</strong> — which column to check</li>
+<li><strong>Values to Drop</strong> — comma-separated list of values to remove (e.g. 'BG, Artifact (BG)')</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>table</code></td>
+<td>table</td>
+</tr>
+</tbody>
+</table>
 <hr />
 
 

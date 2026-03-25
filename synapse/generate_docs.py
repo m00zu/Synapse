@@ -239,13 +239,16 @@ def _node_to_md(info):
 # ── File → category mapping ──────────────────────────────────────────────
 
 FILE_MAP = {
-    # Core nodes (in synapse/nodes/)
-    "synapse/nodes/dataframe_nodes.py": {
+    # Data processing plugin (moved from core)
+    "synapse/plugins/data_processing/dataframe_nodes.py": {
         "filter": ("nodes/data-tables/filter.md", "Filter"),
         "compute": ("nodes/data-tables/compute.md", "Compute"),
         "transform": ("nodes/data-tables/transform.md", "Transform"),
         "combine": ("nodes/data-tables/combine.md", "Combine"),
         "util": ("nodes/data-tables/util.md", "Utility"),
+    },
+    "synapse/plugins/data_processing/data_nodes.py": {
+        "_default": ("nodes/data-tables/util.md", "Utility"),
     },
     "synapse/nodes/io_nodes.py": {
         "_default": ("nodes/io-display.md", "IO & Display"),
