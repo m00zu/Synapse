@@ -9,8 +9,8 @@ import numpy as np
 import NodeGraphQt, json
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from ..data_models import TableData
-from .base import (
+from data_models import TableData
+from nodes.base import (
     BaseExecutionNode, PORT_COLORS,
     NodeBaseWidget
 )
@@ -2266,7 +2266,11 @@ class StringColumnOpsNode(BaseExecutionNode):
             elif op == 'Extract regex group':
                 if not pattern:
                     self.mark_error(); return False, "Pattern is required for Extract"
-                df[res_col] = s.str.extract(f'({pattern})', expand=False)
+                # If pattern already has a capture group, use as-is; otherwise wrap
+                if '(' in pattern and ')' in pattern:
+                    df[res_col] = s.str.extract(pattern, expand=False)
+                else:
+                    df[res_col] = s.str.extract(f'({pattern})', expand=False)
             elif op == 'Split → two columns':
                 delim = pattern if pattern else ' '
                 split = s.str.split(delim, n=1, expand=True)

@@ -57,31 +57,6 @@ from .utility_nodes import (
     MapNamesNode,
 )
 
-from .dataframe_nodes import (
-    EditableTableNode,
-    FilterTableNode,
-    MathColumnNode,
-    AggregateTableNode,
-    RenameGroupNode,
-    ReshapeTableNode,
-    SortTableNode,
-    TopNNode,
-    ColumnValueSplitNode,
-    TwoTableMathNode,
-    SelectColumnsNode,
-    RandomSampleNode,
-    ExtractObjectNode,
-    ConcatTablesNode,
-    JoinTablesNode,
-    DropFillNaNNode,
-    NormalizeColumnNode,
-    ValueCountsNode,
-    DropDuplicatesNode,
-    TypeCastColumnNode,
-    StringColumnOpsNode,
-    GroupNormalizationNode,
-)
-
 __all__ = [
     # Shared infrastructure
     'PORT_COLORS', 'NODE_SIGNALS', 'NodeSignals',
@@ -101,13 +76,5 @@ __all__ = [
     'CollectNode', 'SelectCollectionNode', 'PopCollectionNode',
     'SplitCollectionNode', 'SaveCollectionNode',
     'RenameCollectionNode', 'CollectionInfoNode', 'FilterCollectionNode', 'MapNamesNode',
-    # DataFrame Operations
-    'EditableTableNode', 'FilterTableNode', 'MathColumnNode',
-    'AggregateTableNode', 'RenameGroupNode', 'ReshapeTableNode',
-    'SortTableNode', 'TopNNode', 'ColumnValueSplitNode',
-    'TwoTableMathNode', 'SelectColumnsNode', 'RandomSampleNode',
-    'ExtractObjectNode',
-    'ConcatTablesNode', 'JoinTablesNode', 'DropFillNaNNode', 'NormalizeColumnNode',
-    'ValueCountsNode', 'DropDuplicatesNode', 'TypeCastColumnNode', 'StringColumnOpsNode',
-    'GroupNormalizationNode',
+    # DataFrame Operations — moved to data_processing plugin
 ]

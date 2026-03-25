@@ -28,13 +28,6 @@ from .custom_nodes import (
     CollectNode, SelectCollectionNode, PopCollectionNode,
     SplitCollectionNode, SaveCollectionNode,
     RenameCollectionNode, CollectionInfoNode, FilterCollectionNode, MapNamesNode,
-    # Core dataframe ops
-    EditableTableNode, FilterTableNode, MathColumnNode, AggregateTableNode, RenameGroupNode,
-    ReshapeTableNode, SortTableNode, TopNNode, ColumnValueSplitNode, TwoTableMathNode,
-    SelectColumnsNode, RandomSampleNode, ExtractObjectNode,
-    ConcatTablesNode, JoinTablesNode, DropFillNaNNode, NormalizeColumnNode,
-    ValueCountsNode, DropDuplicatesNode, TypeCastColumnNode, StringColumnOpsNode,
-    GroupNormalizationNode,
 )
 import traceback
 import os
@@ -1072,14 +1065,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             CollectNode, SelectCollectionNode, PopCollectionNode,
     SplitCollectionNode, SaveCollectionNode,
     RenameCollectionNode, CollectionInfoNode, FilterCollectionNode, MapNamesNode,
-            # DataFrame operations
-            EditableTableNode, FilterTableNode, MathColumnNode,
-            AggregateTableNode, RenameGroupNode, ReshapeTableNode,
-            SortTableNode, TopNNode, ColumnValueSplitNode, TwoTableMathNode,
-            SelectColumnsNode, RandomSampleNode, ExtractObjectNode,
-            ConcatTablesNode, JoinTablesNode, DropFillNaNNode, NormalizeColumnNode,
-            ValueCountsNode, DropDuplicatesNode, TypeCastColumnNode, StringColumnOpsNode,
-            GroupNormalizationNode,
+            # DataFrame operations — moved to data_processing plugin
         ):
             self.graph.register_node(node_cls)
 
