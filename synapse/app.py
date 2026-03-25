@@ -640,8 +640,8 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 
         # Context Menu: Add "Clear Cache" and "Disable/Enable" for nodes
         nodes_menu = self.graph.get_context_menu('nodes')
-        nodes_menu.add_command('Clear Node Cache', clear_node_cache, node_type='Execution')
-        nodes_menu.add_command('Disable / Enable Node', toggle_node_disable, node_type='Execution')
+        nodes_menu.add_command('Clear Node Cache', clear_node_cache, node_class=BaseExecutionNode)
+        nodes_menu.add_command('Disable / Enable Node', toggle_node_disable, node_class=BaseExecutionNode)
         
         # Set central widget
         self.setCentralWidget(self.graph.widget)
