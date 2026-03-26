@@ -1,0 +1,17 @@
+[package]
+name = "ims_reader_rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "ims_reader_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28", features = ["extension-module"] }
+numpy = "0.28"
+hdf5-pure = { path = "hdf5-pure-fork" }
+ndarray = { version = "0.17", features = ["rayon"] }
+rayon = "1"
+memmap2 = "0.9"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
