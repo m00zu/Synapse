@@ -36,7 +36,8 @@ def _discover_node_classes():
 
     # Bundled plugins
     for plugin_name in ['image_analysis', 'statistical_analysis',
-                        'figure_plotting', 'filopodia_nodes']:
+                        'figure_plotting', 'filopodia_nodes',
+                        'data_processing']:
         try:
             mod = __import__(f'synapse.plugins.{plugin_name}',
                              fromlist=[plugin_name])
@@ -79,22 +80,22 @@ def export_schema():
             "properties": {
                 "nodes": {
                     "type": "array",
-                    "description": "List of nodes to create in the workspace.",
+                    "description": "List of nodes to create.",
                     "items": {
                         "type": "object",
                         "properties": {
                             "id": {
-                                "type": "string",
-                                "description": "A unique identifier you assign to this node so you can connect it later."
+                                "type": "integer",
+                                "description": "Sequential integer ID (1, 2, 3, …)."
                             },
                             "type": {
                                 "type": "string",
-                                "description": "The EXACT class type of the node. Must be chosen from the enum.",
+                                "description": "The EXACT class type of the node.",
                                 "enum": []
                             },
-                            "custom": {
-                                "type": "object", 
-                                "description": "Parameters to configure the node based on user request."
+                            "props": {
+                                "type": "object",
+                                "description": "Optional configurable properties."
                             }
                         },
                         "required": ["id", "type"],
@@ -103,15 +104,12 @@ def export_schema():
                 },
                 "edges": {
                     "type": "array",
-                    "description": "List of connections between ports.",
+                    "description": "Connections as [source_id, target_id] pairs. Ports auto-resolved by type.",
                     "items": {
-                        "type": "object",
-                        "properties": {
-                            "from_node_id": {"type": "string"},
-                            "from_port": {"type": "string"},
-                            "to_node_id": {"type": "string"},
-                            "to_port": {"type": "string"}
-                        }
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "minItems": 2,
+                        "maxItems": 2
                     }
                 }
             }
@@ -130,9 +128,16 @@ def export_schema():
         'table_view', 'image_view', 'show_preview', 'live_preview'
     ]
     
+    # Classes that should never appear in the LLM catalog
+    _SKIP_CLASSES = {
+        'BaseExecutionNode', 'BaseImageProcessNode',
+    }
+
     # 4. Iterate and instantiate each node temporarily to extract metadata
     for identifier, node_cls in graph.node_factory.nodes.items():
         if not hasattr(node_cls, 'NODE_NAME') or not node_cls.NODE_NAME:
+            continue
+        if node_cls.__name__ in _SKIP_CLASSES:
             continue
             
         try:

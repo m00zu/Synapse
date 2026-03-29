@@ -96,6 +96,25 @@ def _find_schema() -> Path:
 
 _SCHEMA_PATH = _find_schema()
 
+# Short system prompt for fine-tuned models (no catalog needed — knowledge is in weights)
+_FINETUNE_SYS_PROMPT = (
+    "You are a workflow assistant for Synapse, a scientific node-graph editor.\n"
+    "Respond with ONLY a JSON object. No markdown, no explanation.\n\n"
+    "Output format:\n"
+    '{"nodes": [{"id": 1, "type": "ClassName"}, {"id": 2, "type": "...", "props": {"key": "val"}}], "edges": [[1,2], [2,3]]}\n\n'
+    "Rules:\n"
+    "- \"id\": sequential integers (1, 2, 3, …)\n"
+    "- \"type\": exact node class name\n"
+    "- \"props\": optional, only when non-default values needed\n"
+    "- \"edges\": [[src, dst], ...] — ports auto-resolved by type. "
+    "For multi-output nodes, add port hint: [src, dst, \"port_name\"] e.g. [2, 3, \"red\"]\n"
+    "- <image> ≠ <mask>: always threshold first\n"
+    "- Terminal nodes: table→DataTableCellNode, image→ImageCellNode, figure→DataFigureCellNode\n"
+    "- After thresholding, consider FillHolesNode + RemoveSmallObjectsNode\n"
+    "- WatershedNode outputs table + label_image — never add ParticlePropsNode after it\n"
+    "- Plot nodes use 'data' as table input port"
+)
+
 # ---------------------------------------------------------------------------
 # Response schema — sent as Ollama's `format` parameter.
 # Stripped of allOf rules; only describes the required output shape.
@@ -108,25 +127,21 @@ RESPONSE_SCHEMA: dict = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "id":     {"type": "string"},
-                    "type":   {"type": "string"},
-                    "custom": {"type": "object"},
+                    "id":    {"type": "integer"},
+                    "type":  {"type": "string"},
+                    "props": {"type": "object"},
                 },
                 "required": ["id", "type"],
             },
         },
         "edges": {
             "type": "array",
-            "description": "Connections between node ports. Must not be empty when there are 2 or more nodes.",
+            "description": "Connections as [source_id, target_id] pairs.",
             "items": {
-                "type": "object",
-                "properties": {
-                    "from_node_id": {"type": "string"},
-                    "from_port":    {"type": "string"},
-                    "to_node_id":   {"type": "string"},
-                    "to_port":      {"type": "string"},
-                },
-                "required": ["from_node_id", "from_port", "to_node_id", "to_port"],
+                "type": "array",
+                "items": {"type": "integer"},
+                "minItems": 2,
+                "maxItems": 2,
             },
         },
     },
@@ -170,10 +185,8 @@ def build_condensed_catalog(
     Reads llm_node_schema.json and returns a compact one-line-per-node catalog
     suitable for embedding in an LLM system prompt.
 
-    Args:
-        verbose: When True, replaces the single-line schema description with the
-                 full class docstring loaded directly from the Python source.
-                 Produces a larger (~6 KB) but more informative catalog.
+    Compact mode (default): port types only, key props only.
+    Verbose mode: includes full docstrings and all configurable properties.
     """
     with open(schema_path, encoding="utf-8") as fh:
         schema = json.load(fh)
@@ -181,18 +194,22 @@ def build_condensed_catalog(
     class_docs: dict[str, str] = _load_class_docs() if verbose else {}
 
     def _fmt_ports(ports) -> str:
-        """Format a port list into 'name<type>' or 'name<type; cols:a,b,c>' strings."""
         parts = []
         for p in ports:
             if isinstance(p, dict):
-                cols = p.get("columns")
-                if cols:
-                    parts.append(f"{p['name']}<{p['type']}; cols:{','.join(cols)}>")
-                else:
-                    parts.append(f"{p['name']}<{p['type']}>")
+                ptype = p.get('type', 'any')
+                parts.append(f"{p['name']}<{ptype}>")
             else:
                 parts.append(str(p))
         return ", ".join(parts) or "—"
+
+    # Properties that are frequently needed by the LLM
+    _KEY_PROPS = {
+        'operation', 'method', 'separator', 'x_col', 'y_col', 'group_col',
+        'value_col', 'order', 'palette', 'stain', 'sigma', 'radius',
+        'min_distance', 'col_prefix', 'per_channel', 'auto_otsu_per_image',
+        'thresh_state', 'channels', 'inner',
+    }
 
     catalog = schema.get("node_catalog", {})
     lines: list[str] = []
@@ -204,20 +221,33 @@ def build_condensed_catalog(
 
         inputs  = _fmt_ports(info.get("inputs",  []))
         outputs = _fmt_ports(info.get("outputs", []))
-        cfg     = info.get("configurable_properties", {})
 
-        prop_parts = []
-        for prop_name, prop_info in cfg.items():
-            options     = prop_info.get("options")
-            default     = prop_info.get("default", "")
-            desc_note   = prop_info.get("description", "")
-            default_str = f'"{default}"' if isinstance(default, str) else str(default)
-            suffix      = f" /* {desc_note} */" if desc_note else ""
-            if options:
-                prop_parts.append(f"{prop_name}=[{' | '.join(options)}](default:{default_str}){suffix}")
-            else:
-                prop_parts.append(f"{prop_name}(default:{default_str}){suffix}")
-        prop_str = f" | props: {{{', '.join(prop_parts)}}}" if prop_parts else ""
+        prop_str = ""
+        if verbose:
+            cfg = info.get("configurable_properties", {})
+            prop_parts = []
+            for prop_name, prop_info in cfg.items():
+                options = prop_info.get("options")
+                default = prop_info.get("default", "")
+                default_str = f'"{default}"' if isinstance(default, str) else str(default)
+                if options:
+                    prop_parts.append(f"{prop_name}=[{' | '.join(options)}](default:{default_str})")
+                else:
+                    prop_parts.append(f"{prop_name}={default_str}")
+            prop_str = f" | props:{{{', '.join(prop_parts)}}}" if prop_parts else ""
+        else:
+            # Compact: only include key props
+            cfg = info.get("configurable_properties", {})
+            prop_parts = []
+            for prop_name, prop_info in cfg.items():
+                if prop_name not in _KEY_PROPS:
+                    continue
+                options = prop_info.get("options")
+                if options:
+                    prop_parts.append(f"{prop_name}=[{'|'.join(options)}]")
+                else:
+                    prop_parts.append(prop_name)
+            prop_str = f" | props:{{{', '.join(prop_parts)}}}" if prop_parts else ""
 
         lines.append(f"- {name}: {desc} | in:[{inputs}] → out:[{outputs}]{prop_str}")
 
@@ -225,8 +255,8 @@ def build_condensed_catalog(
     try:
         from .plugin_loader import get_plugin_catalog_entries
         for entry in get_plugin_catalog_entries():
-            ins  = ', '.join(p['name'] for p in entry['inputs'])
-            outs = ', '.join(p['name'] for p in entry['outputs'])
+            ins  = _fmt_ports(entry['inputs'])
+            outs = _fmt_ports(entry['outputs'])
             lines.append(
                 f"- {entry['class_name']}: {entry['description']} | in:[{ins}] → out:[{outs}]"
             )
@@ -237,385 +267,71 @@ def build_condensed_catalog(
 
 
 def build_system_prompt(catalog_text: str) -> str:
-    # Few-shot example 1: CSV → outlier removal → swarm plot → figure cell
-    example_csv = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "FileReadNode",         "custom": {"separator": ","}},
-            {"id": "n2", "type": "OutlierDetectionNode", "custom": {"method": "Grubbs", "threshold": "0.05"}},
-            {"id": "n3", "type": "SwarmPlotNode",        "custom": {}},
-            {"id": "n4", "type": "DataFigureCellNode",   "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",  "to_node_id": "n2", "to_port": "in"},
-            {"from_node_id": "n2", "from_port": "kept", "to_node_id": "n3", "to_port": "data"},
-            {"from_node_id": "n3", "from_port": "plot", "to_node_id": "n4", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 2: single image file → split RGB → CLAHE on red channel → image cell
-    example_image = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "ImageReadNode",        "custom": {}},
-            {"id": "n2", "type": "SplitRGBNode",         "custom": {}},
-            {"id": "n3", "type": "EqualizeAdapthistNode","custom": {}},
-            {"id": "n4", "type": "ImageCellNode",        "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",   "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "red",   "to_node_id": "n3", "to_port": "image"},
-            {"from_node_id": "n3", "from_port": "image", "to_node_id": "n4", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 3: <any> port — typed output → <any> input is always valid
-    example_any = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "FileReadNode",       "custom": {}},
-            {"id": "n2", "type": "DataSummaryNode",    "custom": {}},
-            {"id": "n3", "type": "DataFigureCellNode", "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out", "to_node_id": "n2", "to_port": "in"},
-            {"from_node_id": "n2", "from_port": "fig", "to_node_id": "n3", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 4: mask pipeline — image → threshold → KeepMaxIntensity → ImageMath
-    # Shows: (a) you MUST threshold an image before feeding it to a <mask> port,
-    #         (b) KeepMaxIntensityRegionNode needs BOTH mask + intensity_image inputs,
-    #         (c) ImageMathNode applies the resulting mask to another image.
+    # Fan-out example: node 1 connects to both node 5 and node 6
     example_mask = json.dumps({
         "nodes": [
-            {"id": "n1", "type": "ImageReadNode",               "custom": {}},
-            {"id": "n2", "type": "SplitRGBNode",                "custom": {}},
-            {"id": "n3", "type": "EqualizeAdapthistNode",        "custom": {}},
-            {"id": "n4", "type": "BinaryThresholdNode",          "custom": {}},
-            {"id": "n5", "type": "KeepMaxIntensityRegionNode",   "custom": {}},
-            {"id": "n6", "type": "ImageMathNode",               "custom": {"operation": "A × B (apply mask)"}},
-            {"id": "n7", "type": "ImageCellNode",               "custom": {}}
+            {"id": 1, "type": "ImageReadNode"},
+            {"id": 2, "type": "SplitRGBNode"},
+            {"id": 3, "type": "EqualizeAdapthistNode"},
+            {"id": 4, "type": "BinaryThresholdNode"},
+            {"id": 5, "type": "KeepMaxIntensityRegionNode"},
+            {"id": 6, "type": "ImageMathNode", "props": {"operation": "A × B (apply mask)"}},
+            {"id": 7, "type": "ImageCellNode"}
         ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",              "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "red",              "to_node_id": "n3", "to_port": "image"},
-            {"from_node_id": "n3", "from_port": "image",            "to_node_id": "n4", "to_port": "image"},
-            {"from_node_id": "n4", "from_port": "mask",             "to_node_id": "n5", "to_port": "mask"},
-            {"from_node_id": "n3", "from_port": "image",            "to_node_id": "n5", "to_port": "intensity_image"},
-            {"from_node_id": "n5", "from_port": "mask",             "to_node_id": "n6", "to_port": "B (mask)"},
-            {"from_node_id": "n1", "from_port": "out",              "to_node_id": "n6", "to_port": "A (image/mask)"},
-            {"from_node_id": "n6", "from_port": "image",            "to_node_id": "n7", "to_port": "in"}
-        ]
+        "edges": [[1,2], [2,3], [3,4], [4,5], [3,5], [5,6], [1,6], [6,7]]
     }, indent=2)
 
-    # Few-shot example 5: long-format table → ViolinPlotNode
-    # Demonstrates: plot node input port is called 'data' (NOT 'in'), and
-    # 'x_col' / 'y_col' must match the actual column names in the table.
-    example_violin = json.dumps({
+    # Stats with fan-out: node 2 feeds both node 3 AND node 4
+    example_stats = json.dumps({
         "nodes": [
-            {"id": "n1", "type": "FileReadNode",        "custom": {"separator": ","}},
-            {"id": "n2", "type": "OutlierDetectionNode", "custom": {}},
-            {"id": "n3", "type": "ViolinPlotNode",       "custom": {"x_col": "Group", "y_col": "Value", "order": "Control,Treatment"}},
-            {"id": "n4", "type": "DataFigureCellNode",   "custom": {}}
+            {"id": 1, "type": "FileReadNode", "props": {"separator": ","}},
+            {"id": 2, "type": "OutlierDetectionNode"},
+            {"id": 3, "type": "PairwiseComparisonNode"},
+            {"id": 4, "type": "BarPlotNode", "props": {"x_col": "Group", "y_col": "Value"}},
+            {"id": 5, "type": "DataFigureCellNode"}
         ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",  "to_node_id": "n2", "to_port": "in"},
-            {"from_node_id": "n2", "from_port": "kept", "to_node_id": "n3", "to_port": "data"},
-            {"from_node_id": "n3", "from_port": "plot", "to_node_id": "n4", "to_port": "in"}
-        ]
+        "edges": [[1,2], [2,3], [2,4], [3,4], [4,5]]
     }, indent=2)
 
-    # Few-shot example 6: full stats pipeline → BarPlotNode with significance brackets
-    # Demonstrates:
-    #   (a) 'kept' fans out to BOTH PairwiseComparisonNode AND the plot node
-    #   (b) PairwiseComparisonNode.stats_table<stat> → BarPlotNode.stats<stat>
-    #   (c) plot node data input is always 'data'; stats input is always 'stats'
-    example_bar_stats = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "FileReadNode",           "custom": {"separator": ","}},
-            {"id": "n2", "type": "OutlierDetectionNode",   "custom": {}},
-            {"id": "n3", "type": "PairwiseComparisonNode", "custom": {}},
-            {"id": "n4", "type": "BarPlotNode",            "custom": {"x_col": "Group", "y_col": "Value"}},
-            {"id": "n5", "type": "DataFigureCellNode",     "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",         "to_node_id": "n2", "to_port": "in"},
-            {"from_node_id": "n2", "from_port": "kept",        "to_node_id": "n3", "to_port": "in"},
-            {"from_node_id": "n2", "from_port": "kept",        "to_node_id": "n4", "to_port": "data"},
-            {"from_node_id": "n3", "from_port": "stats_table", "to_node_id": "n4", "to_port": "stats"},
-            {"from_node_id": "n4", "from_port": "plot",        "to_node_id": "n5", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 7: column-aware plotting
-    # Shows: when a catalog entry lists `cols:col1,col2,...` on a table output,
-    # use those exact names as property values in downstream plot/filter nodes.
-    example_cols = json.dumps({  # noqa: keep var name
-        "nodes": [
-            {"id": "n1", "type": "ImageReadNode",       "custom": {}},
-            {"id": "n2", "type": "BinaryThresholdNode",  "custom": {}},
-            {"id": "n3", "type": "ParticlePropsNode",    "custom": {}},
-            {"id": "n4", "type": "HistogramNode",        "custom": {"value_col": "area"}},
-            {"id": "n5", "type": "DataFigureCellNode",   "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",   "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "mask",  "to_node_id": "n3", "to_port": "mask"},
-            {"from_node_id": "n3", "from_port": "table", "to_node_id": "n4", "to_port": "data"},
-            {"from_node_id": "n4", "from_port": "plot",  "to_node_id": "n5", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 9: nucleus segmentation
-    # Source: NEUBIAS training resource / scikit-image "Segment nuclei" tutorial
-    # Shows: full preprocessing chain before watershed
-    #   RollingBall (background) → GaussianBlur (denoise) → threshold → fill holes
-    #   → remove debris → watershed → props table
-    # NOTE: GaussianBlurNode ports are 'in'/'out', NOT 'image'/'image'
+    # Nucleus segmentation: linear chain with fan-out at node 7
     example_nuclei = json.dumps({
         "nodes": [
-            {"id": "n1", "type": "ImageReadNode",          "custom": {}},
-            {"id": "n2", "type": "RollingBallNode",        "custom": {"radius": 50}},
-            {"id": "n3", "type": "GaussianBlurNode",       "custom": {"sigma": 2.0}},
-            {"id": "n4", "type": "BinaryThresholdNode",    "custom": {}},
-            {"id": "n5", "type": "FillHolesNode",          "custom": {}},
-            {"id": "n6", "type": "RemoveSmallObjectsNode", "custom": {"max_size": 200}},
-            {"id": "n7", "type": "WatershedNode",          "custom": {"min_distance": 12}},
-            {"id": "n8", "type": "ImageCellNode",          "custom": {}},
-            {"id": "n9", "type": "DataTableCellNode",      "custom": {}}
+            {"id": 1, "type": "ImageReadNode"},
+            {"id": 2, "type": "RollingBallNode", "props": {"radius": 50}},
+            {"id": 3, "type": "GaussianBlurNode", "props": {"sigma": 2.0}},
+            {"id": 4, "type": "BinaryThresholdNode"},
+            {"id": 5, "type": "FillHolesNode"},
+            {"id": 6, "type": "RemoveSmallObjectsNode"},
+            {"id": 7, "type": "WatershedNode", "props": {"min_distance": 12}},
+            {"id": 8, "type": "ImageCellNode"},
+            {"id": 9, "type": "DataTableCellNode"}
         ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",         "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "image",       "to_node_id": "n3", "to_port": "image"},
-            {"from_node_id": "n3", "from_port": "image",       "to_node_id": "n4", "to_port": "image"},
-            {"from_node_id": "n4", "from_port": "mask",        "to_node_id": "n5", "to_port": "mask"},
-            {"from_node_id": "n5", "from_port": "mask",        "to_node_id": "n6", "to_port": "mask"},
-            {"from_node_id": "n6", "from_port": "mask",        "to_node_id": "n7", "to_port": "mask"},
-            {"from_node_id": "n7", "from_port": "label_image", "to_node_id": "n8", "to_port": "in"},
-            {"from_node_id": "n7", "from_port": "table",       "to_node_id": "n9", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 10: colocalization of two fluorescent channels
-    # Source: scikit-image colocalization / ImageJ Coloc2 protocol
-    # Shows: SplitRGBNode feeds ch1/ch2 directly into ColocalizationNode
-    # ColocalizationNode outputs a metrics table AND a scatter-plot figure
-    example_coloc = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "ImageReadNode",        "custom": {}},
-            {"id": "n2", "type": "SplitRGBNode",         "custom": {}},
-            {"id": "n3", "type": "ColocalizationNode",   "custom": {}},
-            {"id": "n4", "type": "DataTableCellNode",    "custom": {}},
-            {"id": "n5", "type": "DataFigureCellNode",   "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",    "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "ch1",    "to_node_id": "n3", "to_port": "ch1"},
-            {"from_node_id": "n2", "from_port": "ch2",    "to_node_id": "n3", "to_port": "ch2"},
-            {"from_node_id": "n3", "from_port": "table",  "to_node_id": "n4", "to_port": "in"},
-            {"from_node_id": "n3", "from_port": "figure", "to_node_id": "n5", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 11: spot / puncta detection with BlobDetect
-    # Source: scikit-image "Blob detection" example (LoG / DoH)
-    # Shows: BlobDetectNode outputs an overlay <image> AND a measurements <table>
-    # Good for: vesicles, fluorescent dots, cell nuclei as spots, synaptic puncta
-    example_blob = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "ImageReadNode",      "custom": {}},
-            {"id": "n2", "type": "BlobDetectNode",     "custom": {"min_sigma": 3, "max_sigma": 15}},
-            {"id": "n3", "type": "ImageCellNode",      "custom": {}},
-            {"id": "n4", "type": "DataTableCellNode",  "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",     "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "overlay", "to_node_id": "n3", "to_port": "in"},
-            {"from_node_id": "n2", "from_port": "table",   "to_node_id": "n4", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 12: vessel / filament detection with Frangi filter
-    # Source: scikit-image "Frangi vesselness filter" example
-    # Shows: Frangi enhances tubular structures → threshold → skeletonize → measure
-    # Good for: blood vessels, axons, actin filaments, retinal vasculature
-    example_frangi = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "ImageReadNode",      "custom": {}},
-            {"id": "n2", "type": "FrangiNode",         "custom": {}},
-            {"id": "n3", "type": "BinaryThresholdNode","custom": {}},
-            {"id": "n4", "type": "SkeletonizeNode",    "custom": {}},
-            {"id": "n5", "type": "ParticlePropsNode",  "custom": {}},
-            {"id": "n6", "type": "DataTableCellNode",  "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",   "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "image", "to_node_id": "n3", "to_port": "image"},
-            {"from_node_id": "n3", "from_port": "mask",  "to_node_id": "n4", "to_port": "mask"},
-            {"from_node_id": "n4", "from_port": "mask",  "to_node_id": "n5", "to_port": "mask"},
-            {"from_node_id": "n5", "from_port": "table", "to_node_id": "n6", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 13: GLCM texture feature extraction
-    # Source: scikit-image "GLCM texture features" example
-    # Shows: convert to grayscale first, then GLCMTextureNode outputs a feature table
-    # Good for: tissue classification, surface roughness, material characterisation
-    example_glcm = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "ImageReadNode",      "custom": {}},
-            {"id": "n2", "type": "RGBToGrayNode",      "custom": {}},
-            {"id": "n3", "type": "GLCMTextureNode",    "custom": {}},
-            {"id": "n4", "type": "DataTableCellNode",  "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",   "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "image", "to_node_id": "n3", "to_port": "image"},
-            {"from_node_id": "n3", "from_port": "table", "to_node_id": "n4", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 8: watershed — overlapping object segmentation + measurement
-    # Shows:
-    #   (a) WatershedNode requires a <mask> input — image MUST be thresholded first
-    #   (b) WatershedNode already outputs region props in its 'table' port — NEVER chain
-    #       ParticlePropsNode or ImageStatsNode after watershed
-    #   (c) Both outputs (label_image and table) can be consumed independently
-    example_watershed = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "ImageReadNode",       "custom": {}},
-            {"id": "n2", "type": "BinaryThresholdNode", "custom": {}},
-            {"id": "n3", "type": "WatershedNode",       "custom": {"min_distance": 15}},
-            {"id": "n4", "type": "ImageCellNode",       "custom": {}},
-            {"id": "n5", "type": "DataTableCellNode",   "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",         "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "mask",        "to_node_id": "n3", "to_port": "mask"},
-            {"from_node_id": "n3", "from_port": "label_image", "to_node_id": "n4", "to_port": "in"},
-            {"from_node_id": "n3", "from_port": "table",       "to_node_id": "n5", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 14: IHC / histology stain ratio
-    # Source: standard colour-deconvolution quantification protocol
-    # Shows:
-    #   (a) ColorDeconvolutionNode outputs ch1/ch2/ch3 — all <image> type
-    #   (b) MUST threshold each channel (BinaryThresholdNode) before ImageStatsNode
-    #   (c) Use col_prefix to distinguish the two tables when both feed TwoTableMathNode
-    #   (d) TwoTableMathNode computes the scalar ratio between the two area values
-    example_ihc_ratio = json.dumps({
-        "nodes": [
-            {"id": "n1", "type": "ImageReadNode",          "custom": {}},
-            {"id": "n2", "type": "ColorDeconvolutionNode", "custom": {"stain": "Masson Trichrome"}},
-            {"id": "n3", "type": "BinaryThresholdNode",    "custom": {}},
-            {"id": "n4", "type": "BinaryThresholdNode",    "custom": {}},
-            {"id": "n5", "type": "ImageStatsNode",         "custom": {"col_prefix": "ch1_", "per_channel": False}},
-            {"id": "n6", "type": "ImageStatsNode",         "custom": {"col_prefix": "ch2_", "per_channel": False}},
-            {"id": "n7", "type": "TwoTableMathNode",         "custom": {"operation": "left / right",
-                                                                       "left_column": "ch1_area_px",
-                                                                       "right_column": "ch2_area_px"}},
-            {"id": "n8", "type": "DataTableCellNode",      "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1", "from_port": "out",    "to_node_id": "n2", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "ch1",    "to_node_id": "n3", "to_port": "image"},
-            {"from_node_id": "n2", "from_port": "ch2",    "to_node_id": "n4", "to_port": "image"},
-            {"from_node_id": "n3", "from_port": "mask",   "to_node_id": "n5", "to_port": "mask"},
-            {"from_node_id": "n4", "from_port": "mask",   "to_node_id": "n6", "to_port": "mask"},
-            {"from_node_id": "n5", "from_port": "table",  "to_node_id": "n7", "to_port": "left"},
-            {"from_node_id": "n6", "from_port": "table",  "to_node_id": "n7", "to_port": "right"},
-            {"from_node_id": "n7", "from_port": "result", "to_node_id": "n8", "to_port": "in"}
-        ]
-    }, indent=2)
-
-    # Few-shot example 15: pericellar ring analysis with cleaned cell mask
-    # Shows the CORRECT placement of FillHolesNode + RemoveSmallObjectsNode:
-    # they apply to the CELL mask BEFORE DistanceRingMaskNode, not to the
-    # measurement mask after thresholding the signal channel.
-    example_ring_cleaned = json.dumps({
-        "nodes": [
-            {"id": "n1",  "type": "ImageReadNode",           "custom": {}},
-            {"id": "n2",  "type": "SplitRGBNode",            "custom": {}},
-            {"id": "n3",  "type": "EqualizeAdapthistNode",   "custom": {}},
-            {"id": "n4",  "type": "BinaryThresholdNode",     "custom": {}},
-            {"id": "n5",  "type": "FillHolesNode",           "custom": {}},
-            {"id": "n6",  "type": "RemoveSmallObjectsNode",  "custom": {"max_size": 500}},
-            {"id": "n7",  "type": "DistanceRingMaskNode",    "custom": {"local_distance": 100}},
-            {"id": "n8",  "type": "ImageMathNode",           "custom": {"operation": "A \u00d7 B (apply mask)"}},
-            {"id": "n9",  "type": "BinaryThresholdNode",     "custom": {"thresh_state": [185.0, 1], "auto_otsu_per_image": False}},
-            {"id": "n10", "type": "ImageStatsNode",          "custom": {"col_prefix": "collagen_", "per_channel": False}},
-            {"id": "n11", "type": "DataTableCellNode",       "custom": {}}
-        ],
-        "edges": [
-            {"from_node_id": "n1",  "from_port": "out",       "to_node_id": "n2",  "to_port": "image"},
-            {"from_node_id": "n2",  "from_port": "red",       "to_node_id": "n3",  "to_port": "image"},
-            {"from_node_id": "n3",  "from_port": "image",     "to_node_id": "n4",  "to_port": "image"},
-            {"from_node_id": "n4",  "from_port": "mask",      "to_node_id": "n5",  "to_port": "mask"},
-            {"from_node_id": "n5",  "from_port": "mask",      "to_node_id": "n6",  "to_port": "mask"},
-            {"from_node_id": "n6",  "from_port": "mask",      "to_node_id": "n7",  "to_port": "mask"},
-            {"from_node_id": "n2",  "from_port": "green",     "to_node_id": "n8",  "to_port": "A (image/mask)"},
-            {"from_node_id": "n7",  "from_port": "ring_mask", "to_node_id": "n8",  "to_port": "B (mask)"},
-            {"from_node_id": "n8",  "from_port": "image",     "to_node_id": "n9",  "to_port": "image"},
-            {"from_node_id": "n9",  "from_port": "mask",      "to_node_id": "n10", "to_port": "mask"},
-            {"from_node_id": "n10", "from_port": "table",     "to_node_id": "n11", "to_port": "in"}
-        ]
+        "edges": [[1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8], [7,9]]
     }, indent=2)
 
     return (
-        "You are a workflow assistant for a scientific node-graph editor called Synapse.\n"
-        "When the user describes a task, respond with ONLY a JSON workflow object.\n\n"
-        "Rules:\n"
-        "1. Use ONLY class names from the catalog.\n"
-        "2. Port types must match: <image>/<mask>/<table>/<figure>/<any>. "
-        "<image> ≠ <mask> — always threshold (<image>→BinaryThresholdNode→<mask>) before a mask port. "
-        "ColorDeconvolutionNode ch1/ch2/ch3 are <image>, not <mask>. "
-        "SplitRGBNode for 'red/green/blue channel' queries; ColorDeconvolutionNode ONLY for named stains (H&E, DAB, Masson, etc.).\n"
-        "3. Use exact port names from the catalog. Ports can share the same name across nodes.\n"
-        "4. Node IDs: n1, n2, n3, …  Every non-terminal node must have at least one outgoing edge.\n"
-        "5. 'custom': never set thresh_widget or bc_widget (UI internals). "
-        "Use thresh_state:[value,direction] for BinaryThresholdNode "
-        "(direction 1 = keep pixels > threshold, e.g. 'brighter than X', 'higher than X', 'intensity above X'; "
-        "direction 0 = keep pixels <= threshold, e.g. 'darker than X', 'below or equal to X'); "
-        "bc_range:[min,max] for BrightnessContrastNode. "
-        "IMPORTANT: whenever you set an explicit thresh_state value, also set auto_otsu_per_image:false — "
-        "the default is true (auto-Otsu), which would override your explicit value otherwise.\n"
-        "6. JSON: true/false/null (lowercase). No Python literals. No markdown fences around the output.\n"
-        "7. Single image → ImageReadNode. Batch directory for blanked-ratio → ImageGroupDatasetNode.\n"
-        "8. Terminal nodes: <table>→DataTableCellNode | <image>→ImageCellNode | <figure>→DataFigureCellNode | mixed→DisplayNode.\n"
-        "9. Catalog 'cols:...' are actual output column names — use them in x_col/y_col/value_col/etc.\n"
-        "10. DistanceRingMaskNode is the ONLY node with a 'ring_mask' output. "
-        "RemoveSmallObjectsNode/FillHolesNode/BinaryThresholdNode all output 'mask'. "
-        "Never skip DistanceRingMaskNode in the edge chain.\n"
-        "11. WatershedNode needs <mask> input; its outputs are 'label_image' and 'table' (not 'props') — do not add ParticlePropsNode after it.\n"
-        "12. All plot nodes (Violin, Box, Bar, Swarm, Scatter, Histogram, Kde) use 'data' as the table input port.\n\n"
-        "Image analysis tips (apply when relevant):\n"
-        "- After thresholding, ALWAYS consider FillHolesNode (close interior gaps) and RemoveSmallObjectsNode "
-        "(remove debris/noise specks) before using the mask for measurement or as input to another node.\n"
-        "- For fluorescence images with uneven illumination, add RollingBallNode before thresholding.\n"
-        "- For noisy images, add GaussianBlurNode before thresholding to avoid fragmented masks.\n"
-        "- For low-contrast images, add EqualizeAdapthistNode before thresholding.\n"
-        "- For touching or overlapping objects, use WatershedNode after mask cleanup to separate them.\n\n"
-        f"Example 1 — CSV → outlier removal → swarm plot:\n{example_csv}\n\n"
-        f"Example 2 — single image → SplitRGB → per-channel processing:\n{example_image}\n\n"
-        f"Example 3 — <any> port (DataSummaryNode accepts any type):\n{example_any}\n\n"
-        f"Example 4 — threshold → keep largest object → apply mask to image "
-        f"(ImageMathNode op: 'A × B (apply mask)'):\n{example_mask}\n\n"
-        f"Example 5 — long-format CSV → violin plot:\n{example_violin}\n\n"
-        f"Example 6 — CSV → outlier removal → pairwise stats → bar plot with brackets "
-        f"(OutlierDetectionNode.kept → both PairwiseComparisonNode.in AND BarPlotNode.data):\n{example_bar_stats}\n\n"
-        f"Example 7 — threshold → particle props → histogram:\n{example_cols}\n\n"
-        f"Example 8 — watershed for overlapping/touching objects "
-        f"(image → BinaryThresholdNode → WatershedNode.mask; "
-        f"WatershedNode.table already contains area/centroid/shape — pipe it directly to DataTableCellNode, never add ParticlePropsNode after WatershedNode):\n{example_watershed}\n\n"
-        f"Example 9 — nucleus segmentation: RollingBall → Gaussian → threshold → FillHoles → RemoveSmall → watershed:\n{example_nuclei}\n\n"
-        f"Example 10 — two-channel colocalization (Pearson/Manders):\n{example_coloc}\n\n"
-        f"Example 11 — blob/puncta detection (BlobDetectNode takes <image> directly):\n{example_blob}\n\n"
-        f"Example 12 — Frangi filament/vessel segmentation:\n{example_frangi}\n\n"
-        f"Example 13 — GLCM texture features (RGBToGray first):\n{example_glcm}\n\n"
-        f"Example 14 — histological stain ratio via ColorDeconvolution "
-        f"(ch1/ch2 are <image> → threshold each → ImageStatsNode with col_prefix (per_channel=false) → TwoTableMathNode):\n{example_ihc_ratio}\n\n"
-        f"Example 15 — pericellar ring analysis with cleaned cell mask:\n{example_ring_cleaned}\n\n"
-        "Now respond to the user's request using the catalog below.\n\n"
-        "Node catalog (ClassName: description | in:[name<type>] → out:[name<type; cols:...]>] | props):\n"
+        "You are a workflow assistant for Synapse, a scientific node-graph editor.\n"
+        "Respond with ONLY a JSON object: {\"nodes\": [...], \"edges\": [...]}.\n\n"
+        "FORMAT:\n"
+        "- nodes: [{\"id\": 1, \"type\": \"ClassName\"}, {\"id\": 2, \"type\": \"...\", \"props\": {\"key\": val}}]\n"
+        "- edges: [[src_id, dst_id], ...] — ports are auto-resolved by type matching. "
+        "For multi-output nodes (e.g. SplitRGBNode), add port hint: [src, dst, \"port_name\"] e.g. [2, 3, \"red\"]\n"
+        "- 'props' is optional — only include when the user specifies non-default values.\n"
+        "- IDs are integers: 1, 2, 3, …\n\n"
+        "RULES:\n"
+        "1. Use ONLY class names from the catalog below.\n"
+        "2. Port types must match: <image>≠<mask>. Always threshold first: image→BinaryThresholdNode→mask.\n"
+        "3. WatershedNode outputs table+label_image — never add ParticlePropsNode after it.\n"
+        "4. Plot nodes use 'data' as table input. Terminal nodes: table→DataTableCellNode, image→ImageCellNode, figure→DataFigureCellNode.\n"
+        "5. SplitRGBNode for channels; ColorDeconvolutionNode ONLY for named stains (H&E, DAB, etc.).\n"
+        "6. After thresholding, consider FillHolesNode + RemoveSmallObjectsNode before measurement.\n"
+        "7. For fluorescence: RollingBallNode before threshold. For noise: GaussianBlurNode. For low contrast: EqualizeAdapthistNode.\n"
+        "8. thresh_state: [value, direction] (1=above, 0=below). Set auto_otsu_per_image:false when using explicit threshold.\n"
+        "9. JSON only: true/false/null. No markdown fences.\n\n"
+        f"Example 1 — CSV → stats → bar plot (fan-out: node 2→3 and 2→4):\n{example_stats}\n\n"
+        f"Example 2 — mask pipeline with fan-out (node 1→2 and 1→6):\n{example_mask}\n\n"
+        f"Example 3 — nucleus segmentation (fan-out: node 7→8 and 7→9):\n{example_nuclei}\n\n"
+        "Node catalog:\n"
         f"{catalog_text}"
     )
 
@@ -1065,54 +781,42 @@ _IGNORE_PROPS: frozenset = frozenset([
 
 def serialize_graph(graph) -> dict:
     """
-    Converts the current node graph canvas into the same LLM JSON format
-    used by WorkflowLoader: {"nodes": [...], "edges": [...]}.
-
-    Node IDs are assigned sequentially (n1, n2, …) in the order returned by
-    graph.all_nodes().  Edge port names are taken directly from the
-    NodeGraphQt port objects, so they match the catalog exactly.
+    Converts the current node graph canvas into the compact LLM JSON format:
+    {"nodes": [{"id": 1, "type": "...", "props": {...}}, ...], "edges": [[1,2], ...]}
     """
     all_nodes = graph.all_nodes()
 
-    # Map internal NodeGraphQt UUID → our sequential LLM id
-    id_map: dict[str, str] = {}
+    # Map internal NodeGraphQt UUID → sequential integer ID
+    id_map: dict[str, int] = {}
     nodes_out: list[dict] = []
-    edges_out: list[dict] = []
+    edges_out: list[list] = []
 
     for idx, node in enumerate(all_nodes):
-        llm_id = f"n{idx + 1}"
+        llm_id = idx + 1
         id_map[node.id] = llm_id
 
-        # Collect only user-facing custom properties
-        custom: dict = {}
+        props: dict = {}
         try:
             for k, v in node.model.custom_properties.items():
                 if k not in _IGNORE_PROPS and not k.startswith("_"):
-                    custom[k] = v
+                    props[k] = v
         except Exception:
             pass
 
-        nodes_out.append({
-            "id":     llm_id,
-            "type":   type(node).__name__,
-            "custom": custom,
-        })
+        entry = {"id": llm_id, "type": type(node).__name__}
+        if props:
+            entry["props"] = props
+        nodes_out.append(entry)
 
-    # Collect edges by iterating every output port of every node
     for node in all_nodes:
         src_id = id_map.get(node.id)
         if src_id is None:
             continue
-        for port_name, port in node.outputs().items():
+        for _, port in node.outputs().items():
             for connected in port.connected_ports():
                 dst_id = id_map.get(connected.node().id)
                 if dst_id:
-                    edges_out.append({
-                        "from_node_id": src_id,
-                        "from_port":    port_name,
-                        "to_node_id":   dst_id,
-                        "to_port":      connected.name(),
-                    })
+                    edges_out.append([src_id, dst_id])
 
     return {"nodes": nodes_out, "edges": edges_out}
 
@@ -1130,6 +834,71 @@ class WorkflowLoader:
         self.graph = graph
 
     # ------------------------------------------------------------------
+    # Port type compatibility for auto-wiring.
+    # Maps each type to the set of types it can connect TO (as input).
+    # Reflects data_models inheritance: StatData→TableData, MaskData→ImageData, etc.
+    _TYPE_COMPAT = {
+        'image':    {'image', 'any'},
+        'mask':     {'mask', 'image', 'any'},
+        'skeleton': {'skeleton', 'mask', 'image', 'any'},
+        'label':    {'label', 'any'},
+        'table':    {'table', 'any'},
+        'stat':     {'stat', 'table', 'any'},
+        'figure':   {'figure', 'any'},
+        'confocal': {'confocal', 'any'},
+        'path':     {'path', 'any'},
+        'collection': {'collection', 'any'},
+        'any':      {'any', 'image', 'mask', 'table', 'figure', 'label',
+                     'stat', 'skeleton', 'confocal', 'path', 'collection'},
+    }
+
+    @staticmethod
+    def _port_type(port) -> str:
+        """Return the data-type name for a port by reverse-looking up its color."""
+        from .nodes.base import PORT_COLORS
+        _c2t = {tuple(v): k for k, v in PORT_COLORS.items()}
+        return _c2t.get(tuple(port.color), 'any')
+
+    def _auto_wire(self, src_node, dst_node, used_pairs: set = None) -> tuple:
+        """Find the best (out_port, in_port) pair by matching port types.
+
+        Uses type compatibility (respects data model inheritance).
+        Prefers exact matches, then compatible matches, then <any>.
+        Skips already-connected input ports AND pairs in *used_pairs*.
+        Returns (None, None) if no match found.
+        """
+        if used_pairs is None:
+            used_pairs = set()
+
+        out_ports = [(p, self._port_type(p)) for p in src_node.outputs().values()]
+        in_ports = [(p, self._port_type(p)) for p in dst_node.inputs().values()
+                     if not p.connected_ports()]
+
+        def _skip(op, ip):
+            return (op.name(), ip.name()) in used_pairs
+
+        # Pass 1: exact type match
+        for op, ot in out_ports:
+            for ip, it in in_ports:
+                if ot == it and not _skip(op, ip):
+                    return op, ip
+
+        # Pass 2: compatible type match (e.g. mask→image, stat→table)
+        for op, ot in out_ports:
+            compat = self._TYPE_COMPAT.get(ot, {'any'})
+            for ip, it in in_ports:
+                if it in compat and not _skip(op, ip):
+                    return op, ip
+
+        # Pass 3: any remaining unconnected input
+        for op, ot in out_ports:
+            for ip, it in in_ports:
+                if not _skip(op, ip):
+                    return op, ip
+
+        return None, None
+
+    # ------------------------------------------------------------------
     def build(
         self,
         workflow: dict,
@@ -1138,18 +907,23 @@ class WorkflowLoader:
     ) -> tuple[bool, str]:
         """
         Creates nodes and edges described by *workflow*.
-        Returns (success, message).  On partial success (some edges skipped)
-        returns (True, warning_text).
+
+        Supports two edge formats:
+        - Compact: [[1, 2], [2, 3]] — ports auto-resolved by type matching
+        - Verbose: [{"from_node_id": "n1", "from_port": "out", ...}] — legacy
+
+        Returns (success, message).
         """
-        node_map: dict[str, object] = {}  # LLM id → node instance
+        node_map: dict = {}  # LLM id (str or int) → node instance
         warnings: list[str] = []
-        created: list[tuple[str, object]] = []  # (llm_id, node) in order
+        created: list[tuple] = []  # (llm_id, node) in order
 
         # --- Pass 1: create nodes at origin, apply properties ------------
         for idx, node_def in enumerate(workflow.get("nodes", [])):
-            llm_id     = node_def.get("id", f"n{idx + 1}")
+            llm_id     = node_def.get("id", idx + 1)
             class_name = node_def.get("type", "")
-            custom     = node_def.get("custom") or {}
+            # Support both "props" (new) and "custom" (legacy)
+            custom     = node_def.get("props") or node_def.get("custom") or {}
 
             identifier = self._find_identifier(class_name)
             if identifier is None:
@@ -1157,13 +931,9 @@ class WorkflowLoader:
                 continue
 
             node = self.graph.create_node(identifier, push_undo=True)
-            node.set_pos(origin_x, origin_y)  # temporary; repositioned in pass 2
+            node.set_pos(origin_x, origin_y)
 
-            # Apply configurable properties.
-            # Some nodes (BaseImageProcessNode subclasses) auto-evaluate when a
-            # property changes and live_preview=True.  With no inputs connected
-            # yet the evaluation fails and the node turns red.  Suppress this by
-            # temporarily disabling live_preview while we apply the custom props.
+            # Suppress live_preview during property setup
             try:
                 was_live = bool(node.get_property('live_preview'))
             except Exception:
@@ -1176,9 +946,10 @@ class WorkflowLoader:
 
             for k, v in custom.items():
                 try:
-                    node.set_property(k, v)
+                    # push_undo=False to avoid undo stack errors on invalid props
+                    node.set_property(k, v, push_undo=False)
                 except Exception:
-                    pass  # silently skip invalid/unsupported properties
+                    pass
 
             if was_live:
                 try:
@@ -1186,7 +957,12 @@ class WorkflowLoader:
                 except Exception:
                     pass
 
+            # Store with both int and string keys for compat
             node_map[llm_id] = node
+            node_map[str(llm_id)] = node
+            # Also map "nX" format for legacy
+            if isinstance(llm_id, int):
+                node_map[f"n{llm_id}"] = node
             created.append((llm_id, node))
 
         # Force scene to compute node sizes before we read bounding rects
@@ -1204,7 +980,7 @@ class WorkflowLoader:
                 w = rect.width()
                 h = rect.height()
             except Exception:
-                w, h = 200, 120  # fallback if view isn't available yet
+                w, h = 200, 120
 
             if col > 0 and col >= self.COLS:
                 cur_x  = origin_x
@@ -1217,40 +993,93 @@ class WorkflowLoader:
             row_h  = max(row_h, h)
             col   += 1
 
-        # --- Step 2: connect edges ----------------------------------------
+        # --- Pass 3: connect edges ----------------------------------------
+        # Track used (out_port_name, in_port_name) per (src_id, dst_id) pair
+        # so repeat edges between the same nodes use different ports
+        _used_pairs: dict[tuple, set] = {}
+
         for edge in workflow.get("edges", []):
-            src_id    = edge.get("from_node_id", "")
-            src_port  = edge.get("from_port", "")
-            dst_id    = edge.get("to_node_id", "")
-            dst_port  = edge.get("to_port", "")
+            if isinstance(edge, list):
+                # Compact format:
+                #   [src_id, dst_id]                  — auto-wire by type
+                #   [src_id, dst_id, "out_port"]      — hint source port
+                #   [src_id, dst_id, "out", "in"]     — hint both ports
+                src_id, dst_id = edge[0], edge[1]
+                hint_out = edge[2] if len(edge) > 2 and isinstance(edge[2], str) else None
+                hint_in  = edge[3] if len(edge) > 3 and isinstance(edge[3], str) else None
 
-            src_node = node_map.get(src_id)
-            dst_node = node_map.get(dst_id)
+                src_node = node_map.get(src_id) or node_map.get(str(src_id))
+                dst_node = node_map.get(dst_id) or node_map.get(str(dst_id))
 
-            if src_node is None or dst_node is None:
-                warnings.append(
-                    f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: "
-                    f"node not found — skipped."
-                )
-                continue
+                if src_node is None or dst_node is None:
+                    warnings.append(f"Edge {edge}: node not found — skipped.")
+                    continue
 
-            out_port = src_node.get_output(src_port)
-            in_port  = dst_node.get_input(dst_port)
+                # If port hints provided, use them directly
+                if hint_out or hint_in:
+                    out_port = src_node.get_output(hint_out) if hint_out else None
+                    in_port  = dst_node.get_input(hint_in) if hint_in else None
+                    # Fall back to auto-wire for the missing side
+                    if out_port and not in_port:
+                        # Find compatible input for this specific output
+                        ot = self._port_type(out_port)
+                        for ip in dst_node.inputs().values():
+                            if ip.connected_ports():
+                                continue
+                            it = self._port_type(ip)
+                            compat = self._TYPE_COMPAT.get(ot, {'any'})
+                            if it == ot or it in compat:
+                                in_port = ip
+                                break
+                    elif in_port and not out_port:
+                        it = self._port_type(in_port)
+                        for op in src_node.outputs().values():
+                            ot = self._port_type(op)
+                            compat = self._TYPE_COMPAT.get(ot, {'any'})
+                            if ot == it or it in compat:
+                                out_port = op
+                                break
+                else:
+                    pair_key = (src_id, dst_id)
+                    used = _used_pairs.setdefault(pair_key, set())
+                    out_port, in_port = self._auto_wire(src_node, dst_node, used)
+                    if out_port and in_port:
+                        used.add((out_port.name(), in_port.name()))
 
-            if out_port is None or in_port is None:
-                warnings.append(
-                    f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: "
-                    f"port not found — skipped."
-                )
-                continue
+                if out_port is None or in_port is None:
+                    warnings.append(f"Edge {edge}: no compatible ports — skipped.")
+                    continue
 
-            try:
-                out_port.connect_to(in_port)
-            except Exception as exc:
-                warnings.append(
-                    f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: "
-                    f"connect failed ({exc}) — skipped."
-                )
+                try:
+                    out_port.connect_to(in_port)
+                except Exception as exc:
+                    warnings.append(f"Edge {edge}: connect failed ({exc}) — skipped.")
+
+            elif isinstance(edge, dict):
+                # Legacy verbose format
+                src_id   = edge.get("from_node_id", "")
+                src_port = edge.get("from_port", "")
+                dst_id   = edge.get("to_node_id", "")
+                dst_port = edge.get("to_port", "")
+
+                src_node = node_map.get(src_id)
+                dst_node = node_map.get(dst_id)
+
+                if src_node is None or dst_node is None:
+                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: node not found — skipped.")
+                    continue
+
+                out_port = src_node.get_output(src_port)
+                in_port  = dst_node.get_input(dst_port)
+
+                if out_port is None or in_port is None:
+                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: port not found — skipped.")
+                    continue
+
+                try:
+                    out_port.connect_to(in_port)
+                except Exception as exc:
+                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: connect failed ({exc}) — skipped.")
 
         if warnings:
             return True, "Workflow loaded with warnings:\n" + "\n".join(f"  • {w}" for w in warnings)
@@ -1388,7 +1217,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         self._gguf_edit.setPlaceholderText("Path to .gguf file")
         gguf_row.addWidget(self._gguf_edit)
         gguf_browse_btn = QtWidgets.QPushButton("…")
-        gguf_browse_btn.setFixedWidth(28)
+        gguf_browse_btn.setFixedWidth(36)
         gguf_browse_btn.setToolTip("Browse for a .gguf model file")
         gguf_browse_btn.clicked.connect(self._browse_gguf)
         gguf_row.addWidget(gguf_browse_btn)
@@ -1420,7 +1249,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         model_row.addWidget(self._model_combo)
 
         refresh_btn = QtWidgets.QPushButton("⟳")
-        refresh_btn.setFixedWidth(28)
+        refresh_btn.setFixedWidth(36)
         refresh_btn.setToolTip("Refresh model list from the selected provider")
         refresh_btn.clicked.connect(self._refresh_models)
         model_row.addWidget(refresh_btn)
@@ -1456,10 +1285,21 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         self._verbose_check.stateChanged.connect(self._on_verbose_changed)
         layout.addWidget(self._verbose_check)
 
-        # --- Generate button ------------------------------------------
+        # --- Generate / Copy buttons ----------------------------------
+        btn_row = QtWidgets.QHBoxLayout()
         self._generate_btn = QtWidgets.QPushButton("Generate Workflow")
         self._generate_btn.clicked.connect(self._on_generate)
-        layout.addWidget(self._generate_btn)
+        btn_row.addWidget(self._generate_btn)
+
+        self._copy_web_btn = QtWidgets.QPushButton("Copy for Web AI")
+        self._copy_web_btn.setToolTip(
+            "Copy the full prompt to clipboard.\n"
+            "Paste into ChatGPT, Claude.ai, Gemini, etc.\n"
+            "Then paste the JSON response into the box below."
+        )
+        self._copy_web_btn.clicked.connect(self._on_copy_for_web)
+        btn_row.addWidget(self._copy_web_btn)
+        layout.addLayout(btn_row)
 
         layout.addWidget(_make_separator())
 
@@ -1468,12 +1308,12 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         self._status_label.setWordWrap(True)
         layout.addWidget(self._status_label)
 
-        # --- JSON preview --------------------------------------------
-        layout.addWidget(QtWidgets.QLabel("Generated workflow (JSON preview):"))
+        # --- JSON preview (editable so users can paste responses) -----
+        layout.addWidget(QtWidgets.QLabel("Workflow JSON (paste or generate):"))
         self._preview_edit = QtWidgets.QPlainTextEdit()
-        self._preview_edit.setReadOnly(True)
         self._preview_edit.setFont(QtGui.QFont("Courier New", 9))
         self._preview_edit.setMinimumHeight(160)
+        self._preview_edit.textChanged.connect(self._on_preview_changed)
         layout.addWidget(self._preview_edit, stretch=1)
 
         # --- Load / Replace buttons (hidden until valid JSON is ready) ---
@@ -1661,20 +1501,48 @@ class LLMAssistantPanel(QtWidgets.QWidget):
                 "Get an account at ollama.com"
             )
         elif provider == "Synapse Fine-tune":
+            _GGUF_URL = "https://github.com/m00zu/Synapse-Plugins/releases/download/models-v0.1.0/synapse-qwen0_8B-v0.1.gguf"
+            _GGUF_NAME = "synapse-qwen0_8B-v0.1.gguf"
             # User-specified path takes priority; otherwise auto-detect in package dir
             _user_path = Path(self._gguf_edit.text().strip()) if hasattr(self, "_gguf_edit") and self._gguf_edit.text().strip() else None
             if _user_path and _user_path.exists():
                 _gguf = _user_path
             else:
+                # Search for any existing GGUF
+                _default = self._GGUF_DIR / _GGUF_NAME
                 _q4 = self._GGUF_DIR / "synapse-qwen-0.8b.Q4_K_M.gguf"
                 _q8 = self._GGUF_DIR / "synapse-qwen-0.8b.q8_0.gguf"
-                _gguf = _q4 if _q4.exists() else _q8
+                if _default.exists():
+                    _gguf = _default
+                elif _q4.exists():
+                    _gguf = _q4
+                elif _q8.exists():
+                    _gguf = _q8
+                else:
+                    # Auto-download
+                    self._status_label.setText("Downloading model (503 MB)…")
+                    QtWidgets.QApplication.processEvents()
+                    try:
+                        self._GGUF_DIR.mkdir(parents=True, exist_ok=True)
+                        import urllib.request
+                        _tmp = _default.with_suffix('.part')
+                        urllib.request.urlretrieve(_GGUF_URL, str(_tmp))
+                        _tmp.rename(_default)
+                        _gguf = _default
+                        self._gguf_edit.setText(str(_gguf))
+                        self._status_label.setText("Model downloaded successfully.")
+                    except Exception as dl_err:
+                        self._status_label.setText(
+                            f"Download failed: {dl_err}\n"
+                            "Download manually and set the GGUF path."
+                        )
+                        return
             self._client  = LlamaCppClient(str(_gguf), n_ctx=16384, n_gpu_layers=-1)
             default_model = _gguf.name
             no_model_msg  = (
                 "GGUF model not found.\n"
                 "Enter the path to your .gguf file and click ⟳, or\n"
-                "run: python finetune/convert.py"
+                "it will auto-download on next attempt."
             )
         else:  # Ollama (local)
             self._client = OllamaClient()
@@ -1727,6 +1595,61 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             f"(prompt ~{size_kb:.1f} KB)."
         )
 
+    def _on_copy_for_web(self):
+        """Copy a ready-to-paste prompt to clipboard for use with web AI interfaces."""
+        question = self._question_edit.toPlainText().strip()
+        if not question:
+            self._status_label.setText("Please enter a question first.")
+            return
+
+        # Build the full prompt
+        use_context = (
+            self._ctx_check.isChecked() and bool(self.graph.all_nodes())
+        )
+        prompt_parts = [self._system, ""]
+        if use_context:
+            current_wf = serialize_graph(self.graph)
+            prompt_parts.append(
+                "Here is the user's CURRENT workflow (JSON):\n"
+                f"{json.dumps(current_wf, indent=2)}\n\n"
+                "Return the COMPLETE updated workflow — include ALL existing nodes "
+                "plus any new or modified nodes.\n"
+            )
+        prompt_parts.append(f"User request: {question}\n")
+        prompt_parts.append(
+            "Respond with ONLY a JSON object containing \"nodes\" and \"edges\". "
+            "No markdown fences, no explanation."
+        )
+
+        full_prompt = "\n".join(prompt_parts)
+        QtWidgets.QApplication.clipboard().setText(full_prompt)
+        self._status_label.setText(
+            f"Copied to clipboard ({len(full_prompt)//1024}KB). "
+            "Paste into ChatGPT / Claude.ai / Gemini, "
+            "then paste the JSON response below."
+        )
+
+    def _on_preview_changed(self):
+        """Show Load/Replace buttons when the preview contains valid JSON."""
+        text = self._preview_edit.toPlainText().strip()
+        if not text:
+            self._load_btn.setVisible(False)
+            self._replace_btn.setVisible(False)
+            self._last_workflow = None
+            return
+        try:
+            wf = json.loads(text)
+            if isinstance(wf, dict) and "nodes" in wf:
+                self._last_workflow = wf
+                self._load_btn.setVisible(True)
+                self._replace_btn.setVisible(True)
+            else:
+                self._load_btn.setVisible(False)
+                self._replace_btn.setVisible(False)
+        except json.JSONDecodeError:
+            self._load_btn.setVisible(False)
+            self._replace_btn.setVisible(False)
+
     def _on_generate(self):
         question = self._question_edit.toPlainText().strip()
         if not question:
@@ -1767,8 +1690,12 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         self._generate_btn.setEnabled(False)
         self._status_label.setText("Generating… (this may take up to 60 s)")
 
+        # Use short system prompt for fine-tuned model (catalog baked into weights)
+        provider = self._provider_combo.currentText()
+        system = _FINETUNE_SYS_PROMPT if provider == "Synapse Fine-tune" else self._system
+
         # Spin up background thread (mirrors GraphWorker pattern)
-        self._worker = LLMWorker(self._client, self._system, user_msg)
+        self._worker = LLMWorker(self._client, system, user_msg)
         self._thread = QtCore.QThread()
         self._worker.moveToThread(self._thread)
 

@@ -38,6 +38,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+llm = ["llama-cpp-python>=0.3"]
 dev = ["mkdocs", "mkdocs-material", "pymdown-extensions"]
 
 [project.scripts]
