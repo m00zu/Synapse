@@ -2265,7 +2265,7 @@ result only after the entire batch is complete.</p>
 <p>Supported formats:</p>
 <ul>
 <li><em>Standard</em> — JPEG, PNG, BMP, and other PIL-supported formats (8-bit)</li>
-<li><em>TIFF</em> — 8/12/14/16-bit microscopy TIFFs (bit depth preserved)</li>
+<li><em>TIFF</em> — 8/12/14/16-bit microscopy TIFFs (bit depth preserved). Multi-page TIFFs output a CollectionData with one ImageData per page.</li>
 <li><em>OIR</em> — Olympus .oir files (Rust accelerated, with Python fallback)</li>
 </ul>
 <p>The original bit depth is stored as metadata for downstream nodes

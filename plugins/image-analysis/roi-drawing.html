@@ -1413,6 +1413,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#mask-crop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mask Crop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#draw-shape" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1983,7 +1994,7 @@
 
 <h1 id="roi-drawing">ROI &amp; Drawing<a class="headerlink" href="#roi-drawing" title="Permanent link">&para;</a></h1>
 <h3 id="roi-mask">ROI Mask<a class="headerlink" href="#roi-mask" title="Permanent link">&para;</a></h3>
-<p>Draws an ROI (ellipse, rectangle, or polygon) directly on the node surface and outputs a binary mask plus a cropped image.</p>
+<p>Draws an ROI (ellipse, rectangle, polygon, or lasso) directly on the node surface and outputs a binary mask plus a cropped image.</p>
 <details class="note">
 <summary>Details</summary>
 <p>Inputs:</p>
@@ -2037,6 +2048,41 @@
 <td><strong>Input</strong></td>
 <td><code>image</code></td>
 <td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="mask-crop">Mask Crop<a class="headerlink" href="#mask-crop" title="Permanent link">&para;</a></h3>
+<p>Crops an image to a mask's bounding box.</p>
+<details class="note">
+<summary>Details</summary>
+<p>When <strong>Black outside</strong> is checked, pixels outside the mask are set to zero.
+When unchecked, all pixels within the bounding box are kept.
+<strong>Padding</strong> adds extra pixels around the bounding box.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>mask</code></td>
+<td>mask</td>
 </tr>
 <tr>
 <td><strong>Output</strong></td>
