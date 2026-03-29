@@ -12,7 +12,7 @@ from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QColor
 
-from ..data_models import TableData, ImageData, FigureData
+from ..data_models import TableData, ImageData, FigureData, CollectionData
 from .base import (
     BaseExecutionNode, PORT_COLORS,
     NodeFileSelector, NodeFileSaver, NodeDirSelector,
@@ -1101,7 +1101,7 @@ class ImageReadNode(BaseExecutionNode):
     Supported formats:
 
     - *Standard* — JPEG, PNG, BMP, and other PIL-supported formats (8-bit)
-    - *TIFF* — 8/12/14/16-bit microscopy TIFFs (bit depth preserved)
+    - *TIFF* — 8/12/14/16-bit microscopy TIFFs (bit depth preserved). Multi-page TIFFs output a CollectionData with one ImageData per page.
     - *OIR* — Olympus .oir files (Rust accelerated, with Python fallback)
 
     The original bit depth is stored as metadata for downstream nodes
@@ -1211,14 +1211,38 @@ class ImageReadNode(BaseExecutionNode):
                 out_arr = self._select_channels(img, channels)
 
             elif file_path.lower().endswith(('.tif', '.tiff')):
+                n_pages = 1
+                tiff_bps = None
                 try:
                     import tifffile
-                    arr = tifffile.imread(file_path)
+                    with tifffile.TiffFile(file_path) as tif:
+                        n_pages = len(tif.pages)
+                        tiff_bps = tif.pages[0].bitspersample
+                        arr = tif.asarray()
                 except Exception:
                     arr = np.asarray(Image.open(file_path))
                 scale_um = _extract_tiff_scale(file_path)
-                bit_depth = _guess_bit_depth(arr)
                 self.set_progress(50)
+
+                if n_pages > 1:
+                    # Multi-page TIFF → CollectionData
+                    bd = tiff_bps or _guess_bit_depth(arr[0])
+                    items = {}
+                    for i in range(n_pages):
+                        page = arr[i]
+                        if page.ndim == 2:
+                            page_out = page
+                        else:
+                            page_out = self._select_channels(page, channels)
+                        page_out = _normalize_to_float(page_out, bd)
+                        items[f'page_{i}'] = ImageData(
+                            payload=page_out, bit_depth=bd, scale_um=scale_um)
+                    self.output_values['out'] = CollectionData(payload=items)
+                    self.mark_clean()
+                    self.set_progress(100)
+                    return True, None
+
+                bit_depth = tiff_bps or _guess_bit_depth(arr)
                 if arr.ndim == 2:
                     out_arr = arr
                 else:
