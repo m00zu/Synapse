@@ -1503,12 +1503,24 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         elif provider == "Synapse Fine-tune":
             _GGUF_URL = "https://github.com/m00zu/Synapse-Plugins/releases/download/models-v0.1.0/synapse-qwen0_8B-v0.1.gguf"
             _GGUF_NAME = "synapse-qwen0_8B-v0.1.gguf"
-            # User-specified path takes priority; otherwise auto-detect in package dir
+
+            # Check if llama-cpp-python is installed
+            try:
+                import llama_cpp  # noqa: F401
+            except ImportError:
+                self._status_label.setText(
+                    "llama-cpp-python is not installed.\n"
+                    "Install: pip install llama-cpp-python\n"
+                    "Or use 'Copy for Web AI' / API providers instead."
+                )
+                self._model_combo.clear()
+                return
+
+            # Find GGUF file
             _user_path = Path(self._gguf_edit.text().strip()) if hasattr(self, "_gguf_edit") and self._gguf_edit.text().strip() else None
             if _user_path and _user_path.exists():
                 _gguf = _user_path
             else:
-                # Search for any existing GGUF
                 _default = self._GGUF_DIR / _GGUF_NAME
                 _q4 = self._GGUF_DIR / "synapse-qwen-0.8b.Q4_K_M.gguf"
                 _q8 = self._GGUF_DIR / "synapse-qwen-0.8b.q8_0.gguf"
@@ -1519,30 +1531,39 @@ class LLMAssistantPanel(QtWidgets.QWidget):
                 elif _q8.exists():
                     _gguf = _q8
                 else:
-                    # Auto-download
-                    self._status_label.setText("Downloading model (503 MB)…")
-                    QtWidgets.QApplication.processEvents()
-                    try:
-                        self._GGUF_DIR.mkdir(parents=True, exist_ok=True)
-                        import urllib.request
-                        _tmp = _default.with_suffix('.part')
-                        urllib.request.urlretrieve(_GGUF_URL, str(_tmp))
-                        _tmp.rename(_default)
-                        _gguf = _default
-                        self._gguf_edit.setText(str(_gguf))
-                        self._status_label.setText("Model downloaded successfully.")
-                    except Exception as dl_err:
-                        self._status_label.setText(
-                            f"Download failed: {dl_err}\n"
-                            "Download manually and set the GGUF path."
-                        )
-                        return
-            self._client  = LlamaCppClient(str(_gguf), n_ctx=16384, n_gpu_layers=-1)
+                    # Prompt user to download — don't block the UI
+                    self._status_label.setText(
+                        "No GGUF model found. Click 'Download Model' or\n"
+                        "set the path manually and click ⟳."
+                    )
+                    self._model_combo.clear()
+                    # Add download button if not already present
+                    if not hasattr(self, '_dl_btn'):
+                        self._dl_btn = QtWidgets.QPushButton("Download Model (503 MB)")
+                        self._dl_btn.clicked.connect(lambda: self._download_gguf(_GGUF_URL, _GGUF_NAME))
+                        # Insert before the status label
+                        idx = self.layout().indexOf(self._status_label)
+                        if idx >= 0:
+                            self.layout().insertWidget(idx, self._dl_btn)
+                    self._dl_btn.setVisible(True)
+                    return
+
+            # Hide download button if model found
+            if hasattr(self, '_dl_btn'):
+                self._dl_btn.setVisible(False)
+
+            self._status_label.setText(f"Loading model: {_gguf.name}…")
+            QtWidgets.QApplication.processEvents()
+            try:
+                self._client = LlamaCppClient(str(_gguf), n_ctx=4096, n_gpu_layers=-1)
+            except Exception as e:
+                self._status_label.setText(f"Failed to load model: {e}")
+                self._model_combo.clear()
+                return
             default_model = _gguf.name
             no_model_msg  = (
                 "GGUF model not found.\n"
-                "Enter the path to your .gguf file and click ⟳, or\n"
-                "it will auto-download on next attempt."
+                "Enter the path to your .gguf file and click ⟳."
             )
         else:  # Ollama (local)
             self._client = OllamaClient()
@@ -1594,6 +1615,56 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             f"{'Verbose' if verbose else 'Compact'} descriptions loaded "
             f"(prompt ~{size_kb:.1f} KB)."
         )
+
+    def _download_gguf(self, url: str, filename: str):
+        """Download GGUF model in a background thread."""
+        self._dl_btn.setEnabled(False)
+        self._dl_btn.setText("Downloading…")
+        self._status_label.setText("Downloading model (503 MB)… This may take a few minutes.")
+
+        class _DLWorker(QtCore.QObject):
+            finished = QtCore.Signal(str)  # path on success, empty on error
+            error = QtCore.Signal(str)
+
+            def __init__(self, url, dest):
+                super().__init__()
+                self._url = url
+                self._dest = dest
+
+            def run(self):
+                try:
+                    import urllib.request
+                    Path(self._dest).parent.mkdir(parents=True, exist_ok=True)
+                    tmp = self._dest + '.part'
+                    urllib.request.urlretrieve(self._url, tmp)
+                    Path(tmp).rename(self._dest)
+                    self.finished.emit(self._dest)
+                except Exception as e:
+                    self.error.emit(str(e))
+
+        dest = str(self._GGUF_DIR / filename)
+        self._dl_worker = _DLWorker(url, dest)
+        self._dl_thread = QtCore.QThread()
+        self._dl_worker.moveToThread(self._dl_thread)
+        self._dl_thread.started.connect(self._dl_worker.run)
+        self._dl_worker.finished.connect(self._on_dl_finished)
+        self._dl_worker.error.connect(self._on_dl_error)
+        self._dl_worker.finished.connect(self._dl_thread.quit)
+        self._dl_worker.error.connect(self._dl_thread.quit)
+        self._dl_thread.finished.connect(self._dl_worker.deleteLater)
+        self._dl_thread.finished.connect(self._dl_thread.deleteLater)
+        self._dl_thread.start()
+
+    def _on_dl_finished(self, path: str):
+        self._gguf_edit.setText(path)
+        self._dl_btn.setVisible(False)
+        self._status_label.setText("Model downloaded. Click ⟳ to load.")
+        self._refresh_models()
+
+    def _on_dl_error(self, msg: str):
+        self._dl_btn.setEnabled(True)
+        self._dl_btn.setText("Download Model (503 MB)")
+        self._status_label.setText(f"Download failed: {msg}")
 
     def _on_copy_for_web(self):
         """Copy a ready-to-paste prompt to clipboard for use with web AI interfaces."""
