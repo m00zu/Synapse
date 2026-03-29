@@ -443,3 +443,23 @@ Creates a polar angle distribution plot for angular data.
 | **Output** | `plot` | figure |
 
 ---
+
+### Save Figure
+
+Saves a matplotlib figure to disk. Click Browse to choose file location and format.
+
+??? note "Details"
+    Inputs:
+
+    - **figure** — FigureData to save
+    
+    Supported formats: PNG, SVG, TIFF, JPEG.
+    Users can also type any path with a custom extension directly.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `figure` | figure |
+
+**Properties:** `DPI`
+
+---

@@ -79,7 +79,7 @@ Reads an image file and outputs it as a float32 [0,1] numpy array.
     Supported formats:
     
     - *Standard* — JPEG, PNG, BMP, and other PIL-supported formats (8-bit)
-    - *TIFF* — 8/12/14/16-bit microscopy TIFFs (bit depth preserved)
+    - *TIFF* — 8/12/14/16-bit microscopy TIFFs (bit depth preserved). Multi-page TIFFs output a CollectionData with one ImageData per page.
     - *OIR* — Olympus .oir files (Rust accelerated, with Python fallback)
     
     The original bit depth is stored as metadata for downstream nodes

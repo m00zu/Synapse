@@ -274,3 +274,22 @@ Plots the pixel intensity histogram of an image.
 **Properties:** `Bins`, ``, `Fill Alpha`
 
 ---
+
+### Save Image
+
+Saves an image to disk. Click Browse to choose file location and format.
+
+??? note "Details"
+    Inputs:
+
+    - **image** — ImageData to save
+    
+    Supported formats: PNG, TIFF (16-bit preserved), JPEG.
+    Users can also type any path with a custom extension directly.
+    TIFF preserves bit depth and scale metadata when available.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `image` | image |
+
+---

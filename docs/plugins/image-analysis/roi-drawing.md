@@ -2,7 +2,7 @@
 
 ### ROI Mask
 
-Draws an ROI (ellipse, rectangle, or polygon) directly on the node surface and outputs a binary mask plus a cropped image.
+Draws an ROI (ellipse, rectangle, polygon, or lasso) directly on the node surface and outputs a binary mask plus a cropped image.
 
 ??? note "Details"
     Inputs:
@@ -31,6 +31,23 @@ Crops an image or mask to a rectangle drawn directly on the node.
 | Direction | Port | Type |
 |-----------|------|------|
 | **Input** | `image` | image |
+| **Output** | `image` | image |
+
+---
+
+### Mask Crop
+
+Crops an image to a mask's bounding box.
+
+??? note "Details"
+    When **Black outside** is checked, pixels outside the mask are set to zero.
+    When unchecked, all pixels within the bounding box are kept.
+    **Padding** adds extra pixels around the bounding box.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `image` | image |
+| **Input** | `mask` | mask |
 | **Output** | `image` | image |
 
 ---
