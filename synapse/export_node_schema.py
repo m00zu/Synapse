@@ -242,33 +242,58 @@ def export_schema():
     print(f"Generated successfully: {out_file}")
     print(f"Total Nodes Processed: {len(schema['node_catalog'])}")
 
-def auto_regenerate_if_stale():
-    """Regenerate schema if any node source file is newer than the schema JSON.
-
-    Called at app startup — skips regeneration when nothing changed.
-    """
+def _is_schema_stale() -> bool:
+    """Quick mtime check — returns True if any node .py is newer than the schema."""
     import pathlib
     schema_path = pathlib.Path(__file__).parent / 'llm_node_schema.json'
     if not schema_path.exists():
-        print("[schema] llm_node_schema.json not found — regenerating…")
-        export_schema()
-        return
+        return True
 
     schema_mtime = schema_path.stat().st_mtime
 
-    # Directories containing node definitions
     check_dirs = [
         pathlib.Path(__file__).parent / 'nodes',
         pathlib.Path(__file__).parent / 'plugins',
     ]
+    try:
+        from .plugin_loader import get_plugin_dir
+        user_plugin_dir = get_plugin_dir()
+        if user_plugin_dir.exists() and user_plugin_dir not in check_dirs:
+            check_dirs.append(user_plugin_dir)
+    except Exception:
+        pass
+
     for d in check_dirs:
         if not d.exists():
             continue
         for f in d.rglob('*.py'):
             if f.stat().st_mtime > schema_mtime:
-                print(f"[schema] {f.name} changed — regenerating llm_node_schema.json…")
-                export_schema()
-                return
+                print(f"[schema] {f.name} changed — will regenerate in background")
+                return True
+    return False
+
+
+def auto_regenerate_if_stale():
+    """Check if schema is stale (fast), then regenerate in background if needed.
+
+    The mtime check runs on the main thread (instant).
+    The actual regeneration is deferred via QTimer so the app window
+    appears first, then the schema is rebuilt without blocking startup.
+    """
+    if not _is_schema_stale():
+        return
+
+    from PySide6.QtCore import QTimer
+    def _deferred_regen():
+        try:
+            print("[schema] regenerating llm_node_schema.json…")
+            export_schema()
+            print("[schema] done.")
+        except Exception as e:
+            print(f"[schema] regeneration failed: {e}")
+
+    # Fire after the event loop is running (0ms = next idle cycle)
+    QTimer.singleShot(0, _deferred_regen)
 
 
 if __name__ == '__main__':
