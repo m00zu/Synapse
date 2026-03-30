@@ -4781,9 +4781,36 @@ class RegressionPlotNode(BaseExecutionNode):
                            label=label, zorder=2)
 
                 if curve_df is not None and gi == 0:
+                    # External curve provided — draw line and CI if available
                     cx = curve_df.iloc[:, 0].values
                     cy = curve_df.iloc[:, 1].values
                     ax.plot(cx, cy, color=color, linewidth=2.2, zorder=3)
+
+                    # Use pre-computed CI columns if present (from regression nodes)
+                    ci_lo_col = [c for c in curve_df.columns if c.endswith('_ci_lo')]
+                    ci_hi_col = [c for c in curve_df.columns if c.endswith('_ci_hi')]
+                    if show_ci and ci_lo_col and ci_hi_col:
+                        ax.fill_between(cx,
+                                        curve_df[ci_lo_col[0]].values,
+                                        curve_df[ci_hi_col[0]].values,
+                                        alpha=0.14, color=color)
+
+                    # Compute R² from raw data vs curve interpolation
+                    sort_idx = np.argsort(xs)
+                    xs_s, ys_s = xs[sort_idx], ys[sort_idx]
+                    y_interp = np.interp(xs_s, cx, cy)
+                    ss_res = float(np.sum((ys_s - y_interp) ** 2))
+                    ss_tot = float(np.sum((ys_s - ys_s.mean()) ** 2))
+                    r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else float('nan')
+
+                    if show_eq:
+                        eq = f'R\u00b2 = {r2:.4f}'
+                        ax.text(eq_x, eq_y, eq, transform=ax.transAxes,
+                                fontsize=eq_size,
+                                linespacing=eq_space,
+                                va='top',
+                                bbox=dict(boxstyle='round,pad=0.3',
+                                          fc='white', alpha=0.85))
 
                 elif fit_type != 'None':
                     sort_idx = np.argsort(xs)
@@ -4822,14 +4849,14 @@ class RegressionPlotNode(BaseExecutionNode):
                     if show_eq and deg == 1:
                         # Format the equation handling negative constants explicitly
                         slope, intercept = coeffs[0], coeffs[1]
-                        
+
                         if intercept < 0:
                             eq_str = f'y = {slope:.3g}x \u2212 {abs(intercept):.3g}'
                         else:
                             eq_str = f'y = {slope:.3g}x + {intercept:.3g}'
-                            
+
                         eq = f'{eq_str}\nR\u00b2 = {r2:.4f}'
-                        
+
                         ax.text(eq_x, eq_y, eq, transform=ax.transAxes,
                                 fontsize=eq_size,
                                 linespacing=eq_space,

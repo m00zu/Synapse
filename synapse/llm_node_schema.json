@@ -112,6 +112,7 @@
                                 "DataSummaryNode",
                                 "GroupedComparisonNode",
                                 "LinearRegressionNode",
+                                "ModelPredictNode",
                                 "NonlinearRegressionNode",
                                 "NormalityTestNode",
                                 "OutlierDetectionNode",
@@ -2268,9 +2269,51 @@
                                                 "type": "string",
                                                 "description": "Default: "
                                             },
+                                            "degree": {
+                                                "type": "number",
+                                                "description": "Default: 1"
+                                            },
                                             "intercept": {
                                                 "type": "boolean",
                                                 "description": "Default: True"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "ModelPredictNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "x_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "pred_name": {
+                                                "type": "string",
+                                                "description": "Default: Predicted"
+                                            },
+                                            "inverse": {
+                                                "type": "boolean",
+                                                "description": "Default: False"
+                                            },
+                                            "inv_x_min": {
+                                                "type": "number",
+                                                "description": "Default: 0.0"
+                                            },
+                                            "inv_x_max": {
+                                                "type": "number",
+                                                "description": "Default: 0.0"
                                             }
                                         }
                                     }
@@ -2313,16 +2356,16 @@
                                                 "description": "Default: 4PL (EC50 / Dose-Response). Must be one of the listed options."
                                             },
                                             "n_points": {
-                                                "type": "string",
+                                                "type": "number",
                                                 "description": "Default: 200"
                                             },
                                             "x_min": {
-                                                "type": "string",
-                                                "description": "Default: "
+                                                "type": "number",
+                                                "description": "Default: 0.0"
                                             },
                                             "x_max": {
-                                                "type": "string",
-                                                "description": "Default: "
+                                                "type": "number",
+                                                "description": "Default: 0.0"
                                             }
                                         }
                                     }
@@ -4330,7 +4373,8 @@
                                                     "max",
                                                     "count",
                                                     "std",
-                                                    "var"
+                                                    "var",
+                                                    "auc"
                                                 ],
                                                 "description": "Default: sum. Must be one of the listed options."
                                             },
@@ -4339,6 +4383,10 @@
                                                 "description": "Default: "
                                             },
                                             "columns": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "sort_by": {
                                                 "type": "string",
                                                 "description": "Default: "
                                             }
@@ -7923,7 +7971,7 @@
             }
         },
         "LinearRegressionNode": {
-            "description": "Performs ordinary least-squares (OLS) linear regression, simple or multiple.",
+            "description": "Performs ordinary least-squares (OLS) linear or polynomial regression.",
             "inputs": [
                 {
                     "name": "in",
@@ -7938,6 +7986,14 @@
                 {
                     "name": "residuals",
                     "type": "table"
+                },
+                {
+                    "name": "curve",
+                    "type": "table"
+                },
+                {
+                    "name": "model",
+                    "type": "model"
                 }
             ],
             "configurable_properties": {
@@ -7949,9 +8005,54 @@
                     "type": "str",
                     "default": ""
                 },
+                "degree": {
+                    "type": "int",
+                    "default": 1
+                },
                 "intercept": {
                     "type": "bool",
                     "default": true
+                }
+            }
+        },
+        "ModelPredictNode": {
+            "description": "Predicts Y values from a fitted model and a new data table.",
+            "inputs": [
+                {
+                    "name": "model",
+                    "type": "model"
+                },
+                {
+                    "name": "data",
+                    "type": "table"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "out",
+                    "type": "table"
+                }
+            ],
+            "configurable_properties": {
+                "x_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "pred_name": {
+                    "type": "str",
+                    "default": "Predicted"
+                },
+                "inverse": {
+                    "type": "bool",
+                    "default": false
+                },
+                "inv_x_min": {
+                    "type": "float",
+                    "default": 0.0
+                },
+                "inv_x_max": {
+                    "type": "float",
+                    "default": 0.0
                 }
             }
         },
@@ -7971,6 +8072,10 @@
                 {
                     "name": "curve",
                     "type": "table"
+                },
+                {
+                    "name": "model",
+                    "type": "model"
                 }
             ],
             "configurable_properties": {
@@ -7997,16 +8102,16 @@
                     ]
                 },
                 "n_points": {
-                    "type": "str",
-                    "default": "200"
+                    "type": "int",
+                    "default": 200
                 },
                 "x_min": {
-                    "type": "str",
-                    "default": ""
+                    "type": "float",
+                    "default": 0.0
                 },
                 "x_max": {
-                    "type": "str",
-                    "default": ""
+                    "type": "float",
+                    "default": 0.0
                 }
             }
         },
@@ -10174,7 +10279,8 @@
                         "max",
                         "count",
                         "std",
-                        "var"
+                        "var",
+                        "auc"
                     ]
                 },
                 "group_by": {
@@ -10182,6 +10288,10 @@
                     "default": ""
                 },
                 "columns": {
+                    "type": "str",
+                    "default": ""
+                },
+                "sort_by": {
                     "type": "str",
                     "default": ""
                 }

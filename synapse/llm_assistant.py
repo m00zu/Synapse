@@ -136,12 +136,11 @@ RESPONSE_SCHEMA: dict = {
         },
         "edges": {
             "type": "array",
-            "description": "Connections as [source_id, target_id] pairs.",
+            "description": "Connections as [src, dst] or [src, dst, \"out_port\"] or [src, dst, \"out_port\", \"in_port\"] for multi-output/input nodes.",
             "items": {
                 "type": "array",
-                "items": {"type": "integer"},
                 "minItems": 2,
-                "maxItems": 2,
+                "maxItems": 4,
             },
         },
     },
@@ -251,14 +250,28 @@ def build_condensed_catalog(
 
         lines.append(f"- {name}: {desc} | in:[{inputs}] → out:[{outputs}]{prop_str}")
 
-    # Append plugin nodes (auto-discovered at runtime via plugin_loader)
+    # Append plugin nodes not already in the schema (e.g. user-installed third-party plugins)
     try:
         from .plugin_loader import get_plugin_catalog_entries
         for entry in get_plugin_catalog_entries():
+            if entry['class_name'] in catalog:
+                continue  # already in schema — skip to avoid duplicates
             ins  = _fmt_ports(entry['inputs'])
             outs = _fmt_ports(entry['outputs'])
+            # Build props string from configurable_properties (same format as schema entries)
+            cfg = entry.get('configurable_properties', {})
+            prop_parts = []
+            for prop_name, prop_info in cfg.items():
+                options = prop_info.get('options')
+                default = prop_info.get('default', '')
+                default_str = f'"{default}"' if isinstance(default, str) else str(default)
+                if options:
+                    prop_parts.append(f"{prop_name}=[{'|'.join(options)}](default:{default_str})")
+                else:
+                    prop_parts.append(f"{prop_name}(default:{default_str})")
+            prop_str = f" | props: {{{', '.join(prop_parts)}}}" if prop_parts else ""
             lines.append(
-                f"- {entry['class_name']}: {entry['description']} | in:[{ins}] → out:[{outs}]"
+                f"- {entry['class_name']}: {entry['description']} | in:[{ins}] → out:[{outs}]{prop_str}"
             )
     except ImportError:
         pass

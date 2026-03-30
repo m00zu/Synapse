@@ -96,6 +96,23 @@ class StatData(TableData):
     """Wraps a pandas DataFrame with statistics."""
     pass
 
+
+class ModelData(NodeData):
+    """Wraps a fitted model for prediction.
+
+    payload: a callable ``predict(X_df) -> array`` or an object with a
+             ``.predict()`` method (e.g. statsmodels result, sklearn estimator).
+
+    Attributes stored in metadata:
+        model_type (str): e.g. 'linear', 'nonlinear', 'sklearn'
+        x_columns (list[str]): feature column names the model expects
+        y_column  (str): target column name
+        degree    (int): polynomial degree (for linear regression)
+        model_name (str): human-readable name (e.g. '4PL (EC50)')
+    """
+    payload: Any  # fitted model object
+
+
 class ImageData(NodeData):
     """Wraps an image as a numpy array with bit-depth and display metadata.
 

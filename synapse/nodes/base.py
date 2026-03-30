@@ -32,6 +32,7 @@ PORT_COLORS = {
     'confocal': (230, 126,  34),  # Orange     – ConfocalDatasetData
     'path':     (149, 165, 166),  # Grey       – file / folder path string
     'collection': (230, 180, 50), # Gold       – CollectionData (named bundle)
+    'model':    (255, 140,  66),  # Coral/Orange – fitted model (regression, ML)
     'any':      ( 95, 106, 106),  # Dark grey  – generic / unknown type
 }
 

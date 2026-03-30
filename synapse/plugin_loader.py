@@ -249,22 +249,87 @@ def load_plugins(graph) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def get_plugin_catalog_entries() -> list[dict]:
-    """Return minimal LLM-catalog entries for all loaded plugin classes.
+    """Return rich LLM-catalog entries for all loaded plugin classes.
 
-    Each entry is compatible with the format used by
-    ``llm_assistant.build_condensed_catalog()``.
+    Each entry includes port types and configurable properties with
+    enum options — the same quality as ``export_node_schema.py``.
+    Falls back to PORT_SPEC if the node cannot be instantiated.
     """
+    from .nodes.base import PORT_COLORS
+
+    _color_to_type: dict[tuple, str] = {tuple(v): k for k, v in PORT_COLORS.items()}
+
+    def _port_type(port) -> str:
+        return _color_to_type.get(tuple(port.color), 'any')
+
     entries = []
     for cls in _PLUGIN_CLASSES:
-        port_spec = getattr(cls, 'PORT_SPEC', {'inputs': [], 'outputs': []})
-        raw_doc   = (cls.__doc__ or cls.NODE_NAME or '').strip()
+        raw_doc = (cls.__doc__ or cls.NODE_NAME or '').strip()
         description = raw_doc.split('\n')[0]
-        entries.append({
+
+        entry: dict = {
             'class_name':  cls.__name__,
             'description': description,
-            'inputs':      [{'name': p} for p in port_spec.get('inputs',  [])],
-            'outputs':     [{'name': p} for p in port_spec.get('outputs', [])],
-        })
+            'inputs':      [],
+            'outputs':     [],
+            'configurable_properties': {},
+        }
+
+        # Try to get rich info from a live instance via the graph
+        try:
+            from NodeGraphQt import NodeGraph
+            app_graphs = [
+                w for w in __import__('PySide6').QtWidgets.QApplication.instance().topLevelWidgets()
+                if hasattr(w, '_graph')
+            ] if __import__('PySide6').QtWidgets.QApplication.instance() else []
+
+            graph = app_graphs[0]._graph if app_graphs else None
+
+            if graph and cls.type_ in graph.node_factory.nodes:
+                node = graph.create_node(cls.type_, push_undo=False)
+                entry['inputs']  = [{'name': p.name(), 'type': _port_type(p)}
+                                    for p in node.inputs().values()]
+                entry['outputs'] = [{'name': p.name(), 'type': _port_type(p)}
+                                    for p in node.outputs().values()]
+
+                # Extract configurable properties with enum options
+                ignore = {
+                    'name', 'color', 'border_color', 'text_color', 'type',
+                    'id', 'pos', 'layout_direction', 'selected', 'visible',
+                    'custom', 'progress', 'table_view', 'image_view',
+                    'show_preview', 'live_preview',
+                }
+                common_props = {}
+                if node.model._graph_model is not None:
+                    common_props = node.model._graph_model.get_node_common_properties(
+                        node.model.type_
+                    ) or {}
+
+                for k, v in node.model.custom_properties.items():
+                    if k in ignore or k.startswith('_'):
+                        continue
+                    prop_entry: dict = {
+                        'type': type(v).__name__,
+                        'default': v,
+                    }
+                    combo_items = common_props.get(k, {}).get('items')
+                    if combo_items:
+                        prop_entry['options'] = combo_items
+                    entry['configurable_properties'][k] = prop_entry
+
+                graph.delete_node(node, push_undo=False)
+            else:
+                raise RuntimeError("graph not available")
+
+        except Exception:
+            # Fallback: static PORT_SPEC (no types, no props)
+            port_spec = getattr(cls, 'PORT_SPEC', {'inputs': [], 'outputs': []})
+            entry['inputs']  = [{'name': p, 'type': 'any'}
+                                for p in port_spec.get('inputs', [])]
+            entry['outputs'] = [{'name': p, 'type': 'any'}
+                                for p in port_spec.get('outputs', [])]
+
+        entries.append(entry)
     return entries
 
 

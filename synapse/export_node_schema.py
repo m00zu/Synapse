@@ -242,5 +242,34 @@ def export_schema():
     print(f"Generated successfully: {out_file}")
     print(f"Total Nodes Processed: {len(schema['node_catalog'])}")
 
+def auto_regenerate_if_stale():
+    """Regenerate schema if any node source file is newer than the schema JSON.
+
+    Called at app startup — skips regeneration when nothing changed.
+    """
+    import pathlib
+    schema_path = pathlib.Path(__file__).parent / 'llm_node_schema.json'
+    if not schema_path.exists():
+        print("[schema] llm_node_schema.json not found — regenerating…")
+        export_schema()
+        return
+
+    schema_mtime = schema_path.stat().st_mtime
+
+    # Directories containing node definitions
+    check_dirs = [
+        pathlib.Path(__file__).parent / 'nodes',
+        pathlib.Path(__file__).parent / 'plugins',
+    ]
+    for d in check_dirs:
+        if not d.exists():
+            continue
+        for f in d.rglob('*.py'):
+            if f.stat().st_mtime > schema_mtime:
+                print(f"[schema] {f.name} changed — regenerating llm_node_schema.json…")
+                export_schema()
+                return
+
+
 if __name__ == '__main__':
     export_schema()
