@@ -783,10 +783,14 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         # Update help panel when node selection changes
         self.graph.node_selection_changed.connect(self._on_node_selection_for_help)
         self.graph.node_created.connect(lambda _n: self._mark_manual_dirty())
+        self.graph.node_created.connect(lambda _n: self._update_order_badges())
         self.graph.nodes_deleted.connect(self._on_nodes_deleted)
+        self.graph.nodes_deleted.connect(lambda _ids: self._update_order_badges())
         self.graph.port_connected.connect(lambda _a, _b: self._mark_manual_dirty())
         self.graph.port_connected.connect(self._on_port_connected_style)
+        self.graph.port_connected.connect(lambda _a, _b: self._update_order_badges())
         self.graph.port_disconnected.connect(lambda _a, _b: self._mark_manual_dirty())
+        self.graph.port_disconnected.connect(lambda _a, _b: self._update_order_badges())
         self.graph.property_changed.connect(lambda _n, _p, _v: self._mark_manual_dirty())
         self.graph.undo_stack().indexChanged.connect(self._on_undo_stack_changed)
 
@@ -1306,6 +1310,12 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         view_menu.addAction(self.dockWidgetNodes.toggleViewAction())
         view_menu.addAction(self.dockWidgetLLM.toggleViewAction())
         view_menu.addAction(self.dockWidgetExecOrder.toggleViewAction())
+        self._show_order_badges = False
+        self._order_badge_items: list = []
+        badge_action = QtGui.QAction(tr("Show Execution Order Badges"), self)
+        badge_action.setCheckable(True)
+        badge_action.toggled.connect(self._toggle_order_badges)
+        view_menu.addAction(badge_action)
 
         minimap_action = QtGui.QAction(tr("Minimap"), self)
         minimap_action.setCheckable(True)
@@ -2611,6 +2621,58 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             pass
         self.statusBar().showMessage(tr("Execution failed."), 5000)
         QtWidgets.QMessageBox.critical(self, tr("Execution Error"), message)
+
+    # ── Execution Order badges ──
+
+    def _toggle_order_badges(self, checked: bool):
+        self._show_order_badges = checked
+        if checked:
+            self._update_order_badges()
+        else:
+            self._clear_order_badges()
+
+    def _clear_order_badges(self):
+        for item in self._order_badge_items:
+            scene = item.scene()
+            if scene:
+                scene.removeItem(item)
+        self._order_badge_items.clear()
+
+    def _update_order_badges(self):
+        self._clear_order_badges()
+        if not self._show_order_badges:
+            return
+        order = self._compute_topo_order()
+        if order is None:
+            return
+        scene = self.graph.scene()
+        if scene is None:
+            return
+        for i, node in enumerate(order):
+            view = node.view
+            rect = view.boundingRect()
+            # Badge circle + number
+            badge_size = 22.0
+            x = rect.right() - badge_size - 4
+            y = rect.top() + 4
+            # Circle background
+            circle = QtWidgets.QGraphicsEllipseItem(
+                x, y, badge_size, badge_size, view)
+            circle.setBrush(QtGui.QColor(30, 130, 230, 200))
+            circle.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 180), 1.5))
+            circle.setZValue(100)
+            # Number text
+            text = QtWidgets.QGraphicsSimpleTextItem(str(i + 1), circle)
+            font = QtGui.QFont("Arial", 9, QtGui.QFont.Weight.Bold)
+            text.setFont(font)
+            text.setBrush(QtGui.QColor(255, 255, 255))
+            # Center text in circle
+            tr = text.boundingRect()
+            text.setPos(
+                x + (badge_size - tr.width()) / 2,
+                y + (badge_size - tr.height()) / 2
+            )
+            self._order_badge_items.append(circle)
 
     # ── Execution Order panel helpers ──
 
