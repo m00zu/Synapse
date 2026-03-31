@@ -157,6 +157,7 @@
                                 "JoinTablesNode",
                                 "MathColumnNode",
                                 "NormalizeColumnNode",
+                                "PythonScriptNode",
                                 "RandomSampleNode",
                                 "RenameGroupNode",
                                 "ReshapeTableNode",
@@ -4779,6 +4780,36 @@
                                             "suffix": {
                                                 "type": "string",
                                                 "description": "Default: _norm"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "PythonScriptNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "n_inputs": {
+                                                "type": "number",
+                                                "description": "Default: 1"
+                                            },
+                                            "n_outputs": {
+                                                "type": "number",
+                                                "description": "Default: 1"
+                                            },
+                                            "script_code": {
+                                                "type": "string",
+                                                "description": "Default: # Write your code here\nout_1 = in_1"
                                             }
                                         }
                                     }
@@ -10687,6 +10718,35 @@
                 "suffix": {
                     "type": "str",
                     "default": "_norm"
+                }
+            }
+        },
+        "PythonScriptNode": {
+            "description": "Runs a user-defined Python script with dynamic input/output ports.",
+            "inputs": [
+                {
+                    "name": "in_1",
+                    "type": "any"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "out_1",
+                    "type": "any"
+                }
+            ],
+            "configurable_properties": {
+                "n_inputs": {
+                    "type": "int",
+                    "default": 1
+                },
+                "n_outputs": {
+                    "type": "int",
+                    "default": 1
+                },
+                "script_code": {
+                    "type": "str",
+                    "default": "# Write your code here\nout_1 = in_1"
                 }
             }
         },
