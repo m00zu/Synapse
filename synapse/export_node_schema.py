@@ -304,26 +304,23 @@ def _is_schema_stale() -> bool:
 
 
 def auto_regenerate_if_stale():
-    """Check if schema is stale (fast), then regenerate in background if needed.
+    """Check if schema is stale (fast), then regenerate in a subprocess if needed.
 
     The mtime check runs on the main thread (instant).
-    The actual regeneration is deferred via QTimer so the app window
-    appears first, then the schema is rebuilt without blocking startup.
+    The actual regeneration runs as a separate Python process so
+    the UI is never blocked.
     """
     if not _is_schema_stale():
         return
 
-    from PySide6.QtCore import QTimer
-    def _deferred_regen():
-        try:
-            print("[schema] regenerating llm_node_schema.json…")
-            export_schema()
-            print("[schema] done.")
-        except Exception as e:
-            print(f"[schema] regeneration failed: {e}")
-
-    # Fire after the event loop is running (0ms = next idle cycle)
-    QTimer.singleShot(0, _deferred_regen)
+    import subprocess
+    print("[schema] node files changed — regenerating in background…")
+    # Run export_node_schema.py as a subprocess (it has __main__ support)
+    subprocess.Popen(
+        [sys.executable, "-m", "synapse.export_node_schema"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 if __name__ == '__main__':

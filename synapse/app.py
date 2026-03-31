@@ -2748,13 +2748,6 @@ def main():
     app.setApplicationDisplayName("Synapse")
     app.setStyle("Fusion")
 
-    # Auto-regenerate LLM node schema if any node source file changed
-    try:
-        from synapse.export_node_schema import auto_regenerate_if_stale
-        auto_regenerate_if_stale()
-    except Exception as e:
-        print(f"[schema] auto-regenerate skipped: {e}")
-
     # Set application icon (taskbar, dock, window icon)
     import pathlib
     _icon_path = pathlib.Path(__file__).parent / 'icons' / 'synapse_icon.png'
@@ -2766,6 +2759,14 @@ def main():
 
     window = NodeExecutionWindow(theme_manager=theme_manager)
     window.show()
+
+    # Auto-regenerate LLM node schema after window is visible
+    try:
+        from synapse.export_node_schema import auto_regenerate_if_stale
+        auto_regenerate_if_stale()
+    except Exception as e:
+        print(f"[schema] auto-regenerate skipped: {e}")
+
     app.exec()
 
 if __name__ == '__main__':
