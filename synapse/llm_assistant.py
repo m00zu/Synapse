@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import traceback
 from pathlib import Path
 from typing import Optional
@@ -82,12 +83,21 @@ from PySide6 import QtCore, QtGui, QtWidgets
 #   pip install (site-packages/synapse/), source run, Nuitka frozen build
 # ---------------------------------------------------------------------------
 def _find_schema() -> Path:
+    # In frozen builds, prefer the persistent (user-data) copy over the bundled one,
+    # since bundled files live in a temp dir and can't be updated.
+    if getattr(sys, 'frozen', False) or "__compiled__" in globals():
+        try:
+            from .export_node_schema import _get_persistent_schema_path
+            persistent = _get_persistent_schema_path()
+            if persistent and persistent.exists():
+                return persistent
+        except Exception:
+            pass
     candidates = [
         Path(__file__).parent / "llm_node_schema.json",   # pip install / source
         Path(__file__).parent.parent / "llm_node_schema.json",  # source root
     ]
     if "__compiled__" in globals():
-        import sys
         candidates.append(Path(sys.executable).parent / "llm_node_schema.json")  # Nuitka
     for p in candidates:
         if p.exists():

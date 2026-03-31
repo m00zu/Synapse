@@ -36,9 +36,15 @@ Reduces a table to aggregate statistics across rows, optionally grouped by colum
     
     Parameters:
 
-    - **Operation** — sum, mean, median, min, max, count, std, var
+    - **Operation** — sum, mean, median, min, max, count, std, var, auc
     - **Group By** — column name(s) to group by (comma-separated, leave empty for no grouping)
     - **Columns** — restrict to specific columns (comma-separated, leave empty = all numeric)
+    - **Sort By** — column to sort by before computing AUC (required for auc, e.g. time column)
+    
+    The **auc** operation computes the area under the curve using the trapezoidal
+    rule.  Rows are first sorted by the *Sort By* column, which serves as the
+    x-axis (e.g. time).  Each selected numeric column is then integrated against
+    that x-axis.
 
 | Direction | Port | Type |
 |-----------|------|------|

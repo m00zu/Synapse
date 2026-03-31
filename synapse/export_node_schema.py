@@ -236,16 +236,46 @@ def export_schema():
     # 5. Save the output
     import os
     out_file = os.path.join(os.path.dirname(__file__), 'llm_node_schema.json')
+    # In frozen (Nuitka onefile) mode, the bundled dir is temp — write to persistent location
+    if getattr(sys, 'frozen', False):
+        persistent = _get_persistent_schema_path()
+        if persistent:
+            persistent.parent.mkdir(parents=True, exist_ok=True)
+            out_file = str(persistent)
     with open(out_file, 'w') as f:
         json.dump(schema, f, indent=4)
         
     print(f"Generated successfully: {out_file}")
     print(f"Total Nodes Processed: {len(schema['node_catalog'])}")
 
+def _get_persistent_schema_path():
+    """Return a persistent path for the schema in frozen builds."""
+    import pathlib, platform, os
+    try:
+        from .plugin_loader import get_plugin_dir
+        return get_plugin_dir() / 'llm_node_schema.json'
+    except Exception:
+        pass
+    # Fallback
+    system = platform.system()
+    if system == 'Darwin':
+        base = pathlib.Path.home() / 'Library' / 'Application Support' / 'Synapse'
+    elif system == 'Windows':
+        base = pathlib.Path(os.environ.get('APPDATA', str(pathlib.Path.home()))) / 'Synapse'
+    else:
+        base = pathlib.Path.home() / '.synapse'
+    return base / 'llm_node_schema.json'
+
+
 def _is_schema_stale() -> bool:
     """Quick mtime check — returns True if any node .py is newer than the schema."""
     import pathlib
+    # In frozen mode, check persistent path first; otherwise check bundled path
     schema_path = pathlib.Path(__file__).parent / 'llm_node_schema.json'
+    if getattr(sys, 'frozen', False):
+        persistent = _get_persistent_schema_path()
+        if persistent and persistent.exists():
+            schema_path = persistent
     if not schema_path.exists():
         return True
 

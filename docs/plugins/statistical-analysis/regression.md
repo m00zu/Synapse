@@ -2,23 +2,31 @@
 
 ### Linear Regression
 
-Performs ordinary least-squares (OLS) linear regression, simple or multiple.
+Performs ordinary least-squares (OLS) linear or polynomial regression.
 
 ??? note "Details"
+    Set **Degree** > 1 for polynomial regression (e.g. 2 = quadratic, 3 = cubic).
+    With degree 1 (default), this is standard linear regression.
+    
     Outputs:
 
     - **coefficients** — slope, intercept, standard error, 95% CI, and p-values per parameter
     - **residuals** — fitted values, residuals, and standardized residuals for downstream plotting
     
     Summary statistics: R², adjusted R², F-statistic, and F p-value.
+    
+              R-squared, coefficient, residuals, predict, fitted values,
+              multiple regression, quadratic, cubic, standard curve, Bradford,
+              線性回歸, 多項式迴歸, 迴歸分析, 最小二乘法, 斜率, 截距, 決定係數
 
 | Direction | Port | Type |
 |-----------|------|------|
 | **Input** | `in` | table |
 | **Output** | `coefficients` | stat |
 | **Output** | `residuals` | table |
+| **Output** | `curve` | table |
 
-**Properties:** ``
+**Properties:** `Polynomial Degree`, ``
 
 ---
 
@@ -46,7 +54,31 @@ Fits nonlinear curves to XY data using `scipy.optimize.curve_fit`.
 | **Output** | `parameters` | stat |
 | **Output** | `curve` | table |
 
-**Properties:** `Model`
+**Properties:** `Model`, `X Min (0=auto)`, `X Max (0=auto)`
+
+---
+
+### Model Predict
+
+Predicts Y values from a fitted model and a new data table.
+
+??? note "Details"
+    Connect the **model** output from Linear Regression or Nonlinear Regression,
+    then provide a table with the X column to predict on.
+    
+    The node auto-detects the X column name from the model metadata.
+    Override with the **X Column** field if the new table uses a different name.
+    
+    Outputs the input table with an added **Predicted** column.
+    
+              Bradford, ELISA, 預測, 插值, 標準曲線
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `data` | table |
+| **Output** | `out` | table |
+
+**Properties:** ``, `Inverse X Min (0=auto)`, `Inverse X Max (0=auto)`
 
 ---
 

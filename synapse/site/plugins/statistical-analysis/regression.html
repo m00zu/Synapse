@@ -1528,6 +1528,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#model-predict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model Predict
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#two-way-anova" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1961,15 +1972,21 @@
 
 <h1 id="regression-advanced">Regression &amp; Advanced<a class="headerlink" href="#regression-advanced" title="Permanent link">&para;</a></h1>
 <h3 id="linear-regression">Linear Regression<a class="headerlink" href="#linear-regression" title="Permanent link">&para;</a></h3>
-<p>Performs ordinary least-squares (OLS) linear regression, simple or multiple.</p>
+<p>Performs ordinary least-squares (OLS) linear or polynomial regression.</p>
 <details class="note">
 <summary>Details</summary>
+<p>Set <strong>Degree</strong> &gt; 1 for polynomial regression (e.g. 2 = quadratic, 3 = cubic).
+With degree 1 (default), this is standard linear regression.</p>
 <p>Outputs:</p>
 <ul>
 <li><strong>coefficients</strong> — slope, intercept, standard error, 95% CI, and p-values per parameter</li>
 <li><strong>residuals</strong> — fitted values, residuals, and standardized residuals for downstream plotting</li>
 </ul>
 <p>Summary statistics: R², adjusted R², F-statistic, and F p-value.</p>
+<pre><code>      R-squared, coefficient, residuals, predict, fitted values,
+      multiple regression, quadratic, cubic, standard curve, Bradford,
+      線性回歸, 多項式迴歸, 迴歸分析, 最小二乘法, 斜率, 截距, 決定係數
+</code></pre>
 </details>
 <table>
 <thead>
@@ -1995,9 +2012,14 @@
 <td><code>residuals</code></td>
 <td>table</td>
 </tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>curve</code></td>
+<td>table</td>
+</tr>
 </tbody>
 </table>
-<p><strong>Properties:</strong> ``</p>
+<p><strong>Properties:</strong> <code>Polynomial Degree</code>, ``</p>
 <hr />
 <h3 id="nonlinear-regression">Nonlinear Regression<a class="headerlink" href="#nonlinear-regression" title="Permanent link">&para;</a></h3>
 <p>Fits nonlinear curves to XY data using <code>scipy.optimize.curve_fit</code>.</p>
@@ -2042,7 +2064,42 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Properties:</strong> <code>Model</code></p>
+<p><strong>Properties:</strong> <code>Model</code>, <code>X Min (0=auto)</code>, <code>X Max (0=auto)</code></p>
+<hr />
+<h3 id="model-predict">Model Predict<a class="headerlink" href="#model-predict" title="Permanent link">&para;</a></h3>
+<p>Predicts Y values from a fitted model and a new data table.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Connect the <strong>model</strong> output from Linear Regression or Nonlinear Regression,
+then provide a table with the X column to predict on.</p>
+<p>The node auto-detects the X column name from the model metadata.
+Override with the <strong>X Column</strong> field if the new table uses a different name.</p>
+<p>Outputs the input table with an added <strong>Predicted</strong> column.</p>
+<pre><code>      Bradford, ELISA, 預測, 插值, 標準曲線
+</code></pre>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>data</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>out</code></td>
+<td>table</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>`,</code>Inverse X Min (0=auto)<code>,</code>Inverse X Max (0=auto)`</p>
 <hr />
 <h3 id="two-way-anova">Two-Way ANOVA<a class="headerlink" href="#two-way-anova" title="Permanent link">&para;</a></h3>
 <p>Performs two-way analysis of variance with interaction term (Type II SS).</p>
