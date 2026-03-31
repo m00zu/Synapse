@@ -2021,10 +2021,15 @@ With grouping, each unique group gets its own summary row.</p>
 </table>
 <p>Parameters:</p>
 <ul>
-<li><strong>Operation</strong> — sum, mean, median, min, max, count, std, var</li>
+<li><strong>Operation</strong> — sum, mean, median, min, max, count, std, var, auc</li>
 <li><strong>Group By</strong> — column name(s) to group by (comma-separated, leave empty for no grouping)</li>
 <li><strong>Columns</strong> — restrict to specific columns (comma-separated, leave empty = all numeric)</li>
+<li><strong>Sort By</strong> — column to sort by before computing AUC (required for auc, e.g. time column)</li>
 </ul>
+<p>The <strong>auc</strong> operation computes the area under the curve using the trapezoidal
+rule.  Rows are first sorted by the <em>Sort By</em> column, which serves as the
+x-axis (e.g. time).  Each selected numeric column is then integrated against
+that x-axis.</p>
 </details>
 <table>
 <thead>
