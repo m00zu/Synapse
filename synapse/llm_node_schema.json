@@ -87,6 +87,7 @@
                                 "MultiChannelBCNode",
                                 "MultiOtsuNode",
                                 "OIRReaderNode",
+                                "ParticleClassifyNode",
                                 "ParticlePropsNode",
                                 "ParticleSelectNode",
                                 "PrewittEdgeNode",
@@ -1705,6 +1706,28 @@
                             "if": {
                                 "properties": {
                                     "type": {
+                                        "const": "ParticleClassifyNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "classify_state": {
+                                                "type": "string",
+                                                "description": "Default: {\"groups\": [], \"group_map\": {}}"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
                                         "const": "ParticlePropsNode"
                                     }
                                 }
@@ -2907,6 +2930,10 @@
                                             "bar_value_offset": {
                                                 "type": "number",
                                                 "description": "Default: 8"
+                                            },
+                                            "bar_width": {
+                                                "type": "number",
+                                                "description": "Default: 0.8"
                                             },
                                             "capsize": {
                                                 "type": "number",
@@ -7277,6 +7304,35 @@
                 }
             }
         },
+        "ParticleClassifyNode": {
+            "description": "Assigns particles to named groups by drawing shapes around them.",
+            "inputs": [
+                {
+                    "name": "label_image",
+                    "type": "label_image"
+                },
+                {
+                    "name": "image",
+                    "type": "image"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "label_image",
+                    "type": "label_image"
+                },
+                {
+                    "name": "table",
+                    "type": "table"
+                }
+            ],
+            "configurable_properties": {
+                "classify_state": {
+                    "type": "str",
+                    "default": "{\"groups\": [], \"group_map\": {}}"
+                }
+            }
+        },
         "ParticlePropsNode": {
             "description": "Labels connected components in a mask and measures each region.",
             "inputs": [
@@ -8710,6 +8766,10 @@
                 "bar_value_offset": {
                     "type": "int",
                     "default": 8
+                },
+                "bar_width": {
+                    "type": "float",
+                    "default": 0.8
                 },
                 "capsize": {
                     "type": "float",
@@ -10722,7 +10782,7 @@
             }
         },
         "PythonScriptNode": {
-            "description": "Runs a user-defined Python script with dynamic input/output ports.",
+            "description": "Run custom Python code with dynamic input and output ports.",
             "inputs": [
                 {
                     "name": "in_1",
