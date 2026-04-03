@@ -304,6 +304,10 @@ class DataFigureCellNode(BaseExecutionNode):
             except Exception:
                 pass
             self._figure_widget.set_value(data)
+            # Force proxy + node to recalculate geometry for new figure dimensions
+            proxy = self._figure_widget
+            if proxy.widget():
+                proxy.widget().adjustSize()
             self.view.draw_node()
         else:
             self._figure_widget.set_value(None)

@@ -795,17 +795,19 @@ class NodeImageWidget(NodeBaseWidget):
         import numpy as np
 
         if isinstance(data, matplotlib.figure.Figure):
-            # Use figsize directly — stable dimensions across runs.
-            # No bbox_inches='tight': tight_layout() is called by the caller,
-            # so content fits within the figure bounds without it.
+            # Convert figsize (inches) to pixels for display sizing
             w_in, h_in = data.get_size_inches()
-            dw, dh = self._compute_display_size(w_in, h_in)
+            dpi = data.get_dpi()
+            w_px, h_px = w_in * dpi, h_in * dpi
+            dw, dh = self._compute_display_size(w_px, h_px)
             self._layout_widget.setFixedSize(dw, dh)
 
             fd, path = tempfile.mkstemp(suffix=".svg")
             os.close(fd)
             try:
                 data.savefig(path, format='svg')
+                # Force reload: clear first, then load new SVG
+                self._svg_widget.load(QtCore.QByteArray())
                 self._svg_widget.load(path)
             finally:
                 if os.path.exists(path):
@@ -818,6 +820,7 @@ class NodeImageWidget(NodeBaseWidget):
                 view_box = QtCore.QRectF(0, 0, default_size.width(), default_size.height())
                 renderer.setViewBox(view_box)
 
+            self._svg_widget.setFixedSize(dw, dh)
             self._stack.setCurrentWidget(self._svg_widget)
 
         elif isinstance(data, bytes):

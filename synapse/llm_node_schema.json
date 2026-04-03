@@ -2939,6 +2939,14 @@
                                                 "type": "number",
                                                 "description": "Default: 0.1"
                                             },
+                                            "err_linewidth": {
+                                                "type": "number",
+                                                "description": "Default: 1.5"
+                                            },
+                                            "err_color": {
+                                                "type": "string",
+                                                "description": "Default: [0, 0, 0, 255]"
+                                            },
                                             "show_points": {
                                                 "type": "boolean",
                                                 "description": "Default: False"
@@ -3048,6 +3056,14 @@
                                             "point_color": {
                                                 "type": "string",
                                                 "description": "Default: match"
+                                            },
+                                            "box_width": {
+                                                "type": "number",
+                                                "description": "Default: 0.8"
+                                            },
+                                            "show_mean": {
+                                                "type": "boolean",
+                                                "description": "Default: False"
                                             },
                                             "fig_width": {
                                                 "type": "number",
@@ -3222,6 +3238,10 @@
                                                 "type": "boolean",
                                                 "description": "Default: True"
                                             },
+                                            "annot_fmt": {
+                                                "type": "string",
+                                                "description": "Default: .2f"
+                                            },
                                             "vmin": {
                                                 "type": "string",
                                                 "description": "Default: "
@@ -3301,11 +3321,19 @@
                                             },
                                             "y_label": {
                                                 "type": "string",
-                                                "description": "Default: Count"
+                                                "description": "Default: "
                                             },
                                             "plot_title": {
                                                 "type": "string",
                                                 "description": "Default: "
+                                            },
+                                            "stat": {
+                                                "type": "string",
+                                                "description": "Default: count"
+                                            },
+                                            "hist_alpha": {
+                                                "type": "number",
+                                                "description": "Default: 0.7"
                                             },
                                             "fig_width": {
                                                 "type": "number",
@@ -3643,6 +3671,18 @@
                                                 "type": "string",
                                                 "description": "Default: "
                                             },
+                                            "marker_size": {
+                                                "type": "number",
+                                                "description": "Default: 25"
+                                            },
+                                            "alpha": {
+                                                "type": "number",
+                                                "description": "Default: 0.7"
+                                            },
+                                            "marker": {
+                                                "type": "string",
+                                                "description": "Default: o"
+                                            },
                                             "fig_width": {
                                                 "type": "number",
                                                 "description": "Default: 7.0"
@@ -3963,6 +4003,10 @@
                                                 "type": "number",
                                                 "description": "Default: 0.05"
                                             },
+                                            "group_spacing": {
+                                                "type": "number",
+                                                "description": "Default: 0.5"
+                                            },
                                             "plot_toolbox": {
                                                 "type": "string",
                                                 "description": "Default: None"
@@ -4016,6 +4060,14 @@
                                             "inner_box": {
                                                 "type": "boolean",
                                                 "description": "Default: True"
+                                            },
+                                            "bw_adjust": {
+                                                "type": "number",
+                                                "description": "Default: 1.0"
+                                            },
+                                            "violin_scale": {
+                                                "type": "string",
+                                                "description": "Default: area"
                                             },
                                             "show_points": {
                                                 "type": "boolean",
@@ -4238,6 +4290,26 @@
                                             "plot_title": {
                                                 "type": "string",
                                                 "description": "Default: "
+                                            },
+                                            "line_width": {
+                                                "type": "number",
+                                                "description": "Default: 1.8"
+                                            },
+                                            "line_style": {
+                                                "type": "string",
+                                                "description": "Default: -"
+                                            },
+                                            "marker_size": {
+                                                "type": "number",
+                                                "description": "Default: 5"
+                                            },
+                                            "marker": {
+                                                "type": "string",
+                                                "description": "Default: o"
+                                            },
+                                            "capsize": {
+                                                "type": "number",
+                                                "description": "Default: 4.0"
                                             },
                                             "fig_width": {
                                                 "type": "number",
@@ -8775,6 +8847,19 @@
                     "type": "float",
                     "default": 0.1
                 },
+                "err_linewidth": {
+                    "type": "float",
+                    "default": 1.5
+                },
+                "err_color": {
+                    "type": "list",
+                    "default": [
+                        0,
+                        0,
+                        0,
+                        255
+                    ]
+                },
                 "show_points": {
                     "type": "bool",
                     "default": false
@@ -8897,6 +8982,14 @@
                 "point_color": {
                     "type": "str",
                     "default": "match"
+                },
+                "box_width": {
+                    "type": "float",
+                    "default": 0.8
+                },
+                "show_mean": {
+                    "type": "bool",
+                    "default": false
                 },
                 "fig_width": {
                     "type": "float",
@@ -9078,6 +9171,10 @@
                     "type": "bool",
                     "default": true
                 },
+                "annot_fmt": {
+                    "type": "str",
+                    "default": ".2f"
+                },
                 "vmin": {
                     "type": "str",
                     "default": ""
@@ -9156,11 +9253,19 @@
                 },
                 "y_label": {
                     "type": "str",
-                    "default": "Count"
+                    "default": ""
                 },
                 "plot_title": {
                     "type": "str",
                     "default": ""
+                },
+                "stat": {
+                    "type": "str",
+                    "default": "count"
+                },
+                "hist_alpha": {
+                    "type": "float",
+                    "default": 0.7
                 },
                 "fig_width": {
                     "type": "float",
@@ -9491,6 +9596,18 @@
                 "plot_title": {
                     "type": "str",
                     "default": ""
+                },
+                "marker_size": {
+                    "type": "int",
+                    "default": 25
+                },
+                "alpha": {
+                    "type": "float",
+                    "default": 0.7
+                },
+                "marker": {
+                    "type": "str",
+                    "default": "o"
                 },
                 "fig_width": {
                     "type": "float",
@@ -9863,6 +9980,10 @@
                     "type": "float",
                     "default": 0.05
                 },
+                "group_spacing": {
+                    "type": "float",
+                    "default": 0.5
+                },
                 "plot_toolbox": {
                     "type": "string",
                     "default": null
@@ -9919,6 +10040,14 @@
                 "inner_box": {
                     "type": "bool",
                     "default": true
+                },
+                "bw_adjust": {
+                    "type": "float",
+                    "default": 1.0
+                },
+                "violin_scale": {
+                    "type": "str",
+                    "default": "area"
                 },
                 "show_points": {
                     "type": "bool",
@@ -10172,6 +10301,26 @@
                 "plot_title": {
                     "type": "str",
                     "default": ""
+                },
+                "line_width": {
+                    "type": "float",
+                    "default": 1.8
+                },
+                "line_style": {
+                    "type": "str",
+                    "default": "-"
+                },
+                "marker_size": {
+                    "type": "int",
+                    "default": 5
+                },
+                "marker": {
+                    "type": "str",
+                    "default": "o"
+                },
+                "capsize": {
+                    "type": "float",
+                    "default": 4.0
                 },
                 "fig_width": {
                     "type": "float",

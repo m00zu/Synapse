@@ -888,6 +888,12 @@ class NodeItem(AbstractNodeItem):
         self._text_item.setVisible(visible)
         self._icon_item.setVisible(visible)
 
+        # Re-layout when coming back from proxy mode so widgets fit
+        # inside the node boundary (without this, widgets overflow
+        # after a deep zoom-out → zoom-in cycle).
+        if visible:
+            self.draw_node()
+
     @property
     def icon(self):
         return self._properties['icon']

@@ -74,19 +74,22 @@ def _extract_params(fig):
                 'labelrotation': float(t.label1.get_rotation()),
                 'direction':     direction,
                 'length':        float(t.tick1line.get_markersize()),
+                'width':         float(t.tick1line.get_markeredgewidth()),
                 'major_visible': bool(t.tick1line.get_visible()),
             }
         else:
             params[axis_key] = {'labelsize': 10.0, 'labelrotation': 0.0,
                                  'direction': 'out', 'length': 3.5,
-                                 'major_visible': True}
+                                 'width': 0.8, 'major_visible': True}
         if minor_ticks:
             mt = minor_ticks[0]
             params[axis_key]['minor_visible'] = bool(mt.tick1line.get_visible())
             params[axis_key]['minor_length']  = float(mt.tick1line.get_markersize())
+            params[axis_key]['minor_width']   = float(mt.tick1line.get_markeredgewidth())
         else:
             params[axis_key]['minor_visible'] = False
             params[axis_key]['minor_length']  = 2.0
+            params[axis_key]['minor_width']   = 0.6
 
     # Grid
     for grid_key, axis in [('xgrid', ax.xaxis), ('ygrid', ax.yaxis)]:
@@ -417,7 +420,8 @@ def _apply_params(fig, params):
                            labelsize=p.get('labelsize', 10.0),
                            labelrotation=p.get('labelrotation', 0.0),
                            direction=p.get('direction', 'out'),
-                           length=p.get('length', 3.5))
+                           length=p.get('length', 3.5),
+                           width=p.get('width', 0.8))
             if 'major_visible' in p:
                 visible = bool(p['major_visible'])
                 if axis_name == 'x':
@@ -430,7 +434,8 @@ def _apply_params(fig, params):
                 else:
                     ax.yaxis.set_minor_locator(_mticker.AutoMinorLocator())
                 ax.tick_params(axis=axis_name, which='minor',
-                               length=p.get('minor_length', 2.0))
+                               length=p.get('minor_length', 2.0),
+                               width=p.get('minor_width', 0.6))
             else:
                 if axis_name == 'x':
                     ax.xaxis.set_minor_locator(_mticker.NullLocator())
@@ -881,6 +886,16 @@ class FigureEditDialog(QtWidgets.QDialog):
             dc.setCurrentText(p.get('direction', 'out'))
             form.addRow("Direction", dc);  setattr(self, f'_{axis_key}_dir', dc)
 
+            maj_len = QtWidgets.QDoubleSpinBox()
+            maj_len.setRange(0, 20); maj_len.setSingleStep(0.5)
+            maj_len.setValue(float(p.get('length', 3.5)))
+            form.addRow("Major Length", maj_len);  setattr(self, f'_{axis_key}_major_len', maj_len)
+
+            maj_w = QtWidgets.QDoubleSpinBox()
+            maj_w.setRange(0.1, 5.0); maj_w.setSingleStep(0.1); maj_w.setDecimals(1)
+            maj_w.setValue(float(p.get('width', 0.8)))
+            form.addRow("Major Width", maj_w);  setattr(self, f'_{axis_key}_major_w', maj_w)
+
             min_vis = QtWidgets.QCheckBox("Minor Ticks Visible")
             min_vis.setChecked(bool(p.get('minor_visible', False)))
             form.addRow("", min_vis);  setattr(self, f'_{axis_key}_minor_vis', min_vis)
@@ -889,6 +904,11 @@ class FigureEditDialog(QtWidgets.QDialog):
             min_len.setRange(0, 20); min_len.setSingleStep(0.5)
             min_len.setValue(float(p.get('minor_length', 2.0)))
             form.addRow("Minor Length", min_len);  setattr(self, f'_{axis_key}_minor_len', min_len)
+
+            min_w = QtWidgets.QDoubleSpinBox()
+            min_w.setRange(0.1, 5.0); min_w.setSingleStep(0.1); min_w.setDecimals(1)
+            min_w.setValue(float(p.get('minor_width', 0.6)))
+            form.addRow("Minor Width", min_w);  setattr(self, f'_{axis_key}_minor_w', min_w)
 
             vbox.addWidget(grp)
 
@@ -1648,9 +1668,12 @@ class FigureEditDialog(QtWidgets.QDialog):
             p['labelsize']     = getattr(self, f'_{axis_key}_size').value()
             p['labelrotation'] = getattr(self, f'_{axis_key}_rot').value()
             p['direction']     = getattr(self, f'_{axis_key}_dir').currentText()
+            p['length']        = getattr(self, f'_{axis_key}_major_len').value()
+            p['width']         = getattr(self, f'_{axis_key}_major_w').value()
             p['major_visible'] = getattr(self, f'_{axis_key}_major_vis').isChecked()
             p['minor_visible'] = getattr(self, f'_{axis_key}_minor_vis').isChecked()
             p['minor_length']  = getattr(self, f'_{axis_key}_minor_len').value()
+            p['minor_width']   = getattr(self, f'_{axis_key}_minor_w').value()
         for grid_key in ('xgrid', 'ygrid'):
             p = self._params.setdefault(grid_key, {})
             p['visible']   = getattr(self, f'_{grid_key}_vis').isChecked()
@@ -1826,15 +1849,6 @@ class PlotToolboxMixin:
         self.toolbox._toolbox.setFixedHeight(height)
         self.toolbox._toolbox.setMinimumWidth(280)
         self.add_custom_widget(self.toolbox)
-
-        # Patch proxy mode to restore node size after zoom in/out
-        _original_set_proxy = self.view.set_proxy_mode
-        _node_ref = self
-        def _patched_set_proxy(mode):
-            _original_set_proxy(mode)
-            if not mode and hasattr(_node_ref, 'view'):
-                _node_ref.view.draw_node()
-        self.view.set_proxy_mode = _patched_set_proxy
 
     def _tb_text(self, name, label, page, default=''):
         container = QtWidgets.QWidget()
@@ -2399,7 +2413,8 @@ class SwarmPlotNode(PlotToolboxMixin, BaseExecutionNode):
         self.create_property('stat_text_color', [0, 0, 0, 255], widget_type=NodeGraphQt.constants.NodePropWidgetEnum.HIDDEN.value, tab='Properties')
         self.create_property('stat_text_size', 12.0, widget_type=NodeGraphQt.constants.NodePropWidgetEnum.HIDDEN.value, tab='Properties')
         self.create_property('stat_y_offset', 0.05, widget_type=NodeGraphQt.constants.NodePropWidgetEnum.HIDDEN.value, tab='Properties')
-        
+        self.create_property('group_spacing', 0.5, widget_type=NodeGraphQt.constants.NodePropWidgetEnum.HIDDEN.value, tab='Properties')
+
         # Create the toolbox widget
         self._build_toolbox(450)
 
@@ -2415,6 +2430,7 @@ class SwarmPlotNode(PlotToolboxMixin, BaseExecutionNode):
         self._tb_spinbox('tick_rotation', 'X-Tick Rotation (Deg)', 'Data & Labels', 0.0, 0, 180, 1, 2)
         self._tb_spinbox('fig_width', 'Fig Width', 'Figure & Layout', 10.0, 0, 100, 0.5, 2)
         self._tb_spinbox('fig_height', 'Fig Height', 'Figure & Layout', 8.0, 0, 100, 0.5, 2)
+        self._tb_spinbox('group_spacing', 'Group Spacing', 'Figure & Layout', 0.5, 0.1, 10.0, 0.05, 2)
         self._tb_combo('dot_palette', 'Color Palette (by Group)', 'Visuals', ['None', 'Set2', 'husl', 'viridis', 'colorblind', 'pastel', 'dark'])
         self._tb_color('dot_color', 'Dot Color (if No Palette)', 'Visuals')
         self._tb_spinbox('dot_size', 'Dot Size', 'Visuals', 5.0, 0, 100, 0.5, 2)
@@ -2748,7 +2764,16 @@ class SwarmPlotNode(PlotToolboxMixin, BaseExecutionNode):
             
             ax.set_ylabel(y_label_text, fontsize=label_fs)
             ax.set_title(title_text, fontweight='bold', fontsize=title_fs)
-            
+
+            # Tighten group spacing — groups sit at x = 0, 1, …, n-1;
+            # this controls the padding on either side.
+            try:
+                spacing = float(self.get_property('group_spacing'))
+            except (ValueError, TypeError):
+                spacing = 0.5
+            n_groups = len(plot_order)
+            ax.set_xlim(-spacing, max(n_groups - 1, 0) + spacing)
+
             if has_subgroups:
                 ax.set_xticks(range(len(plot_order)))
                 ax.set_xticklabels(x_labels, fontweight='bold', rotation=rot_val)
@@ -3649,6 +3674,8 @@ class BarPlotNode(PlotToolboxMixin, BaseExecutionNode):
         self.create_property('bar_value_offset',    8,       widget_type=H)
         self.create_property('bar_width',   0.8,     widget_type=H)
         self.create_property('capsize',     0.1,     widget_type=H)
+        self.create_property('err_linewidth', 1.5,   widget_type=H)
+        self.create_property('err_color',  [0, 0, 0, 255], widget_type=H)
         self.create_property('show_points', False,   widget_type=H)
         self.create_property('point_style', 'Strip', widget_type=H)
         self.create_property('point_size',  3,       widget_type=H)
@@ -3664,6 +3691,8 @@ class BarPlotNode(PlotToolboxMixin, BaseExecutionNode):
         self._tb_combo('error_type', 'Error Bars',       'Data', ['se', 'sd', 'ci', 'pi'])
         self._tb_spinbox('bar_width', 'Bar Width', 'Data', 0.8, 0.1, 1.0, 0.05, 2)
         self._tb_spinbox('capsize', 'Error Bar Cap', 'Data', 0.1, 0.0, 0.5, 0.02, 2)
+        self._tb_spinbox('err_linewidth', 'Error Bar Thickness', 'Data', 1.5, 0.1, 10.0, 0.1, 2)
+        self._tb_color('err_color', 'Error Bar Color', 'Data')
         self._tb_checkbox('show_points', 'Show Data Points', 'Data', False)
         self._tb_combo('point_style', 'Point Style',     'Data', ['Strip', 'Swarm'])
         self._tb_spinbox('point_size', 'Point Size',      'Data', 3, 1, 20)
@@ -3709,17 +3738,32 @@ class BarPlotNode(PlotToolboxMixin, BaseExecutionNode):
 
         capsize   = float(self.get_property('capsize') or 0.1)
         bar_width = float(self.get_property('bar_width') or 0.8)
+        err_lw    = float(self.get_property('err_linewidth') or 1.5)
+        err_color_raw = self.get_property('err_color')
+        err_color = None
+        if err_color_raw and isinstance(err_color_raw, (list, tuple)) and len(err_color_raw) >= 3:
+            err_color = tuple(c / 255.0 for c in err_color_raw[:3])
+        err_kws = {'linewidth': err_lw}
+        if err_color:
+            err_kws['color'] = err_color
         try:
             # seaborn ≥ 0.12: errorbar kwarg
             sns.barplot(data=df, x=x_col, y=y_col, hue=x_col, order=groups,
                         palette=palette, errorbar=error_type, capsize=capsize,
-                        width=bar_width, legend=False, ax=ax)
+                        width=bar_width, err_kws=err_kws, legend=False, ax=ax)
         except TypeError:
             # older seaborn: ci kwarg
             ci = 68 if error_type == 'se' else 95
             sns.barplot(data=df, x=x_col, y=y_col, hue=x_col, order=groups,
                         palette=palette, legend=False, ci=ci, capsize=capsize,
                         width=bar_width, ax=ax)
+
+        # Force-apply error bar styling (seaborn may ignore err_kws in some versions)
+        for line in ax.get_lines():
+            line.set_linewidth(err_lw)
+            if err_color:
+                line.set_color(err_color)
+            line.set_label('_nolegend_')
 
         # legend=False skips patch labelling; assign group names explicitly so
         # _extract_params can expose per-bar coloring in the figure editor.
@@ -3868,19 +3912,18 @@ class ScatterPlotNode(BaseExecutionNode):
         self.add_combo_menu('palette',     'Palette',
                             items=['Set2', 'husl', 'colorblind', 'viridis', 'None'])
         self.add_checkbox('regression',    '', text='Regression line', state=False)
-        self._add_int_spinbox('marker_size', 'Marker Size', value=25, min_val=1, max_val=200, step=1)
-        self._add_float_spinbox('alpha', 'Opacity', value=0.7, min_val=0.05, max_val=1.0, step=0.05, decimals=2)
-        self.add_combo_menu('marker', 'Marker Style',
-                            items=['o', 's', '^', 'D', 'v', 'X', '+', '*'])
         self.add_text_input('x_label',    'X Label',  text='')
         self.add_text_input('y_label',    'Y Label',  text='')
         self.add_text_input('plot_title', 'Title',    text='')
 
         import NodeGraphQt
         H = NodeGraphQt.constants.NodePropWidgetEnum.HIDDEN.value
-        self.create_property('fig_width',     7.0, widget_type=H)
-        self.create_property('fig_height',    6.0, widget_type=H)
-        self.create_property('tick_rotation', 0.0, widget_type=H)
+        self.create_property('marker_size',   25,    widget_type=H)
+        self.create_property('alpha',         0.7,   widget_type=H)
+        self.create_property('marker',        'o',   widget_type=H)
+        self.create_property('fig_width',     7.0,   widget_type=H)
+        self.create_property('fig_height',    6.0,   widget_type=H)
+        self.create_property('tick_rotation', 0.0,   widget_type=H)
 
     def evaluate(self):
         self.reset_progress()
@@ -3962,18 +4005,17 @@ class HistogramNode(BaseExecutionNode):
         self.add_combo_menu('palette',     'Palette',
                             items=['Set2', 'husl', 'colorblind', 'viridis', 'None'])
         self.add_checkbox('kde',           '', text='KDE overlay', state=True)
-        self.add_combo_menu('stat', 'Stat Type',
-                            items=['count', 'frequency', 'density', 'percent', 'probability'])
-        self._add_float_spinbox('hist_alpha', 'Bar Opacity', value=0.7, min_val=0.1, max_val=1.0, step=0.05, decimals=2)
         self.add_text_input('x_label',    'X Label',  text='')
         self.add_text_input('y_label',    'Y Label',  text='')
         self.add_text_input('plot_title', 'Title',    text='')
 
         import NodeGraphQt
         H = NodeGraphQt.constants.NodePropWidgetEnum.HIDDEN.value
-        self.create_property('fig_width',     7.0, widget_type=H)
-        self.create_property('fig_height',    5.0, widget_type=H)
-        self.create_property('tick_rotation', 0.0, widget_type=H)
+        self.create_property('stat',          'count', widget_type=H)
+        self.create_property('hist_alpha',    0.7,     widget_type=H)
+        self.create_property('fig_width',     7.0,     widget_type=H)
+        self.create_property('fig_height',    5.0,     widget_type=H)
+        self.create_property('tick_rotation', 0.0,     widget_type=H)
 
     def evaluate(self):
         self.reset_progress()
@@ -4267,13 +4309,6 @@ class XYLinePlotNode(BaseExecutionNode):
                             items=['SEM', 'SD', '95% CI', 'None'])
         self.add_text_input('x_order',   'X Order (comma-sep, opt.)', text='')
         self.add_checkbox('show_points', '', text='Show Individual Points', state=True)
-        self._add_float_spinbox('line_width', 'Line Width', value=1.8, min_val=0.5, max_val=10.0, step=0.2, decimals=1)
-        self.add_combo_menu('line_style', 'Line Style',
-                            items=['-', '--', '-.', ':'])
-        self._add_int_spinbox('marker_size', 'Marker Size', value=5, min_val=1, max_val=30, step=1)
-        self.add_combo_menu('marker', 'Marker Style',
-                            items=['o', 's', '^', 'D', 'v', 'X', '+', '*', 'None'])
-        self._add_float_spinbox('capsize', 'Error Cap Size', value=4.0, min_val=0.0, max_val=15.0, step=0.5, decimals=1)
         self.add_combo_menu('palette', 'Color Palette',
                             items=['Set2', 'tab10', 'colorblind', 'husl', 'dark', 'None'])
         self.add_text_input('x_label',    'X Label',    text='')
@@ -4282,9 +4317,14 @@ class XYLinePlotNode(BaseExecutionNode):
 
         import NodeGraphQt as _nq
         H = _nq.constants.NodePropWidgetEnum.HIDDEN.value
-        self.create_property('fig_width',     8.0, widget_type=H)
-        self.create_property('fig_height',    6.0, widget_type=H)
-        self.create_property('tick_rotation', 0.0, widget_type=H)
+        self.create_property('line_width',    1.8,   widget_type=H)
+        self.create_property('line_style',    '-',   widget_type=H)
+        self.create_property('marker_size',   5,     widget_type=H)
+        self.create_property('marker',        'o',   widget_type=H)
+        self.create_property('capsize',       4.0,   widget_type=H)
+        self.create_property('fig_width',     8.0,   widget_type=H)
+        self.create_property('fig_height',    6.0,   widget_type=H)
+        self.create_property('tick_rotation', 0.0,   widget_type=H)
         _add_stat_hidden_props(self)
 
     def evaluate(self):
