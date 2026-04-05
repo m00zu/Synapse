@@ -288,17 +288,35 @@ class DataFigureCellNode(BaseExecutionNode):
             self._figure_widget.set_value(data)
             self.view.draw_node()
         elif isinstance(data, matplotlib.figure.Figure):
-            # Exclude stat bracket lines from legend before layout
+            # Exclude stat bracket lines from legend before layout,
+            # but preserve all existing legend styling
             for ax in data.get_axes():
                 legend = ax.get_legend()
                 if legend is not None:
                     handles, labels = ax.get_legend_handles_labels()
-                    clean = [(h, l) for h, l in zip(handles, labels)
-                             if not getattr(h, '_is_stat_bracket', False)]
-                    if clean:
-                        ax.legend(*zip(*clean))
-                    else:
-                        legend.remove()
+                    has_brackets = any(getattr(h, '_is_stat_bracket', False)
+                                       for h in handles)
+                    if has_brackets:
+                        clean = [(h, l) for h, l in zip(handles, labels)
+                                 if not getattr(h, '_is_stat_bracket', False)]
+                        if clean:
+                            # Preserve existing legend properties
+                            props = {}
+                            try:
+                                props['loc'] = getattr(legend, '_loc', 1)
+                                props['frameon'] = legend.get_frame_on()
+                                props['fontsize'] = legend.get_texts()[0].get_fontsize() if legend.get_texts() else 10
+                                props['ncols'] = getattr(legend, '_ncols', 1)
+                                props['markerscale'] = getattr(legend, 'markerscale', 1.0)
+                                props['framealpha'] = legend.get_frame().get_alpha() if legend.get_frame() else 1.0
+                                title = legend.get_title()
+                                if title and title.get_text():
+                                    props['title'] = title.get_text()
+                            except Exception:
+                                pass
+                            ax.legend(*zip(*clean), **props)
+                        else:
+                            legend.remove()
             try:
                 data.tight_layout()
             except Exception:

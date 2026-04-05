@@ -51,6 +51,7 @@ Demo_OIR/
 test_batch/
 test_data/
 test_files/
+claude-scientific-skills/
 
 # External repos / submodules (install separately)
 rxdock/

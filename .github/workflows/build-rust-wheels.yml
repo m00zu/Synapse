@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v0.1.1)'
+        description: 'Release tag (e.g. v0.1.2)'
         type: string
         required: true
 
@@ -43,12 +43,22 @@ jobs:
         working-directory: image_process_rs
         run: maturin build --release
 
+      - name: Build image_process_3d_rs wheel
+        working-directory: image_process_3d_rs
+        run: maturin build --release
+
+      - name: Build umap_rs_py wheel
+        working-directory: umap-rs/umap-py
+        run: maturin build --release
+
       - name: Collect wheels
         shell: bash
         run: |
           mkdir -p dist
           find oir_reader_rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
           find image_process_rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
+          find image_process_3d_rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
+          find umap-rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
           ls -la dist/
 
       - name: Upload release assets

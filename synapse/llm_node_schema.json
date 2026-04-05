@@ -111,8 +111,12 @@
                                 "ZoomNode",
                                 "ContingencyAnalysisNode",
                                 "DataSummaryNode",
+                                "DescriptiveStatsNode",
+                                "DistributionFitNode",
+                                "EffectSizeNode",
                                 "GroupedComparisonNode",
                                 "LinearRegressionNode",
+                                "MixedEffectsModelNode",
                                 "ModelPredictNode",
                                 "NonlinearRegressionNode",
                                 "NormalityTestNode",
@@ -125,6 +129,7 @@
                                 "VarianceTestNode",
                                 "AnglePlotNode",
                                 "BarPlotNode",
+                                "BlandAltmanNode",
                                 "BoxPlotNode",
                                 "DoubleVarPlotNode",
                                 "FigureEditNode",
@@ -132,6 +137,8 @@
                                 "HistogramNode",
                                 "JointPlotNode",
                                 "KdePlotNode",
+                                "MultiPanelFigureNode",
+                                "RadarChartNode",
                                 "RegressionPlotNode",
                                 "SaveFigureNode",
                                 "ScatterPlotNode",
@@ -170,7 +177,10 @@
                                 "TopNNode",
                                 "TwoTableMathNode",
                                 "TypeCastColumnNode",
-                                "ValueCountsNode"
+                                "ValueCountsNode",
+                                "DisplayHtmlNode",
+                                "ReportNode",
+                                "SaveHtmlNode"
                             ]
                         },
                         "props": {
@@ -2238,6 +2248,145 @@
                             "if": {
                                 "properties": {
                                     "type": {
+                                        "const": "DescriptiveStatsNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "group_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "value_cols": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "ci_level": {
+                                                "type": "number",
+                                                "description": "Default: 0.95"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "DistributionFitNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "value_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "group_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "distributions": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "All",
+                                                    "Normal",
+                                                    "Log-Normal",
+                                                    "Exponential",
+                                                    "Gamma",
+                                                    "Weibull",
+                                                    "Beta",
+                                                    "Rayleigh",
+                                                    "Uniform",
+                                                    "Cauchy",
+                                                    "Logistic",
+                                                    "Pareto",
+                                                    "Student's t",
+                                                    "Inverse Gaussian"
+                                                ],
+                                                "description": "Default: All. Must be one of the listed options."
+                                            },
+                                            "n_overlay": {
+                                                "type": "number",
+                                                "description": "Default: 3"
+                                            },
+                                            "n_bins": {
+                                                "type": "number",
+                                                "description": "Default: 50"
+                                            },
+                                            "fig_w": {
+                                                "type": "number",
+                                                "description": "Default: 7.0"
+                                            },
+                                            "fig_h": {
+                                                "type": "number",
+                                                "description": "Default: 5.0"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "EffectSizeNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "value_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "group_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "method": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "Auto",
+                                                    "Cohen's d",
+                                                    "Hedges' g",
+                                                    "Glass's delta",
+                                                    "Rank-biserial r",
+                                                    "Eta-squared",
+                                                    "Omega-squared"
+                                                ],
+                                                "description": "Default: Auto. Must be one of the listed options."
+                                            },
+                                            "ci_level": {
+                                                "type": "number",
+                                                "description": "Default: 0.95"
+                                            },
+                                            "n_bootstrap": {
+                                                "type": "number",
+                                                "description": "Default: 1000"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
                                         "const": "GroupedComparisonNode"
                                     }
                                 }
@@ -2298,6 +2447,44 @@
                                                 "description": "Default: 1"
                                             },
                                             "intercept": {
+                                                "type": "boolean",
+                                                "description": "Default: True"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "MixedEffectsModelNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "y_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "fixed_cols": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "group_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "random_slope_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "reml": {
                                                 "type": "boolean",
                                                 "description": "Default: True"
                                             }
@@ -3004,6 +3191,52 @@
                             "if": {
                                 "properties": {
                                     "type": {
+                                        "const": "BlandAltmanNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "method1": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "method2": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "ci_level": {
+                                                "type": "number",
+                                                "description": "Default: 0.95"
+                                            },
+                                            "show_ci": {
+                                                "type": "boolean",
+                                                "description": "Default: True"
+                                            },
+                                            "proportional": {
+                                                "type": "boolean",
+                                                "description": "Default: False"
+                                            },
+                                            "fig_w": {
+                                                "type": "number",
+                                                "description": "Default: 7.0"
+                                            },
+                                            "fig_h": {
+                                                "type": "number",
+                                                "description": "Default: 5.0"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
                                         "const": "BoxPlotNode"
                                     }
                                 }
@@ -3498,6 +3731,138 @@
                             "if": {
                                 "properties": {
                                     "type": {
+                                        "const": "MultiPanelFigureNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "n_panels": {
+                                                "type": "number",
+                                                "description": "Default: 2"
+                                            },
+                                            "layout_rows": {
+                                                "type": "number",
+                                                "description": "Default: 0"
+                                            },
+                                            "layout_cols": {
+                                                "type": "number",
+                                                "description": "Default: 0"
+                                            },
+                                            "panel_labels": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "A, B, C\u2026",
+                                                    "a, b, c\u2026",
+                                                    "(A), (B)\u2026",
+                                                    "(a), (b)\u2026",
+                                                    "None"
+                                                ],
+                                                "description": "Default: A, B, C\u2026. Must be one of the listed options."
+                                            },
+                                            "label_fontweight": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "bold",
+                                                    "normal"
+                                                ],
+                                                "description": "Default: bold. Must be one of the listed options."
+                                            },
+                                            "label_fontsize": {
+                                                "type": "number",
+                                                "description": "Default: 16.0"
+                                            },
+                                            "label_pad_x": {
+                                                "type": "number",
+                                                "description": "Default: 4.0"
+                                            },
+                                            "label_pad_y": {
+                                                "type": "number",
+                                                "description": "Default: 2.0"
+                                            },
+                                            "fig_width": {
+                                                "type": "number",
+                                                "description": "Default: 7.0"
+                                            },
+                                            "fig_height": {
+                                                "type": "number",
+                                                "description": "Default: 5.0"
+                                            },
+                                            "spacing": {
+                                                "type": "number",
+                                                "description": "Default: 0.03"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "RadarChartNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "group_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "metric_cols": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "normalize": {
+                                                "type": "boolean",
+                                                "description": "Default: True"
+                                            },
+                                            "fill_alpha": {
+                                                "type": "number",
+                                                "description": "Default: 0.15"
+                                            },
+                                            "line_width": {
+                                                "type": "number",
+                                                "description": "Default: 2.0"
+                                            },
+                                            "palette": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "Set2",
+                                                    "tab10",
+                                                    "Dark2",
+                                                    "Paired",
+                                                    "Set1",
+                                                    "Pastel1",
+                                                    "colorblind"
+                                                ],
+                                                "description": "Default: Set2. Must be one of the listed options."
+                                            },
+                                            "fig_w": {
+                                                "type": "number",
+                                                "description": "Default: 6.0"
+                                            },
+                                            "fig_h": {
+                                                "type": "number",
+                                                "description": "Default: 6.0"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
                                         "const": "RegressionPlotNode"
                                     }
                                 }
@@ -3548,6 +3913,10 @@
                                                 ],
                                                 "description": "Default: Set2. Must be one of the listed options."
                                             },
+                                            "pred_y_col": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
                                             "x_label": {
                                                 "type": "string",
                                                 "description": "Default: "
@@ -3573,19 +3942,19 @@
                                                 "description": "Default: 0.0"
                                             },
                                             "eq_x": {
-                                                "type": "string",
+                                                "type": "number",
                                                 "description": "Default: 0.05"
                                             },
                                             "eq_y": {
-                                                "type": "string",
+                                                "type": "number",
                                                 "description": "Default: 0.95"
                                             },
                                             "eq_size": {
-                                                "type": "string",
-                                                "description": "Default: 9"
+                                                "type": "number",
+                                                "description": "Default: 9.0"
                                             },
                                             "eq_spacing": {
-                                                "type": "string",
+                                                "type": "number",
                                                 "description": "Default: 1.5"
                                             }
                                         }
@@ -5322,6 +5691,84 @@
                                             "include_pct": {
                                                 "type": "boolean",
                                                 "description": "Default: False"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "DisplayHtmlNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "html_view": {
+                                                "type": "string",
+                                                "description": "Default: <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n</style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "ReportNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {
+                                                "type": "string",
+                                                "description": "Default: Analysis Report"
+                                            },
+                                            "context": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "file_path": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            },
+                                            "web_ai_response": {
+                                                "type": "string",
+                                                "description": "Default: "
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "SaveHtmlNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "file_path": {
+                                                "type": "string",
+                                                "description": "Default: "
                                             }
                                         }
                                     }
@@ -8092,6 +8539,146 @@
             ],
             "configurable_properties": {}
         },
+        "DescriptiveStatsNode": {
+            "description": "Computes comprehensive descriptive statistics for numeric columns.",
+            "inputs": [
+                {
+                    "name": "in",
+                    "type": "table"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "results",
+                    "type": "table"
+                }
+            ],
+            "configurable_properties": {
+                "group_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "value_cols": {
+                    "type": "str",
+                    "default": ""
+                },
+                "ci_level": {
+                    "type": "float",
+                    "default": 0.95
+                }
+            }
+        },
+        "DistributionFitNode": {
+            "description": "Fits data to candidate probability distributions and ranks them by",
+            "inputs": [
+                {
+                    "name": "in",
+                    "type": "table"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "results",
+                    "type": "table"
+                },
+                {
+                    "name": "figure",
+                    "type": "figure"
+                }
+            ],
+            "configurable_properties": {
+                "value_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "group_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "distributions": {
+                    "type": "str",
+                    "default": "All",
+                    "options": [
+                        "All",
+                        "Normal",
+                        "Log-Normal",
+                        "Exponential",
+                        "Gamma",
+                        "Weibull",
+                        "Beta",
+                        "Rayleigh",
+                        "Uniform",
+                        "Cauchy",
+                        "Logistic",
+                        "Pareto",
+                        "Student's t",
+                        "Inverse Gaussian"
+                    ]
+                },
+                "n_overlay": {
+                    "type": "int",
+                    "default": 3
+                },
+                "n_bins": {
+                    "type": "int",
+                    "default": 50
+                },
+                "fig_w": {
+                    "type": "float",
+                    "default": 7.0
+                },
+                "fig_h": {
+                    "type": "float",
+                    "default": 5.0
+                }
+            }
+        },
+        "EffectSizeNode": {
+            "description": "Calculates effect sizes for pairwise group comparisons.",
+            "inputs": [
+                {
+                    "name": "in",
+                    "type": "table"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "results",
+                    "type": "table"
+                }
+            ],
+            "configurable_properties": {
+                "value_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "group_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "method": {
+                    "type": "str",
+                    "default": "Auto",
+                    "options": [
+                        "Auto",
+                        "Cohen's d",
+                        "Hedges' g",
+                        "Glass's delta",
+                        "Rank-biserial r",
+                        "Eta-squared",
+                        "Omega-squared"
+                    ]
+                },
+                "ci_level": {
+                    "type": "float",
+                    "default": 0.95
+                },
+                "n_bootstrap": {
+                    "type": "int",
+                    "default": 1000
+                }
+            }
+        },
         "GroupedComparisonNode": {
             "description": "Tests whether there are significant differences among two or more groups.",
             "inputs": [
@@ -8169,6 +8756,51 @@
                     "default": 1
                 },
                 "intercept": {
+                    "type": "bool",
+                    "default": true
+                }
+            }
+        },
+        "MixedEffectsModelNode": {
+            "description": "Fits a linear mixed-effects model (LMM) for hierarchical / nested data.",
+            "inputs": [
+                {
+                    "name": "in",
+                    "type": "table"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "fixed_effects",
+                    "type": "stat"
+                },
+                {
+                    "name": "random_effects",
+                    "type": "table"
+                },
+                {
+                    "name": "summary",
+                    "type": "stat"
+                }
+            ],
+            "configurable_properties": {
+                "y_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "fixed_cols": {
+                    "type": "str",
+                    "default": ""
+                },
+                "group_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "random_slope_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "reml": {
                     "type": "bool",
                     "default": true
                 }
@@ -8286,6 +8918,10 @@
                 {
                     "name": "results",
                     "type": "table"
+                },
+                {
+                    "name": "qq_plot",
+                    "type": "figure"
                 }
             ],
             "configurable_properties": {
@@ -8634,8 +9270,8 @@
             ],
             "outputs": [
                 {
-                    "name": "stats_table",
-                    "type": "stat"
+                    "name": "result",
+                    "type": "table"
                 }
             ],
             "configurable_properties": {
@@ -8917,6 +9553,55 @@
                 "plot_toolbox": {
                     "type": "string",
                     "default": null
+                }
+            }
+        },
+        "BlandAltmanNode": {
+            "description": "Creates a Bland-Altman plot for method-comparison / agreement analysis.",
+            "inputs": [
+                {
+                    "name": "data",
+                    "type": "table"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "plot",
+                    "type": "figure"
+                },
+                {
+                    "name": "stats",
+                    "type": "stat"
+                }
+            ],
+            "configurable_properties": {
+                "method1": {
+                    "type": "str",
+                    "default": ""
+                },
+                "method2": {
+                    "type": "str",
+                    "default": ""
+                },
+                "ci_level": {
+                    "type": "float",
+                    "default": 0.95
+                },
+                "show_ci": {
+                    "type": "bool",
+                    "default": true
+                },
+                "proportional": {
+                    "type": "bool",
+                    "default": false
+                },
+                "fig_w": {
+                    "type": "float",
+                    "default": 7.0
+                },
+                "fig_h": {
+                    "type": "float",
+                    "default": 5.0
                 }
             }
         },
@@ -9421,6 +10106,140 @@
                 }
             }
         },
+        "MultiPanelFigureNode": {
+            "description": "Composes multiple figures into a single multi-panel publication figure.",
+            "inputs": [
+                {
+                    "name": "Panel A",
+                    "type": "figure"
+                },
+                {
+                    "name": "Panel B",
+                    "type": "figure"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "figure",
+                    "type": "figure"
+                }
+            ],
+            "configurable_properties": {
+                "n_panels": {
+                    "type": "int",
+                    "default": 2
+                },
+                "layout_rows": {
+                    "type": "int",
+                    "default": 0
+                },
+                "layout_cols": {
+                    "type": "int",
+                    "default": 0
+                },
+                "panel_labels": {
+                    "type": "str",
+                    "default": "A, B, C\u2026",
+                    "options": [
+                        "A, B, C\u2026",
+                        "a, b, c\u2026",
+                        "(A), (B)\u2026",
+                        "(a), (b)\u2026",
+                        "None"
+                    ]
+                },
+                "label_fontweight": {
+                    "type": "str",
+                    "default": "bold",
+                    "options": [
+                        "bold",
+                        "normal"
+                    ]
+                },
+                "label_fontsize": {
+                    "type": "float",
+                    "default": 16.0
+                },
+                "label_pad_x": {
+                    "type": "float",
+                    "default": 4.0
+                },
+                "label_pad_y": {
+                    "type": "float",
+                    "default": 2.0
+                },
+                "fig_width": {
+                    "type": "float",
+                    "default": 7.0
+                },
+                "fig_height": {
+                    "type": "float",
+                    "default": 5.0
+                },
+                "spacing": {
+                    "type": "float",
+                    "default": 0.03
+                }
+            }
+        },
+        "RadarChartNode": {
+            "description": "Creates a radar (spider / star) chart comparing multiple metrics across groups.",
+            "inputs": [
+                {
+                    "name": "data",
+                    "type": "table"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "plot",
+                    "type": "figure"
+                }
+            ],
+            "configurable_properties": {
+                "group_col": {
+                    "type": "str",
+                    "default": ""
+                },
+                "metric_cols": {
+                    "type": "str",
+                    "default": ""
+                },
+                "normalize": {
+                    "type": "bool",
+                    "default": true
+                },
+                "fill_alpha": {
+                    "type": "float",
+                    "default": 0.15
+                },
+                "line_width": {
+                    "type": "float",
+                    "default": 2.0
+                },
+                "palette": {
+                    "type": "str",
+                    "default": "Set2",
+                    "options": [
+                        "Set2",
+                        "tab10",
+                        "Dark2",
+                        "Paired",
+                        "Set1",
+                        "Pastel1",
+                        "colorblind"
+                    ]
+                },
+                "fig_w": {
+                    "type": "float",
+                    "default": 6.0
+                },
+                "fig_h": {
+                    "type": "float",
+                    "default": 6.0
+                }
+            }
+        },
         "RegressionPlotNode": {
             "description": "Creates a scatter plot with a fitted regression line and optional 95% confidence band.",
             "inputs": [
@@ -9430,6 +10249,10 @@
                 },
                 {
                     "name": "curve",
+                    "type": "table"
+                },
+                {
+                    "name": "predictions",
                     "type": "table"
                 }
             ],
@@ -9481,6 +10304,10 @@
                         "None"
                     ]
                 },
+                "pred_y_col": {
+                    "type": "str",
+                    "default": ""
+                },
                 "x_label": {
                     "type": "str",
                     "default": ""
@@ -9506,20 +10333,20 @@
                     "default": 0.0
                 },
                 "eq_x": {
-                    "type": "str",
-                    "default": "0.05"
+                    "type": "float",
+                    "default": 0.05
                 },
                 "eq_y": {
-                    "type": "str",
-                    "default": "0.95"
+                    "type": "float",
+                    "default": 0.95
                 },
                 "eq_size": {
-                    "type": "str",
-                    "default": "9"
+                    "type": "float",
+                    "default": 9.0
                 },
                 "eq_spacing": {
-                    "type": "str",
-                    "default": "1.5"
+                    "type": "float",
+                    "default": 1.5
                 }
             }
         },
@@ -11370,6 +12197,75 @@
                 "include_pct": {
                     "type": "bool",
                     "default": false
+                }
+            }
+        },
+        "DisplayHtmlNode": {
+            "description": "Displays HtmlData content directly on the node surface.",
+            "inputs": [
+                {
+                    "name": "html",
+                    "type": "html"
+                }
+            ],
+            "outputs": [],
+            "configurable_properties": {
+                "html_view": {
+                    "type": "str",
+                    "default": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n</style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>"
+                }
+            }
+        },
+        "ReportNode": {
+            "description": "Generates an HTML scientific report from upstream tables and figures.",
+            "inputs": [
+                {
+                    "name": "table",
+                    "type": "table"
+                },
+                {
+                    "name": "figure",
+                    "type": "figure"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "report",
+                    "type": "html"
+                }
+            ],
+            "configurable_properties": {
+                "title": {
+                    "type": "str",
+                    "default": "Analysis Report"
+                },
+                "context": {
+                    "type": "str",
+                    "default": ""
+                },
+                "file_path": {
+                    "type": "str",
+                    "default": ""
+                },
+                "web_ai_response": {
+                    "type": "str",
+                    "default": ""
+                }
+            }
+        },
+        "SaveHtmlNode": {
+            "description": "Saves HtmlData to an HTML file on disk.",
+            "inputs": [
+                {
+                    "name": "html",
+                    "type": "html"
+                }
+            ],
+            "outputs": [],
+            "configurable_properties": {
+                "file_path": {
+                    "type": "str",
+                    "default": ""
                 }
             }
         }

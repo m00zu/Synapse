@@ -34,7 +34,7 @@ def _discover_node_classes():
     from . import custom_nodes
     _collect(custom_nodes)
 
-    # Bundled plugins
+    # Bundled plugins (packages)
     for plugin_name in ['image_analysis', 'statistical_analysis',
                         'figure_plotting', 'filopodia_nodes',
                         'data_processing']:
@@ -44,6 +44,20 @@ def _discover_node_classes():
             _collect(mod)
         except Exception as e:
             print(f"  [skip] {plugin_name}: {e}")
+
+    # Bundled plugins (standalone .py files)
+    import importlib
+    from pathlib import Path
+    plugins_dir = Path(__file__).parent / 'plugins'
+    for py_file in sorted(plugins_dir.glob('*.py')):
+        if py_file.name.startswith('_'):
+            continue
+        module_name = py_file.stem
+        try:
+            mod = importlib.import_module(f'synapse.plugins.{module_name}')
+            _collect(mod)
+        except Exception as e:
+            print(f"  [skip] {module_name}: {e}")
 
     return classes
 

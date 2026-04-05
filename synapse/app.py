@@ -361,133 +361,126 @@ class BatchGraphWorker(QtCore.QObject):
 
 # ── Theme ──────────────────────────────────────────────────────────────────
 
-_DARK_STYLESHEET = """
-QWidget                          { color: #ffffff; }
-QMainWindow, QDialog             { background-color: #353535; }
-QDockWidget                      { background-color: #353535; color: #ffffff; }
-QDockWidget::title               { background-color: #404040; padding: 4px; }
-QToolBar                         { background-color: #353535; border: none; spacing: 2px; }
-QToolBar QToolButton             { background-color: transparent; color: #ffffff; padding: 3px 6px; border: none; border-radius: 3px; }
-QToolBar QToolButton:hover       { background-color: #4a4a4a; }
-QToolBar QToolButton:pressed     { background-color: #2e2e2e; }
-QMenuBar                         { background-color: #353535; color: #ffffff; }
-QMenuBar::item:selected          { background-color: #2a82da; }
-QMenu                            { background-color: #353535; color: #ffffff; border: 1px solid #555555; }
-QMenu::item:selected             { background-color: #2a82da; }
-QMenu::separator                 { background-color: #555555; height: 1px; }
-QStatusBar                       { background-color: #353535; color: #ffffff; }
-QSplitter::handle                { background-color: #555555; }
-QScrollBar:vertical              { background-color: #353535; width: 12px; border: none; margin: 0; }
-QScrollBar::handle:vertical      { background-color: #606060; border-radius: 6px; min-height: 20px; margin: 2px; }
-QScrollBar::handle:vertical:hover{ background-color: #808080; }
+# Theme color definitions: (dark_hex, light_hex) pairs
+_THEME_COLORS = {
+    'fg':          (0xff, 0xff, 0xff,  0x1a, 0x1a, 0x1a),
+    'bg':          (0x35, 0x35, 0x35,  0xf2, 0xf2, 0xf2),
+    'bg_dark':     (0x19, 0x19, 0x19,  0xff, 0xff, 0xff),
+    'bg_mid':      (0x40, 0x40, 0x40,  0xe0, 0xe0, 0xe0),
+    'bg_btn':      (0x45, 0x45, 0x45,  0xe0, 0xe0, 0xe0),
+    'bg_btn_hov':  (0x50, 0x50, 0x50,  0xd0, 0xd0, 0xd0),
+    'bg_btn_prs':  (0x30, 0x30, 0x30,  0xc0, 0xc0, 0xc0),
+    'bg_btn_dis':  (0x40, 0x40, 0x40,  0xe8, 0xe8, 0xe8),
+    'fg_dis':      (0x80, 0x80, 0x80,  0xa0, 0xa0, 0xa0),
+    'border':      (0x55, 0x55, 0x55,  0xcc, 0xcc, 0xcc),
+    'border_btn':  (0x60, 0x60, 0x60,  0xcc, 0xcc, 0xcc),
+    'border_dis':  (0x50, 0x50, 0x50,  0xd0, 0xd0, 0xd0),
+    'tb_hov':      (0x4a, 0x4a, 0x4a,  0xdc, 0xdc, 0xdc),
+    'tb_prs':      (0x2e, 0x2e, 0x2e,  0xc8, 0xc8, 0xc8),
+    'scroll_bg':   (0x35, 0x35, 0x35,  0xf0, 0xf0, 0xf0),
+    'scroll_h':    (0x60, 0x60, 0x60,  0xb0, 0xb0, 0xb0),
+    'scroll_hov':  (0x80, 0x80, 0x80,  0x90, 0x90, 0x90),
+    'tree_bg':     (0x25, 0x25, 0x25,  0xff, 0xff, 0xff),
+    'tree_alt':    (0x2d, 0x2d, 0x2d,  0xf5, 0xf5, 0xf5),
+    'tree_hov':    (0x3a, 0x4a, 0x6a,  0xdd, 0xe8, 0xf5),
+    'chk_bg':      (0x35, 0x35, 0x35,  0xff, 0xff, 0xff),
+    'chk_brd':     (0x60, 0x60, 0x60,  0xaa, 0xaa, 0xaa),
+    'tooltip_bg':  (0x2b, 0x2b, 0x2b,  0xff, 0xfa, 0xc0),
+    'tooltip_brd': (0x76, 0x76, 0x76,  0xbb, 0xbb, 0xbb),
+    'path_hov_bg': (0x10, 0x10, 0x10,  0x06, 0x06, 0x06),  # approximation
+    'path_hov_brd':(0x66, 0x66, 0x66,  0xbb, 0xbb, 0xbb),
+}
+
+
+def _lerp_hex(dark_rgb, light_rgb, t):
+    """Interpolate between dark and light RGB tuples, return hex string."""
+    r = int(dark_rgb[0] + (light_rgb[0] - dark_rgb[0]) * t)
+    g = int(dark_rgb[1] + (light_rgb[1] - dark_rgb[1]) * t)
+    b = int(dark_rgb[2] + (light_rgb[2] - dark_rgb[2]) * t)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _build_interpolated_stylesheet(t: float) -> str:
+    """Build stylesheet with colors interpolated between dark (t=0) and light (t=1)."""
+    c = {}
+    for name, vals in _THEME_COLORS.items():
+        c[name] = _lerp_hex(vals[:3], vals[3:], t)
+
+    # path button uses rgba — interpolate opacity direction
+    path_hov_a = 0.08 + (0.06 - 0.08) * t
+    path_prs_a = 0.14 + (0.10 - 0.14) * t
+    path_rgba_hov = f"rgba({'255,255,255' if t < 0.5 else '0,0,0'}, {path_hov_a:.2f})"
+    path_rgba_prs = f"rgba({'255,255,255' if t < 0.5 else '0,0,0'}, {path_prs_a:.2f})"
+
+    return f"""
+QWidget                          {{ color: {c['fg']}; }}
+QMainWindow, QDialog             {{ background-color: {c['bg']}; }}
+QDockWidget                      {{ background-color: {c['bg']}; color: {c['fg']}; }}
+QDockWidget::title               {{ background-color: {c['bg_mid']}; padding: 4px; }}
+QToolBar                         {{ background-color: {c['bg']}; border: none; spacing: 4px; padding: 2px 4px; }}
+QToolBar::separator              {{ background-color: {c['border']}; width: 1px; margin: 4px 2px; }}
+QToolBar QToolButton             {{ background-color: transparent; color: {c['fg']}; padding: 3px 6px; border: none; border-radius: 3px; }}
+QToolBar QToolButton:hover       {{ background-color: {c['tb_hov']}; }}
+QToolBar QToolButton:pressed     {{ background-color: {c['tb_prs']}; }}
+QMenuBar                         {{ background-color: {c['bg']}; color: {c['fg']}; }}
+QMenuBar::item:selected          {{ background-color: #2a82da; color: #ffffff; }}
+QMenu                            {{ background-color: {c['bg']}; color: {c['fg']}; border: 1px solid {c['border']}; }}
+QMenu::item:selected             {{ background-color: #2a82da; color: #ffffff; }}
+QMenu::separator                 {{ background-color: {c['border']}; height: 1px; }}
+QStatusBar                       {{ background-color: {c['bg']}; color: {c['fg']}; }}
+QSplitter::handle                {{ background-color: {c['border']}; }}
+QScrollBar:vertical              {{ background-color: {c['scroll_bg']}; width: 12px; border: none; margin: 0; }}
+QScrollBar::handle:vertical      {{ background-color: {c['scroll_h']}; border-radius: 6px; min-height: 20px; margin: 2px; }}
+QScrollBar::handle:vertical:hover{{ background-color: {c['scroll_hov']}; }}
 QScrollBar::add-line:vertical,
-QScrollBar::sub-line:vertical    { height: 0; border: none; }
+QScrollBar::sub-line:vertical    {{ height: 0; border: none; }}
 QScrollBar::add-page:vertical,
-QScrollBar::sub-page:vertical    { background: none; }
-QScrollBar:horizontal            { background-color: #353535; height: 12px; border: none; margin: 0; }
-QScrollBar::handle:horizontal    { background-color: #606060; border-radius: 6px; min-width: 20px; margin: 2px; }
-QScrollBar::handle:horizontal:hover{ background-color: #808080; }
+QScrollBar::sub-page:vertical    {{ background: none; }}
+QScrollBar:horizontal            {{ background-color: {c['scroll_bg']}; height: 12px; border: none; margin: 0; }}
+QScrollBar::handle:horizontal    {{ background-color: {c['scroll_h']}; border-radius: 6px; min-width: 20px; margin: 2px; }}
+QScrollBar::handle:horizontal:hover{{ background-color: {c['scroll_hov']}; }}
 QScrollBar::add-line:horizontal,
-QScrollBar::sub-line:horizontal  { width: 0; border: none; }
+QScrollBar::sub-line:horizontal  {{ width: 0; border: none; }}
 QScrollBar::add-page:horizontal,
-QScrollBar::sub-page:horizontal  { background: none; }
-QLineEdit                        { background-color: #191919; color: #ffffff; border: 1px solid #555555; border-radius: 3px; padding: 2px 6px; selection-background-color: #2a82da; }
-QTextEdit, QPlainTextEdit        { background-color: #191919; color: #ffffff; border: 1px solid #555555; selection-background-color: #2a82da; }
-QPushButton                      { background-color: #454545; color: #ffffff; border: 1px solid #606060; border-radius: 3px; padding: 4px 12px; min-height: 22px; }
-QPushButton:hover                { background-color: #505050; }
-QPushButton:pressed              { background-color: #303030; }
-QPushButton:disabled             { background-color: #404040; color: #808080; border-color: #505050; }
-QComboBox                        { background-color: #454545; color: #ffffff; border: 1px solid #606060; border-radius: 3px; padding: 2px 8px; min-height: 22px; }
-QComboBox::drop-down             { border: none; width: 20px; }
-QComboBox::down-arrow            { width: 10px; height: 10px; }
-QComboBox QAbstractItemView      { background-color: #353535; color: #ffffff; selection-background-color: #2a82da; border: 1px solid #555555; }
-QLabel                           { background-color: transparent; color: #ffffff; }
-QCheckBox                        { color: #ffffff; background-color: transparent; }
-QCheckBox::indicator             { width: 14px; height: 14px; border: 1px solid #606060; background-color: #353535; border-radius: 2px; }
-QCheckBox::indicator:checked     { background-color: #2a82da; border-color: #2a82da; }
-QSpinBox, QDoubleSpinBox         { background-color: #191919; color: #ffffff; border: 1px solid #555555; border-radius: 3px; padding: 2px 6px; }
-QGroupBox                        { color: #ffffff; border: 1px solid #555555; border-radius: 4px; margin-top: 8px; padding-top: 4px; }
-QGroupBox::title                 { subcontrol-origin: margin; left: 8px; }
-QHeaderView::section             { background-color: #404040; color: #ffffff; border: 1px solid #555555; padding: 2px 4px; }
-QTreeWidget, QTreeView           { background-color: #252525; color: #ffffff; border: none; outline: 0; }
+QScrollBar::sub-page:horizontal  {{ background: none; }}
+QLineEdit                        {{ background-color: {c['bg_dark']}; color: {c['fg']}; border: 1px solid {c['border']}; border-radius: 3px; padding: 2px 6px; selection-background-color: #2a82da; }}
+QTextEdit, QPlainTextEdit        {{ background-color: {c['bg_dark']}; color: {c['fg']}; border: 1px solid {c['border']}; selection-background-color: #2a82da; }}
+QPushButton                      {{ background-color: {c['bg_btn']}; color: {c['fg']}; border: 1px solid {c['border_btn']}; border-radius: 3px; padding: 4px 12px; min-height: 22px; }}
+QPushButton:hover                {{ background-color: {c['bg_btn_hov']}; }}
+QPushButton:pressed              {{ background-color: {c['bg_btn_prs']}; }}
+QPushButton:disabled             {{ background-color: {c['bg_btn_dis']}; color: {c['fg_dis']}; border-color: {c['border_dis']}; }}
+QComboBox                        {{ background-color: {c['bg_btn']}; color: {c['fg']}; border: 1px solid {c['border_btn']}; border-radius: 3px; padding: 2px 8px; min-height: 22px; }}
+QComboBox::drop-down             {{ border: none; width: 20px; }}
+QComboBox::down-arrow            {{ width: 10px; height: 10px; }}
+QComboBox QAbstractItemView      {{ background-color: {c['bg']}; color: {c['fg']}; selection-background-color: #2a82da; border: 1px solid {c['border']}; }}
+QLabel                           {{ background-color: transparent; color: {c['fg']}; }}
+QCheckBox                        {{ color: {c['fg']}; background-color: transparent; }}
+QCheckBox::indicator             {{ width: 14px; height: 14px; border: 1px solid {c['chk_brd']}; background-color: {c['chk_bg']}; border-radius: 2px; }}
+QCheckBox::indicator:checked     {{ background-color: #2a82da; border-color: #2a82da; }}
+QSpinBox, QDoubleSpinBox         {{ background-color: {c['bg_dark']}; color: {c['fg']}; border: 1px solid {c['border']}; border-radius: 3px; padding: 2px 6px; }}
+QGroupBox                        {{ color: {c['fg']}; border: 1px solid {c['border']}; border-radius: 4px; margin-top: 8px; padding-top: 4px; }}
+QGroupBox::title                 {{ subcontrol-origin: margin; left: 8px; }}
+QHeaderView::section             {{ background-color: {c['bg_mid']}; color: {c['fg']}; border: 1px solid {c['border']}; padding: 2px 4px; }}
+QTreeWidget, QTreeView           {{ background-color: {c['tree_bg']}; color: {c['fg']}; border: none; outline: 0; }}
 QTreeWidget::item:hover,
-QTreeView::item:hover            { background-color: #3a4a6a; }
+QTreeView::item:hover            {{ background-color: {c['tree_hov']}; }}
 QTreeWidget::item:selected,
-QTreeView::item:selected         { background-color: #2a82da; color: #ffffff; }
-QAbstractItemView                { background-color: #252525; color: #ffffff; alternate-background-color: #2d2d2d; }
-QTabWidget::pane                 { border: 1px solid #555555; }
-QTabBar::tab                     { background-color: #454545; color: #ffffff; border: 1px solid #555555; padding: 4px 8px; }
-QTabBar::tab:selected            { background-color: #353535; border-bottom: none; }
-QToolTip                         { background-color: #2b2b2b; color: #ffffff; border: 1px solid #767676; padding: 1px; }
-QPushButton[compact="true"]      { padding: 0px; min-height: 0px; min-width: 0px; }
-QPushButton[pathButton="true"]   { padding: 0px; min-height: 0px; min-width: 0px; background-color: transparent; border: 1px solid transparent; border-radius: 3px; }
-QPushButton[pathButton="true"]:hover   { background-color: rgba(255, 255, 255, 0.08); border-color: #666666; }
-QPushButton[pathButton="true"]:pressed { background-color: rgba(255, 255, 255, 0.14); border-color: #777777; }
+QTreeView::item:selected         {{ background-color: #2a82da; color: #ffffff; }}
+QAbstractItemView                {{ background-color: {c['tree_bg']}; color: {c['fg']}; alternate-background-color: {c['tree_alt']}; }}
+QTabWidget::pane                 {{ border: 1px solid {c['border']}; }}
+QTabBar::tab                     {{ background-color: {c['bg_btn']}; color: {c['fg']}; border: 1px solid {c['border']}; padding: 4px 8px; }}
+QTabBar::tab:selected            {{ background-color: {c['bg']}; border-bottom: none; }}
+QToolTip                         {{ background-color: {c['tooltip_bg']}; color: {c['fg']}; border: 1px solid {c['tooltip_brd']}; padding: 1px; }}
+QPushButton[compact="true"]      {{ padding: 0px; min-height: 0px; min-width: 0px; }}
+QPushButton[pathButton="true"]   {{ padding: 0px; min-height: 0px; min-width: 0px; background-color: transparent; border: 1px solid transparent; border-radius: 3px; }}
+QPushButton[pathButton="true"]:hover   {{ background-color: {path_rgba_hov}; border-color: {c['path_hov_brd']}; }}
+QPushButton[pathButton="true"]:pressed {{ background-color: {path_rgba_prs}; border-color: {c['path_hov_brd']}; }}
 """
 
-_LIGHT_STYLESHEET = """
-QWidget                          { color: #1a1a1a; }
-QMainWindow, QDialog             { background-color: #f2f2f2; }
-QDockWidget                      { background-color: #f2f2f2; color: #1a1a1a; }
-QDockWidget::title               { background-color: #e0e0e0; padding: 4px; }
-QToolBar                         { background-color: #f2f2f2; border: none; spacing: 2px; }
-QToolBar QToolButton             { background-color: transparent; color: #1a1a1a; padding: 3px 6px; border: none; border-radius: 3px; }
-QToolBar QToolButton:hover       { background-color: #dcdcdc; }
-QToolBar QToolButton:pressed     { background-color: #c8c8c8; }
-QMenuBar                         { background-color: #f2f2f2; color: #1a1a1a; }
-QMenuBar::item:selected          { background-color: #2a82da; color: #ffffff; }
-QMenu                            { background-color: #f2f2f2; color: #1a1a1a; border: 1px solid #cccccc; }
-QMenu::item:selected             { background-color: #2a82da; color: #ffffff; }
-QMenu::separator                 { background-color: #cccccc; height: 1px; }
-QStatusBar                       { background-color: #f2f2f2; color: #1a1a1a; }
-QSplitter::handle                { background-color: #cccccc; }
-QScrollBar:vertical              { background-color: #f0f0f0; width: 12px; border: none; margin: 0; }
-QScrollBar::handle:vertical      { background-color: #b0b0b0; border-radius: 6px; min-height: 20px; margin: 2px; }
-QScrollBar::handle:vertical:hover{ background-color: #909090; }
-QScrollBar::add-line:vertical,
-QScrollBar::sub-line:vertical    { height: 0; border: none; }
-QScrollBar::add-page:vertical,
-QScrollBar::sub-page:vertical    { background: none; }
-QScrollBar:horizontal            { background-color: #f0f0f0; height: 12px; border: none; margin: 0; }
-QScrollBar::handle:horizontal    { background-color: #b0b0b0; border-radius: 6px; min-width: 20px; margin: 2px; }
-QScrollBar::handle:horizontal:hover{ background-color: #909090; }
-QScrollBar::add-line:horizontal,
-QScrollBar::sub-line:horizontal  { width: 0; border: none; }
-QScrollBar::add-page:horizontal,
-QScrollBar::sub-page:horizontal  { background: none; }
-QLineEdit                        { background-color: #ffffff; color: #1a1a1a; border: 1px solid #cccccc; border-radius: 3px; padding: 2px 6px; selection-background-color: #2a82da; selection-color: #ffffff; }
-QTextEdit, QPlainTextEdit        { background-color: #ffffff; color: #1a1a1a; border: 1px solid #cccccc; selection-background-color: #2a82da; selection-color: #ffffff; }
-QPushButton                      { background-color: #e0e0e0; color: #1a1a1a; border: 1px solid #cccccc; border-radius: 3px; padding: 4px 12px; min-height: 22px; }
-QPushButton:hover                { background-color: #d0d0d0; }
-QPushButton:pressed              { background-color: #c0c0c0; }
-QPushButton:disabled             { background-color: #e8e8e8; color: #a0a0a0; border-color: #d0d0d0; }
-QComboBox                        { background-color: #ffffff; color: #1a1a1a; border: 1px solid #cccccc; border-radius: 3px; padding: 2px 8px; min-height: 22px; }
-QComboBox::drop-down             { border: none; width: 20px; }
-QComboBox::down-arrow            { width: 10px; height: 10px; }
-QComboBox QAbstractItemView      { background-color: #ffffff; color: #1a1a1a; selection-background-color: #2a82da; selection-color: #ffffff; border: 1px solid #cccccc; }
-QLabel                           { background-color: transparent; color: #1a1a1a; }
-QCheckBox                        { color: #1a1a1a; background-color: transparent; }
-QCheckBox::indicator             { width: 14px; height: 14px; border: 1px solid #aaaaaa; background-color: #ffffff; border-radius: 2px; }
-QCheckBox::indicator:checked     { background-color: #2a82da; border-color: #2a82da; }
-QSpinBox, QDoubleSpinBox         { background-color: #ffffff; color: #1a1a1a; border: 1px solid #cccccc; border-radius: 3px; padding: 2px 6px; }
-QGroupBox                        { color: #1a1a1a; border: 1px solid #cccccc; border-radius: 4px; margin-top: 8px; padding-top: 4px; }
-QGroupBox::title                 { subcontrol-origin: margin; left: 8px; }
-QHeaderView::section             { background-color: #e0e0e0; color: #1a1a1a; border: 1px solid #cccccc; padding: 2px 4px; }
-QTreeWidget, QTreeView           { background-color: #ffffff; color: #1a1a1a; border: none; outline: 0; }
-QTreeWidget::item:hover,
-QTreeView::item:hover            { background-color: #dde8f5; }
-QTreeWidget::item:selected,
-QTreeView::item:selected         { background-color: #2a82da; color: #ffffff; }
-QAbstractItemView                { background-color: #ffffff; color: #1a1a1a; alternate-background-color: #f5f5f5; }
-QTabWidget::pane                 { border: 1px solid #cccccc; }
-QTabBar::tab                     { background-color: #e0e0e0; color: #1a1a1a; border: 1px solid #cccccc; padding: 4px 8px; }
-QTabBar::tab:selected            { background-color: #f2f2f2; border-bottom: none; }
-QToolTip                         { background-color: #fffac0; color: #1a1a1a; border: 1px solid #bbbbbb; padding: 1px; }
-QPushButton[compact="true"]      { padding: 0px; min-height: 0px; min-width: 0px; }
-QPushButton[pathButton="true"]   { padding: 0px; min-height: 0px; min-width: 0px; background-color: transparent; border: 1px solid transparent; border-radius: 3px; }
-QPushButton[pathButton="true"]:hover   { background-color: rgba(0, 0, 0, 0.06); border-color: #bbbbbb; }
-QPushButton[pathButton="true"]:pressed { background-color: rgba(0, 0, 0, 0.10); border-color: #aaaaaa; }
-"""
+
+# Keep static references for code that reads them directly
+_DARK_STYLESHEET = _build_interpolated_stylesheet(0.0)
+_LIGHT_STYLESHEET = _build_interpolated_stylesheet(1.0)
 
 
 def _make_dark_palette() -> QtGui.QPalette:
@@ -559,9 +552,10 @@ class ThemeManager(QtCore.QObject):
     """Manages light/dark theme switching with a smooth animated transition."""
 
     theme_changed = QtCore.Signal(bool)   # emits True=dark, False=light
+    step_progress = QtCore.Signal(float) # emits 0.0→1.0 during animation
 
-    _DURATION_MS = 260
-    _FPS         = 30
+    _DURATION_MS = 120
+    _FPS         = 60
 
     def __init__(self, app: QtWidgets.QApplication):
         super().__init__(app)
@@ -599,8 +593,10 @@ class ThemeManager(QtCore.QObject):
 
     def _step(self):
         self._t = min(self._t + self._dt, 1.0)
-        self._current_pal = _lerp_palette(self._from_pal, self._to_pal, _smoothstep(self._t))
+        t_smooth = _smoothstep(self._t)
+        self._current_pal = _lerp_palette(self._from_pal, self._to_pal, t_smooth)
         self._app.setPalette(self._current_pal)
+        self.step_progress.emit(t_smooth)
         if self._t >= 1.0:
             self._timer.stop()
 
@@ -722,13 +718,21 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self._batch_failures: list[tuple[str, str]] = []
 
         # AI Assistant dock (hidden by default; toggle via View menu)
-        from .llm_assistant import LLMAssistantPanel
+        from .llm_assistant import LLMAssistantPanel, AIChatPanel
         self.llm_panel = LLMAssistantPanel(self.graph)
         self.dockWidgetLLM = QtWidgets.QDockWidget(tr("AI Assistant"))
         self.dockWidgetLLM.setWidget(self.llm_panel)
         self.dockWidgetLLM.setMinimumWidth(280)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidgetLLM)
         self.dockWidgetLLM.hide()
+
+        # AI Chat dock (hidden by default; toggle via View menu)
+        self.chat_panel = AIChatPanel(self.graph)
+        self.dockWidgetChat = QtWidgets.QDockWidget(tr("AI Chat"))
+        self.dockWidgetChat.setWidget(self.chat_panel)
+        self.dockWidgetChat.setMinimumWidth(320)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidgetChat)
+        self.dockWidgetChat.hide()
 
         # ── Node Help Dock ──
         self._help_browser = QtWidgets.QTextBrowser()
@@ -742,7 +746,8 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.dockWidgetHelp.setMinimumWidth(240)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea,
                            self.dockWidgetHelp)
-        self.tabifyDockWidget(self.dockWidgetLLM, self.dockWidgetHelp)
+        self.tabifyDockWidget(self.dockWidgetLLM, self.dockWidgetChat)
+        self.tabifyDockWidget(self.dockWidgetChat, self.dockWidgetHelp)
         self.dockWidgetHelp.raise_()
 
         # ── Execution Order Dock ──
@@ -776,7 +781,9 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 
         # Update tooltip stylesheet to match current theme, and keep in sync on toggle
         self._update_theme_stylesheet()
-        self.theme_manager.theme_changed.connect(lambda _: self._update_theme_stylesheet())
+        # Animate stylesheet/canvas colors alongside the palette transition
+        self.theme_manager.theme_changed.connect(self._on_theme_started)
+        self.theme_manager.step_progress.connect(self._on_theme_step)
 
         # Show properties bin on double click
         self.graph.node_double_clicked.connect(self.display_properties_bin)
@@ -1148,43 +1155,102 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                     return True
         return super(NodeExecutionWindow, self).eventFilter(obj, event)
     
+    _tb_btn_counter = 0
+
+    def _make_toolbar_button(self, text, tooltip, bg, bg_hover, fg="#ffffff",
+                              icon_char=""):
+        """Create a styled toolbar QPushButton with scoped stylesheet."""
+        NodeExecutionWindow._tb_btn_counter = getattr(NodeExecutionWindow, '_tb_btn_counter', 0) + 1
+        obj_id = f"tbBtn{NodeExecutionWindow._tb_btn_counter}"
+
+        btn = QtWidgets.QPushButton(f"{icon_char} {text}" if icon_char else text)
+        btn.setObjectName(obj_id)
+        btn.setToolTip(tooltip)
+        btn.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+        btn.setStyleSheet(f"""
+            QPushButton#{obj_id} {{
+                background: {bg}; color: {fg};
+                border: none; border-radius: 4px;
+                padding: 3px 10px;
+                font-size: 12px; font-weight: 600; margin: 2px;
+            }}
+            QPushButton#{obj_id}:hover {{ background: {bg_hover}; }}
+            QPushButton#{obj_id}:pressed {{ background: {bg}; }}
+            QPushButton#{obj_id}:disabled {{ background: #555; color: #888; }}
+        """)
+        return btn
+
     def setup_toolbar(self):
         toolbar = self.addToolBar(tr("Execution"))
+        toolbar.setMovable(False)
 
-        self.btn_run = QtGui.QAction(tr("Run Graph"), self)
+        # Run Graph — green
+        self._run_btn = self._make_toolbar_button(
+            tr("Run"), tr("Run Graph") + "  [Ctrl+W]",
+            bg="#238636", bg_hover="#2ea043", icon_char="▶")
+        self._run_btn.clicked.connect(self.execute_graph)
+        toolbar.addWidget(self._run_btn)
+        # Keep QAction for shortcut
+        self.btn_run = QtGui.QAction(self)
         self.btn_run.setShortcut("Ctrl+W")
-        self.btn_run.setToolTip(tr("Run Graph") + "  [Ctrl+W]")
         self.btn_run.triggered.connect(self.execute_graph)
-        toolbar.addAction(self.btn_run)
+        self.addAction(self.btn_run)
 
-        self.btn_batch = QtGui.QAction(tr("Batch Run"), self)
+        # Batch Run — blue
+        self._batch_btn = self._make_toolbar_button(
+            tr("Batch"), tr("Batch Run") + "  [Ctrl+B]",
+            bg="#1f6feb", bg_hover="#388bfd", icon_char="⟳")
+        self._batch_btn.clicked.connect(self.execute_batch)
+        toolbar.addWidget(self._batch_btn)
+        self.btn_batch = QtGui.QAction(self)
         self.btn_batch.setShortcut("Ctrl+B")
-        self.btn_batch.setToolTip(tr("Batch Run") + "  [Ctrl+B]")
         self.btn_batch.triggered.connect(self.execute_batch)
-        toolbar.addAction(self.btn_batch)
+        self.addAction(self.btn_batch)
 
-        self.btn_stop = QtGui.QAction(tr("Stop"), self)
+        # Stop — red
+        self._stop_btn = self._make_toolbar_button(
+            tr("Stop"), tr("Stop execution"),
+            bg="#da3633", bg_hover="#f85149", icon_char="■")
+        self._stop_btn.clicked.connect(self.stop_execution)
+        self._stop_btn.setEnabled(False)
+        toolbar.addWidget(self._stop_btn)
+        self.btn_stop = QtGui.QAction(self)
         self.btn_stop.triggered.connect(self.stop_execution)
         self.btn_stop.setEnabled(False)
-        # Use a built-in icon if available or just text
-        self.btn_stop.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_BrowserStop))
-        toolbar.addAction(self.btn_stop)
+        # Sync the widget button with the action's enabled state
+        self.btn_stop.changed.connect(
+            lambda: self._stop_btn.setEnabled(self.btn_stop.isEnabled())
+        )
 
         toolbar.addSeparator()
 
-        self.btn_clear_selected = QtGui.QAction(tr("Clear Selected Caches"), self)
+        # Clear caches — subtle
+        self._clear_sel_btn = self._make_toolbar_button(
+            tr("Clear Selected"), tr("Clear caches for selected nodes"),
+            bg="#30363d", bg_hover="#484f58")
+        self._clear_sel_btn.clicked.connect(self.clear_selected_caches)
+        toolbar.addWidget(self._clear_sel_btn)
+        self.btn_clear_selected = QtGui.QAction(self)
         self.btn_clear_selected.triggered.connect(self.clear_selected_caches)
-        toolbar.addAction(self.btn_clear_selected)
 
-        self.btn_clear_all = QtGui.QAction(tr("Clear All Caches"), self)
+        self._clear_all_btn = self._make_toolbar_button(
+            tr("Clear All"), tr("Clear all node caches"),
+            bg="#30363d", bg_hover="#484f58")
+        self._clear_all_btn.clicked.connect(self.clear_all_caches)
+        toolbar.addWidget(self._clear_all_btn)
+        self.btn_clear_all = QtGui.QAction(self)
         self.btn_clear_all.triggered.connect(self.clear_all_caches)
-        toolbar.addAction(self.btn_clear_all)
 
         toolbar.addSeparator()
-        self._theme_action = QtGui.QAction(tr("Light Mode"), self)
-        self._theme_action.setToolTip("Toggle light / dark theme")
+
+        # Theme toggle — subtle with icon
+        self._theme_btn = self._make_toolbar_button(
+            tr("Light Mode"), "Toggle light / dark theme",
+            bg="#30363d", bg_hover="#484f58", icon_char="◑")
+        self._theme_btn.clicked.connect(self._toggle_theme)
+        toolbar.addWidget(self._theme_btn)
+        self._theme_action = QtGui.QAction(self)
         self._theme_action.triggered.connect(self._toggle_theme)
-        toolbar.addAction(self._theme_action)
 
     def clear_selected_caches(self):
         """Toolbar action to clear memory for only the selected nodes."""
@@ -1205,30 +1271,58 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 node.clear_cache()
         self.statusBar().showMessage(tr("All node caches cleared."), 3000)
 
+    # Dark / light canvas + stylesheet colors for interpolation
+    _CANVAS_DARK  = ((35, 35, 35), (45, 45, 45))     # (bg, grid)
+    _CANVAS_LIGHT = ((205, 215, 220), (182, 192, 197))
+
     def _toggle_theme(self):
         self.theme_manager.toggle()
         is_dark = self.theme_manager.is_dark
         self._theme_action.setText(tr("Light Mode") if is_dark else tr("Dark Mode"))
-        # Keep the graph canvas consistent with the panel theme
+        self._theme_btn.setText(f"◑  {tr('Light Mode') if is_dark else tr('Dark Mode')}")
+
+    def _on_theme_started(self, is_dark: bool):
+        """Called once when theme toggle begins — store from/to colors."""
+        self._theme_target_dark = is_dark
+        # Snapshot current canvas colors as "from"
         scene = self.graph.scene()
-        if is_dark:
-            scene.background_color = (35, 35, 35)
-            scene.grid_color       = (45, 45, 45)
-        else:
-            scene.background_color = (205, 215, 220)
-            scene.grid_color       = (182, 192, 197)
+        self._canvas_from_bg = tuple(scene.background_color)
+        self._canvas_from_grid = tuple(scene.grid_color)
+        target = self._CANVAS_DARK if is_dark else self._CANVAS_LIGHT
+        self._canvas_to_bg = target[0]
+        self._canvas_to_grid = target[1]
+
+    def _on_theme_step(self, t: float):
+        """Called at each animation frame (0.0→1.0) — interpolate everything."""
+        # Interpolate canvas colors
+        scene = self.graph.scene()
+        scene.background_color = tuple(
+            int(a + (b - a) * t)
+            for a, b in zip(self._canvas_from_bg, self._canvas_to_bg)
+        )
+        scene.grid_color = tuple(
+            int(a + (b - a) * t)
+            for a, b in zip(self._canvas_from_grid, self._canvas_to_grid)
+        )
         scene.update()
-        # Explicitly push the final palette to dock widgets after animation ends.
-        # Qt palette inheritance can be interrupted by any widget that has an explicit
-        # palette or stylesheet set — this guarantees the change always propagates.
-        QtCore.QTimer.singleShot(self.theme_manager._DURATION_MS + 40,
-                                 self._force_palette_refresh)
+
+        # Interpolate stylesheet colors at each frame
+        # t goes 0→1; map to dark(0)→light(1) or light(1)→dark(0)
+        ss_t = t if not self._theme_target_dark else (1.0 - t)
+        app = QtWidgets.QApplication.instance()
+        app.setStyleSheet(_build_interpolated_stylesheet(ss_t))
+
+        # At the end, finalize chat panel and palette
+        if t >= 1.0:
+            self.chat_panel._apply_theme(self._theme_target_dark)
+            self._force_palette_refresh()
 
     def _force_palette_refresh(self):
         """Push the current palette explicitly to all dock widget contents."""
         pal = self.theme_manager.current_palette
         for w in (self.dockWidgetNodes, self.dockWidgetProperties,
-                  self.dockWidgetLLM, self.nodes_tree, self.properties_bin):
+                  self.dockWidgetLLM, self.dockWidgetChat,
+                  self.nodes_tree, self.properties_bin):
             w.setPalette(pal)
             w.update()
 
@@ -1309,6 +1403,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         view_menu.addAction(self.dockWidgetProperties.toggleViewAction())
         view_menu.addAction(self.dockWidgetNodes.toggleViewAction())
         view_menu.addAction(self.dockWidgetLLM.toggleViewAction())
+        view_menu.addAction(self.dockWidgetChat.toggleViewAction())
         view_menu.addAction(self.dockWidgetExecOrder.toggleViewAction())
         self._show_order_badges = False
         self._order_badge_items: list = []

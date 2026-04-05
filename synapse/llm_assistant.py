@@ -129,6 +129,18 @@ _FINETUNE_SYS_PROMPT = (
 # Response schema — sent as Ollama's `format` parameter.
 # Stripped of allOf rules; only describes the required output shape.
 # ---------------------------------------------------------------------------
+_NODE_SELECTION_SCHEMA: dict = {
+    "type": "object",
+    "properties": {
+        "nodes": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "List of node class names relevant to the user's request.",
+        },
+    },
+    "required": ["nodes"],
+}
+
 RESPONSE_SCHEMA: dict = {
     "type": "object",
     "properties": {
@@ -163,28 +175,60 @@ RESPONSE_SCHEMA: dict = {
 
 def _load_class_docs() -> dict[str, str]:
     """
-    Imports the nodes package and returns a mapping of ClassName → cleaned docstring.
+    Returns a mapping of ClassName → docstring for ALL registered node classes
+    (core nodes + plugins).  Preserves paragraph structure but strips excessive
+    indentation and the trailing Keywords line.
     Falls back to an empty dict if the import fails (e.g., missing Qt display).
     """
     try:
-        from . import nodes as _nodes_mod
-        from .nodes import __all__ as _node_all
-        docs: dict[str, str] = {}
-        for name in _node_all:
-            cls = getattr(_nodes_mod, name, None)
-            if cls is None or not isinstance(cls, type):
-                continue
-            raw = getattr(cls, "__doc__", None) or ""
-            # Collapse indentation and blank lines → single clean paragraph
-            cleaned = " ".join(
-                line.strip() for line in raw.splitlines() if line.strip()
-            )
-            if cleaned:
-                docs[name] = cleaned
-        return docs
+        from .nodes.base import BaseExecutionNode
     except Exception:
         return {}
 
+    docs: dict[str, str] = {}
+    # Walk all subclasses (core + plugins — all loaded at this point)
+    for cls in BaseExecutionNode.__subclasses_recursive__() if hasattr(
+        BaseExecutionNode, '__subclasses_recursive__'
+    ) else _iter_all_subclasses(BaseExecutionNode):
+        name = cls.__name__
+        raw = getattr(cls, "__doc__", None) or ""
+        if not raw.strip():
+            continue
+        # Strip leading/trailing whitespace per line, drop empty leading lines
+        lines = [ln.strip() for ln in raw.splitlines()]
+        # Remove trailing "Keywords: ..." line (not useful for the LLM)
+        while lines and lines[-1].lower().startswith("keywords"):
+            lines.pop()
+        # Drop trailing empty lines
+        while lines and not lines[-1]:
+            lines.pop()
+        # Drop leading empty lines
+        while lines and not lines[0]:
+            lines.pop(0)
+        cleaned = "\n".join(lines)
+        if cleaned:
+            docs[name] = cleaned
+    return docs
+
+
+def _iter_all_subclasses(cls):
+    """Recursively yield all subclasses of *cls*."""
+    for sub in cls.__subclasses__():
+        yield sub
+        yield from _iter_all_subclasses(sub)
+
+
+def _get_all_node_names(schema_path: Path = _SCHEMA_PATH) -> list[str]:
+    """Return all node class names from the schema."""
+    try:
+        with open(schema_path, encoding="utf-8") as fh:
+            catalog = json.load(fh).get("node_catalog", {})
+        return list(catalog.keys())
+    except Exception:
+        return []
+
+
+_catalog_cache: dict[str, str] = {}  # keyed by f"{schema_path}:{verbose}"
 
 def build_condensed_catalog(
     schema_path: Path = _SCHEMA_PATH,
@@ -197,6 +241,10 @@ def build_condensed_catalog(
     Compact mode (default): port types only, key props only.
     Verbose mode: includes full docstrings and all configurable properties.
     """
+    cache_key = f"{schema_path}:{verbose}"
+    if cache_key in _catalog_cache:
+        return _catalog_cache[cache_key]
+
     with open(schema_path, encoding="utf-8") as fh:
         schema = json.load(fh)
 
@@ -286,7 +334,9 @@ def build_condensed_catalog(
     except ImportError:
         pass
 
-    return "\n".join(lines)
+    result = "\n".join(lines)
+    _catalog_cache[cache_key] = result
+    return result
 
 
 def build_system_prompt(catalog_text: str) -> str:
@@ -332,6 +382,70 @@ def build_system_prompt(catalog_text: str) -> str:
         "edges": [[1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8], [7,9]]
     }, indent=2)
 
+    # Batch colocalization: FolderIterator + SplitRGB fan-out + accumulator
+    example_batch_coloc = json.dumps({
+        "nodes": [
+            {"id": 1, "type": "FolderIteratorNode"},
+            {"id": 2, "type": "ImageReadNode"},
+            {"id": 3, "type": "SplitRGBNode"},
+            {"id": 4, "type": "RollingBallNode"},
+            {"id": 5, "type": "RollingBallNode"},
+            {"id": 6, "type": "GaussianBlurNode"},
+            {"id": 7, "type": "GaussianBlurNode"},
+            {"id": 8, "type": "ColocalizationNode"},
+            {"id": 9, "type": "BatchAccumulatorNode"},
+            {"id": 10, "type": "DataTableCellNode"}
+        ],
+        "edges": [[1,2], [2,3], [3,4,"red"], [3,5,"green"],
+                  [4,6], [5,7], [6,8,"ch1"], [7,8,"ch2"], [8,9], [9,10]]
+    }, indent=2)
+
+    # Plate reader: data cleaning + stats + fan-out to plot with significance
+    example_plate_reader = json.dumps({
+        "nodes": [
+            {"id": 1, "type": "FileReadNode"},
+            {"id": 2, "type": "BlankSubtractNode"},
+            {"id": 3, "type": "GroupNormalizationNode"},
+            {"id": 4, "type": "OutlierDetectionNode"},
+            {"id": 5, "type": "GroupedComparisonNode"},
+            {"id": 6, "type": "BarPlotNode"},
+            {"id": 7, "type": "FigureEditNode"},
+            {"id": 8, "type": "DataFigureCellNode"}
+        ],
+        "edges": [[1,2], [2,3], [3,4], [4,5,"kept"], [4,6,"kept","data"],
+                  [5,6,"stats"], [6,7], [7,8]]
+    }, indent=2)
+
+    # Standard curve: two FileReadNodes, regression + predict + plot fan-out
+    example_std_curve = json.dumps({
+        "nodes": [
+            {"id": 1, "type": "FileReadNode"},
+            {"id": 2, "type": "LinearRegressionNode", "props": {"degree": 2}},
+            {"id": 3, "type": "FileReadNode"},
+            {"id": 4, "type": "RegressionPlotNode"},
+            {"id": 5, "type": "DataFigureCellNode"},
+            {"id": 6, "type": "ModelPredictNode", "props": {"inverse": True, "x_col": "OD"}},
+            {"id": 7, "type": "DataTableCellNode"}
+        ],
+        "edges": [[1,2], [1,4,"data"], [2,4,"curve","curve"], [4,5],
+                  [2,6,"model"], [3,6,"data"], [6,7]]
+    }, indent=2)
+
+    # Batch particle analysis with size filtering
+    example_batch_particle = json.dumps({
+        "nodes": [
+            {"id": 1, "type": "FolderIteratorNode"},
+            {"id": 2, "type": "ImageReadNode"},
+            {"id": 3, "type": "BinaryThresholdNode"},
+            {"id": 4, "type": "RemoveSmallObjectsNode"},
+            {"id": 5, "type": "ParticlePropsNode"},
+            {"id": 6, "type": "FilterTableNode", "props": {"query": "area > 100"}},
+            {"id": 7, "type": "BatchAccumulatorNode"},
+            {"id": 8, "type": "DataTableCellNode"}
+        ],
+        "edges": [[1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
+    }, indent=2)
+
     return (
         "You are a workflow assistant for Synapse, a scientific node-graph editor.\n"
         "Respond with ONLY a JSON object: {\"nodes\": [...], \"edges\": [...]}.\n\n"
@@ -354,7 +468,7 @@ def build_system_prompt(catalog_text: str) -> str:
         "BlankSubtractNode, GroupNormalizationNode, AggregateTableNode (sum, mean, auc), TwoTableMathNode.\n"
         "10. PythonScriptNode: ONLY use when no dedicated node can do the job. Dynamic ports via n_inputs/n_outputs props. "
         "script_code prop contains the Python code. Variables: in_1, in_2 (DataFrames/ndarrays), assign to out_1, out_2. "
-        "Pre-imported: pd, np, scipy, stats (scipy.stats), skimage, measure, morphology, filters, PIL, plt. "
+        "Pre-imported: pd, np, scipy, skimage, PIL, plt. "
         "Type wrappers: TableData, ImageData, MaskData, FigureData, StatData. "
         "Use for: custom formulas (2**(-ddCt)), regex parsing, scipy functions not available as nodes, conditional multi-output splits.\n"
         "11. For multi-input nodes, add input port hint as 4th element: [src, dst, \"out_port\", \"in_port\"]. "
@@ -363,9 +477,123 @@ def build_system_prompt(catalog_text: str) -> str:
         f"Example 1 — CSV → stats → bar plot (fan-out: node 2→3 and 2→4):\n{example_stats}\n\n"
         f"Example 2 — mask pipeline with fan-out (node 1→2 and 1→6):\n{example_mask}\n\n"
         f"Example 3 — nucleus segmentation (fan-out: node 7→8 and 7→9):\n{example_nuclei}\n\n"
+        f"Example 4 — batch colocalization (SplitRGB fan-out + accumulator):\n{example_batch_coloc}\n\n"
+        f"Example 5 — plate reader analysis (data cleaning + stats → plot with significance):\n{example_plate_reader}\n\n"
+        f"Example 6 — standard curve (two inputs, regression + predict fan-out):\n{example_std_curve}\n\n"
+        f"Example 7 — batch particle analysis (folder → threshold → measure → accumulate):\n{example_batch_particle}\n\n"
         "Node catalog:\n"
         f"{catalog_text}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Two-pass helpers: node selection (pass 1) → detailed prompt (pass 2)
+# ---------------------------------------------------------------------------
+
+def build_selection_prompt(catalog_text: str) -> str:
+    """
+    Build a lightweight prompt for Pass 1: given the user's request,
+    pick which nodes from the catalog are relevant.
+    """
+    return (
+        "You are a node selector for Synapse, a scientific node-graph editor.\n"
+        "Given the user's request, select ALL node class names from the catalog "
+        "that could be needed to build the workflow.\n\n"
+        "IMPORTANT: Be generous — select 15-25 nodes. It is much better to "
+        "include a node that might not be needed than to miss one that is. "
+        "Include nodes for every plausible interpretation of the request.\n\n"
+        "Always include:\n"
+        "- Nodes directly requested (e.g. blur → GaussianBlurNode)\n"
+        "- Prerequisite nodes (e.g. mask tasks need BinaryThresholdNode)\n"
+        "- Terminal/display nodes (DataTableCellNode, ImageCellNode, DataFigureCellNode)\n"
+        "- I/O nodes if the user mentions files or folders (ImageReadNode, FileReadNode, FolderIteratorNode)\n"
+        "- Save/export nodes if the user mentions saving, exporting, or generating output (SaveNode, SaveFigureNode, SaveTableNode, ReportNode)\n"
+        "- Common preprocessing nodes for the domain (RollingBallNode, GaussianBlurNode for images; DropFillNaNNode, OutlierDetectionNode for tables)\n"
+        "- Alternative nodes that could serve the same purpose\n\n"
+        "Respond with ONLY a JSON object: {\"nodes\": [\"ClassName1\", \"ClassName2\", ...]}\n"
+        "No markdown, no explanation.\n\n"
+        "Node catalog:\n"
+        f"{catalog_text}"
+    )
+
+
+def build_detailed_cards(
+    node_names: list[str],
+    schema_path: Path = _SCHEMA_PATH,
+) -> str:
+    """
+    Build detailed description cards for a list of selected nodes.
+    Pulls full class docstrings (when available), property info, and output
+    columns from the schema.
+    """
+    try:
+        with open(schema_path, encoding="utf-8") as fh:
+            catalog = json.load(fh).get("node_catalog", {})
+    except Exception:
+        return ""
+
+    # Load full class docstrings (richer than schema's one-line description)
+    class_docs = _load_class_docs()
+
+    lines: list[str] = []
+    for name in node_names:
+        info = catalog.get(name)
+        if not info:
+            continue
+
+        # Prefer full docstring; fall back to schema description
+        desc = class_docs.get(name) or info.get("description", "").strip()
+        lines.append(f"\n### {name}")
+        lines.append(f"  {desc}")
+
+        # Inputs with types
+        inputs = info.get("inputs", [])
+        if inputs:
+            parts = []
+            for p in inputs:
+                if isinstance(p, dict):
+                    parts.append(f"{p['name']}<{p.get('type', 'any')}>")
+                else:
+                    parts.append(str(p))
+            lines.append(f"  Inputs: {', '.join(parts)}")
+
+        # Outputs with types and columns
+        outputs = info.get("outputs", [])
+        if outputs:
+            for p in outputs:
+                if isinstance(p, dict):
+                    cols = p.get("columns")
+                    col_str = f" — columns: [{', '.join(cols)}]" if cols else ""
+                    lines.append(
+                        f"  Output '{p['name']}' <{p.get('type', 'any')}>{col_str}"
+                    )
+
+        # All configurable properties with full detail
+        cfg = info.get("configurable_properties", {})
+        if cfg:
+            lines.append("  Properties:")
+            for pname, pinfo in cfg.items():
+                ptype = pinfo.get("type", "")
+                default = pinfo.get("default", "")
+                options = pinfo.get("options")
+                pdesc = pinfo.get("description", "")
+
+                detail_parts = []
+                if ptype:
+                    detail_parts.append(ptype)
+                if options:
+                    detail_parts.append(f"options=[{' | '.join(str(o) for o in options)}]")
+                if default != "":
+                    def_str = f'"{default}"' if isinstance(default, str) else str(default)
+                    detail_parts.append(f"default={def_str}")
+                if pdesc:
+                    detail_parts.append(f"— {pdesc}")
+
+                lines.append(f"    {pname}: {', '.join(detail_parts)}")
+
+    if not lines:
+        return ""
+    return "\nDETAILED INFO for selected nodes:\n" + "\n".join(lines) + "\n"
 
 
 # ---------------------------------------------------------------------------
@@ -401,17 +629,21 @@ class OllamaClient:
             return []
 
     # ------------------------------------------------------------------
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
         """
         Sends a chat request to Ollama and returns the raw JSON string
         from the model's message content.
+        *images*: optional list of base64-encoded PNG strings for vision models.
         Raises requests.RequestException on network/HTTP errors.
         """
+        user_msg: dict = {"role": "user", "content": user}
+        if images:
+            user_msg["images"] = images  # Ollama accepts base64 directly
         payload = {
             "model":   self.model,
             "messages": [
                 {"role": "system",  "content": system},
-                {"role": "user",    "content": user},
+                user_msg,
             ],
             "stream":  False,
             "options": {"temperature": 0.1},
@@ -425,6 +657,21 @@ class OllamaClient:
             json=payload,
             headers=self._headers(),
             timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["message"]["content"]
+
+    def chat_multi(self, system: str, messages: list[dict]) -> str:
+        """Multi-turn chat. *messages* is a list of {role, content} dicts."""
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": system}] + messages,
+            "stream": False,
+            "options": {"temperature": 0.1},
+        }
+        resp = requests.post(
+            f"{self.base_url}/api/chat", json=payload,
+            headers=self._headers(), timeout=120,
         )
         resp.raise_for_status()
         return resp.json()["message"]["content"]
@@ -460,12 +707,22 @@ class OpenAIClient:
         except Exception:
             return []
 
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
+        # Build user content — text-only or multimodal
+        if images:
+            user_content: list | str = [{"type": "text", "text": user}]
+            for b64 in images:
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{b64}"},
+                })
+        else:
+            user_content = user
         payload = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system},
-                {"role": "user",   "content": user},
+                {"role": "user",   "content": user_content},
             ],
             "response_format": {"type": "json_object"},
             "temperature": 0.1,
@@ -475,6 +732,21 @@ class OpenAIClient:
             headers={"Authorization": f"Bearer {self.api_key}"},
             json=payload,
             timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+    def chat_multi(self, system: str, messages: list[dict]) -> str:
+        """Multi-turn chat."""
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": system}] + messages,
+            "temperature": 0.1,
+        }
+        resp = requests.post(
+            f"{self.BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json=payload, timeout=120,
         )
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
@@ -556,10 +828,11 @@ class LlamaCppClient:
         return [name] if os.path.isfile(self.model_path) else []
 
     # ------------------------------------------------------------------
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
         """
         Runs inference and returns the raw JSON string.
         Raises FileNotFoundError if the GGUF file is missing.
+        Note: images are ignored — GGUF models don't support vision.
         """
         self._load()
         response = self._llm.create_chat_completion(
@@ -600,12 +873,21 @@ class GroqClient:
         except Exception:
             return []
 
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
+        if images:
+            user_content: list | str = [{"type": "text", "text": user}]
+            for b64 in images:
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{b64}"},
+                })
+        else:
+            user_content = user
         payload = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system},
-                {"role": "user",   "content": user},
+                {"role": "user",   "content": user_content},
             ],
             "response_format": {"type": "json_object"},
             "temperature": 0.1,
@@ -615,6 +897,20 @@ class GroqClient:
             headers={"Authorization": f"Bearer {self.api_key}"},
             json=payload,
             timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+    def chat_multi(self, system: str, messages: list[dict]) -> str:
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": system}] + messages,
+            "temperature": 0.1,
+        }
+        resp = requests.post(
+            f"{self.BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json=payload, timeout=120,
         )
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
@@ -650,11 +946,20 @@ class GeminiClient:
         except Exception:
             return []
 
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
         url = f"{self.BASE_URL}/models/{self.model}:generateContent"
+        parts = [{"text": user}]
+        if images:
+            for b64 in images:
+                parts.append({
+                    "inline_data": {
+                        "mime_type": "image/png",
+                        "data": b64,
+                    }
+                })
         payload = {
             "system_instruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "temperature": 0.1,
                 "response_mime_type": "application/json",
@@ -680,6 +985,31 @@ class GeminiClient:
             raise ValueError(f"Gemini candidate has no content (finishReason: {finish})")
         return candidate["content"]["parts"][0]["text"]
 
+    def chat_multi(self, system: str, messages: list[dict]) -> str:
+        """Multi-turn chat for Gemini."""
+        url = f"{self.BASE_URL}/models/{self.model}:generateContent"
+        # Convert messages to Gemini format
+        contents = []
+        for m in messages:
+            role = "model" if m["role"] == "assistant" else "user"
+            contents.append({"role": role, "parts": [{"text": m["content"]}]})
+        payload = {
+            "system_instruction": {"parts": [{"text": system}]},
+            "contents": contents,
+            "generationConfig": {"temperature": 0.1},
+        }
+        resp = requests.post(url, params={"key": self.api_key},
+                             json=payload, timeout=120)
+        resp.raise_for_status()
+        data = resp.json()
+        candidates = data.get("candidates", [])
+        if not candidates:
+            raise ValueError(f"Gemini returned no candidates")
+        candidate = candidates[0]
+        if "content" not in candidate:
+            raise ValueError(f"Gemini candidate has no content")
+        return candidate["content"]["parts"][0]["text"]
+
 
 # ---------------------------------------------------------------------------
 # Claude / Anthropic client (cloud)
@@ -703,13 +1033,26 @@ class ClaudeClient:
             "claude-haiku-4-20250506",
         ]
 
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
+        if images:
+            user_content = [{"type": "text", "text": user}]
+            for b64 in images:
+                user_content.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": b64,
+                    },
+                })
+        else:
+            user_content = user
         payload = {
             "model": self.model,
             "max_tokens": 4096,
             "system": system,
             "messages": [
-                {"role": "user", "content": user},
+                {"role": "user", "content": user_content},
             ],
             "temperature": 0.1,
         }
@@ -729,6 +1072,31 @@ class ClaudeClient:
         content = data.get("content", [])
         if not content:
             raise ValueError(f"Claude returned no content (stop_reason: {data.get('stop_reason', 'unknown')})")
+        return content[0].get("text", "")
+
+    def chat_multi(self, system: str, messages: list[dict]) -> str:
+        """Multi-turn chat for Claude."""
+        payload = {
+            "model": self.model,
+            "max_tokens": 4096,
+            "system": system,
+            "messages": messages,
+            "temperature": 0.1,
+        }
+        resp = requests.post(
+            f"{self.BASE_URL}/messages",
+            headers={
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json=payload, timeout=120,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        content = data.get("content", [])
+        if not content:
+            raise ValueError(f"Claude returned no content")
         return content[0].get("text", "")
 
 
@@ -765,7 +1133,7 @@ class RunPodClient:
         """No model list for RunPod — model is fixed at deployment."""
         return []
 
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
         if not self.endpoint_id:
             raise ValueError("RunPod endpoint ID is not configured.")
 
@@ -858,9 +1226,8 @@ def serialize_graph(graph) -> dict:
 # ---------------------------------------------------------------------------
 
 class WorkflowLoader:
-    COLS  = 15   # nodes per row before wrapping
-    X_PAD = 80   # horizontal gap between nodes (px)
-    Y_PAD = 60   # vertical gap between nodes (px)
+    X_PAD = 80   # horizontal gap between columns (px)
+    Y_PAD = 60   # vertical gap between stacked nodes (px)
 
     def __init__(self, graph):
         self.graph = graph
@@ -890,6 +1257,28 @@ class WorkflowLoader:
         from .nodes.base import PORT_COLORS
         _c2t = {tuple(v): k for k, v in PORT_COLORS.items()}
         return _c2t.get(tuple(port.color), 'any')
+
+    @staticmethod
+    def _resolve_port(ports: dict, hint: str):
+        """Resolve a port hint to an actual port, using fuzzy matching.
+
+        Tries in order:
+          1. Exact match  — e.g. "A (image/mask)"
+          2. Prefix match — e.g. "A" matches "A (image/mask)"
+          3. Case-insensitive prefix match
+        Returns the port object, or None.
+        """
+        if not hint:
+            return None
+        # Exact match
+        if hint in ports:
+            return ports[hint]
+        # Prefix match (LLM often abbreviates "A (image/mask)" → "A")
+        hint_lower = hint.lower()
+        for name, port in ports.items():
+            if name.startswith(hint) or name.lower().startswith(hint_lower):
+                return port
+        return None
 
     def _auto_wire(self, src_node, dst_node, used_pairs: set = None) -> tuple:
         """Find the best (out_port, in_port) pair by matching port types.
@@ -1000,30 +1389,113 @@ class WorkflowLoader:
         # Force scene to compute node sizes before we read bounding rects
         QtWidgets.QApplication.processEvents()
 
-        # --- Pass 2: layout based on actual rendered node sizes ----------
-        cur_x     = origin_x
-        cur_y     = origin_y
-        row_h     = 0
-        col       = 0
+        # --- Pass 2: topological layout based on graph depth ---------------
+        # Assigns X by longest-path depth, Y by parent positions so that:
+        #  - Linear chains stay on the same Y
+        #  - Fan-out siblings are stacked vertically
+        #  - Merge nodes sit at the average Y of their parents
 
-        for _, node in created:
+        edges = workflow.get("edges", [])
+        id_set = {llm_id for llm_id, _ in created}
+
+        # Build adjacency
+        children: dict[int | str, list] = {llm_id: [] for llm_id, _ in created}
+        parents:  dict[int | str, list] = {llm_id: [] for llm_id, _ in created}
+        for edge in edges:
+            if not isinstance(edge, list) or len(edge) < 2:
+                continue
+            src, dst = edge[0], edge[1]
+            if isinstance(src, str) and src.startswith("n") and src[1:].isdigit():
+                src = int(src[1:])
+            if isinstance(dst, str) and dst.startswith("n") and dst[1:].isdigit():
+                dst = int(dst[1:])
+            if src in id_set and dst in id_set:
+                if dst not in children.get(src, []):
+                    children.setdefault(src, []).append(dst)
+                if src not in parents.get(dst, []):
+                    parents.setdefault(dst, []).append(src)
+
+        # Assign depth (column) = longest path from any root
+        depth: dict = {}
+        def _calc_depth(nid):
+            if nid in depth:
+                return depth[nid]
+            p = parents.get(nid, [])
+            if not p:
+                depth[nid] = 0
+            else:
+                depth[nid] = max(_calc_depth(pid) for pid in p) + 1
+            return depth[nid]
+
+        for llm_id, _ in created:
+            _calc_depth(llm_id)
+
+        # Group nodes by depth column (preserve creation order within column)
+        columns: dict[int, list] = {}
+        for llm_id, node in created:
+            d = depth.get(llm_id, 0)
+            columns.setdefault(d, []).append((llm_id, node))
+
+        # Measure node sizes
+        node_sizes: dict = {}
+        for llm_id, node in created:
             try:
                 rect = node.view.boundingRect()
-                w = rect.width()
-                h = rect.height()
+                node_sizes[llm_id] = (rect.width(), rect.height())
             except Exception:
-                w, h = 200, 120
+                node_sizes[llm_id] = (200, 120)
 
-            if col > 0 and col >= self.COLS:
-                cur_x  = origin_x
-                cur_y += row_h + self.Y_PAD
-                row_h  = 0
-                col    = 0
+        # --- Assign Y positions column by column, left-to-right -----------
+        node_y: dict = {}   # nid → assigned Y
 
-            node.set_pos(cur_x, cur_y)
-            cur_x += w + self.X_PAD
-            row_h  = max(row_h, h)
-            col   += 1
+        # Compute X positions per column
+        col_x: dict[int, float] = {}
+        cur_x = float(origin_x)
+        for col_idx in sorted(columns.keys()):
+            col_x[col_idx] = cur_x
+            col_max_w = max(node_sizes[nid][0] for nid, _ in columns[col_idx])
+            cur_x += col_max_w + self.X_PAD
+
+        for col_idx in sorted(columns.keys()):
+            col_nodes = columns[col_idx]
+
+            if col_idx == 0:
+                # Root nodes: stack vertically centred around origin_y
+                total_h = (
+                    sum(node_sizes[nid][1] for nid, _ in col_nodes)
+                    + self.Y_PAD * max(len(col_nodes) - 1, 0)
+                )
+                y = origin_y - total_h / 2
+                for nid, node in col_nodes:
+                    _, h = node_sizes[nid]
+                    node_y[nid] = y
+                    y += h + self.Y_PAD
+            else:
+                # Non-root nodes: Y derived from parents
+                for nid, node in col_nodes:
+                    p_ids = parents.get(nid, [])
+                    p_with_y = [pid for pid in p_ids if pid in node_y]
+                    if p_with_y:
+                        # Average Y of all parents (merge nodes sit in the middle)
+                        avg_y = sum(node_y[pid] for pid in p_with_y) / len(p_with_y)
+                        node_y[nid] = avg_y
+                    else:
+                        node_y[nid] = float(origin_y)
+
+                # Resolve overlaps within the column: push nodes apart
+                col_sorted = sorted(col_nodes, key=lambda pair: node_y[pair[0]])
+                for i in range(1, len(col_sorted)):
+                    prev_id = col_sorted[i - 1][0]
+                    curr_id = col_sorted[i][0]
+                    prev_bottom = node_y[prev_id] + node_sizes[prev_id][1]
+                    min_y = prev_bottom + self.Y_PAD
+                    if node_y[curr_id] < min_y:
+                        node_y[curr_id] = min_y
+
+        # Apply positions
+        for llm_id, node in created:
+            d = depth.get(llm_id, 0)
+            node.set_pos(col_x[d], node_y.get(llm_id, origin_y))
 
         # --- Pass 3: connect edges ----------------------------------------
         # Track used (out_port_name, in_port_name) per (src_id, dst_id) pair
@@ -1049,11 +1521,25 @@ class WorkflowLoader:
 
                 # If port hints provided, use them directly
                 if hint_out or hint_in:
-                    out_port = src_node.get_output(hint_out) if hint_out else None
-                    in_port  = dst_node.get_input(hint_in) if hint_in else None
-                    # Fall back to auto-wire for the missing side
+                    out_port = self._resolve_port(src_node.outputs(), hint_out) if hint_out else None
+                    in_port  = self._resolve_port(dst_node.inputs(), hint_in) if hint_in else None
+
+                    # LLMs often put the hint on the wrong side
+                    # e.g. [2, 3, "", "red"] when "red" is an OUTPUT on node 2.
+                    # Try swapping unresolved hints to the opposite side.
+                    if not out_port and hint_in:
+                        swapped = self._resolve_port(src_node.outputs(), hint_in)
+                        if swapped:
+                            out_port = swapped
+                            in_port = None  # re-resolve input via auto-wire below
+                    if not in_port and hint_out:
+                        swapped = self._resolve_port(dst_node.inputs(), hint_out)
+                        if swapped:
+                            in_port = swapped
+                            out_port = out_port  # keep if already resolved
+
+                    # Auto-wire the still-missing side using type compatibility
                     if out_port and not in_port:
-                        # Find compatible input for this specific output
                         ot = self._port_type(out_port)
                         for ip in dst_node.inputs().values():
                             if ip.connected_ports():
@@ -1071,6 +1557,14 @@ class WorkflowLoader:
                             if ot == it or it in compat:
                                 out_port = op
                                 break
+
+                    # Last resort: if hints failed entirely, fall through to auto-wire
+                    if out_port is None and in_port is None:
+                        pair_key = (src_id, dst_id)
+                        used = _used_pairs.setdefault(pair_key, set())
+                        out_port, in_port = self._auto_wire(src_node, dst_node, used)
+                        if out_port and in_port:
+                            used.add((out_port.name(), in_port.name()))
                 else:
                     pair_key = (src_id, dst_id)
                     used = _used_pairs.setdefault(pair_key, set())
@@ -1158,6 +1652,111 @@ class LLMWorker(QtCore.QObject):
         except requests.exceptions.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else "?"
             # Include the response body — Gemini/Groq put helpful detail there
+            try:
+                detail = exc.response.json()
+            except Exception:
+                detail = exc.response.text if exc.response is not None else ""
+            if status == 401:
+                self.error.emit(f"Authentication failed (HTTP 401).\nCheck your API key.\n{detail}")
+            elif status == 400:
+                self.error.emit(f"Bad request (HTTP 400).\n{detail}")
+            elif status == 404:
+                self.error.emit(
+                    f"Model '{self._client.model}' not found (HTTP 404).\n"
+                    f"Check the model name.\n{detail}"
+                )
+            else:
+                self.error.emit(f"HTTP error {status}: {exc}\n{detail}")
+        except ValueError as exc:
+            self.error.emit(str(exc))
+        except Exception:
+            self.error.emit(f"Unexpected error:\n{traceback.format_exc()}")
+
+
+# ---------------------------------------------------------------------------
+# TwoPassLLMWorker — Pass 1: select nodes, Pass 2: generate with detail
+# ---------------------------------------------------------------------------
+
+class TwoPassLLMWorker(QtCore.QObject):
+    """
+    Two-pass workflow generation:
+      Pass 1 — Send compact catalog + user question to the LLM and ask it to
+               pick relevant node class names.  (cheap: small prompt, tiny output)
+      Pass 2 — Build an enriched system prompt with detailed cards for only the
+               selected nodes, then ask the LLM to generate the full workflow.
+    """
+    result   = QtCore.Signal(str)   # emits the raw JSON workflow string
+    error    = QtCore.Signal(str)   # emits a human-readable error message
+    progress = QtCore.Signal(str)   # status updates between passes
+
+    def __init__(self, client, catalog_text: str, user: str):
+        super().__init__()
+        self._client       = client
+        self._catalog_text = catalog_text
+        self._user         = user
+
+    # ------------------------------------------------------------------
+    def run(self):
+        try:
+            # --- Pass 1: node selection ----------------------------------
+            self.progress.emit("Pass 1/2 — selecting relevant nodes…")
+            sel_system = build_selection_prompt(self._catalog_text)
+            sel_raw = self._client.chat(sel_system, self._user)
+
+            # Parse selected node names from response
+            try:
+                sel_json = json.loads(sel_raw)
+                selected = sel_json.get("nodes", [])
+                if not isinstance(selected, list):
+                    selected = []
+                # Filter to strings only
+                selected = [n for n in selected if isinstance(n, str)]
+            except (json.JSONDecodeError, AttributeError):
+                # If the model returned a bare list or malformed JSON, try
+                # to salvage node names from the raw text
+                selected = []
+
+            # --- Pass 2: generate workflow with enriched detail ----------
+            # Detailed cards for selected nodes + a flat name-only list
+            # of ALL other nodes as fallback (so the LLM can still use
+            # nodes that Pass 1 missed, just without detailed guidance).
+            if selected:
+                self.progress.emit(
+                    f"Pass 2/2 — generating workflow ({len(selected)} nodes selected)…"
+                )
+                detail = build_detailed_cards(selected)
+
+                # Build a minimal fallback: just class names for unselected nodes
+                all_names = _get_all_node_names()
+                other = [n for n in all_names if n not in set(selected)]
+                if other:
+                    fallback = (
+                        "\n\nOther available nodes (use if needed): "
+                        + ", ".join(other)
+                    )
+                else:
+                    fallback = ""
+
+                gen_system = build_system_prompt(detail + fallback)
+            else:
+                self.progress.emit("Pass 2/2 — generating workflow (using full catalog)…")
+                gen_system = build_system_prompt(self._catalog_text)
+            json_str = self._client.chat(gen_system, self._user)
+
+            self.result.emit(json_str)
+
+        except requests.exceptions.ConnectionError:
+            self.error.emit(
+                "Could not connect to the API endpoint.\n"
+                "Check your network connection, base URL, or API key."
+            )
+        except requests.exceptions.Timeout:
+            self.error.emit(
+                "Request timed out (>120 s).\n"
+                "The model may be too slow — try a smaller/faster model."
+            )
+        except requests.exceptions.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else "?"
             try:
                 detail = exc.response.json()
             except Exception:
@@ -1635,6 +2234,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
 
     def _on_model_changed(self, model_name: str):
         self._client.model = model_name
+        self.graph._llm_client = self._client
         self._save_config()
 
     def _on_verbose_changed(self):
@@ -1699,17 +2299,26 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         self._status_label.setText(f"Download failed: {msg}")
 
     def _on_copy_for_web(self):
-        """Copy a ready-to-paste prompt to clipboard for use with web AI interfaces."""
+        """Copy a ready-to-paste prompt to clipboard for use with web AI interfaces.
+
+        For web UIs (ChatGPT, Claude.ai, Gemini) context windows are huge and
+        there is no per-token API cost, so we build a verbose prompt with full
+        docstrings for all nodes — giving the model the richest possible context.
+        """
         question = self._question_edit.toPlainText().strip()
         if not question:
             self._status_label.setText("Please enter a question first.")
             return
 
+        # Build verbose catalog with full docstrings (web UIs can handle it)
+        verbose_catalog = build_condensed_catalog(verbose=True)
+        system = build_system_prompt(verbose_catalog)
+
         # Build the full prompt
         use_context = (
             self._ctx_check.isChecked() and bool(self.graph.all_nodes())
         )
-        prompt_parts = [self._system, ""]
+        prompt_parts = [system, ""]
         if use_context:
             current_wf = serialize_graph(self.graph)
             prompt_parts.append(
@@ -1795,10 +2404,20 @@ class LLMAssistantPanel(QtWidgets.QWidget):
 
         # Use short system prompt for fine-tuned model (catalog baked into weights)
         provider = self._provider_combo.currentText()
-        system = _FINETUNE_SYS_PROMPT if provider == "Synapse Fine-tune" else self._system
 
-        # Spin up background thread (mirrors GraphWorker pattern)
-        self._worker = LLMWorker(self._client, system, user_msg)
+        if provider == "Synapse Fine-tune":
+            # Single-pass: knowledge baked into fine-tuned weights
+            self._worker = LLMWorker(self._client, _FINETUNE_SYS_PROMPT, user_msg)
+        else:
+            # Two-pass: select relevant nodes → generate with enriched detail
+            self._status_label.setText(
+                "Pass 1/2 — selecting relevant nodes…"
+            )
+            self._worker = TwoPassLLMWorker(
+                self._client, self._catalog, user_msg
+            )
+            self._worker.progress.connect(self._status_label.setText)
+
         self._thread = QtCore.QThread()
         self._worker.moveToThread(self._thread)
 
@@ -1916,3 +2535,546 @@ def _make_separator() -> QtWidgets.QFrame:
     line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
     line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
     return line
+
+
+# ---------------------------------------------------------------------------
+# AIChatPanel — conversational workflow refinement
+# ---------------------------------------------------------------------------
+
+class AIChatPanel(QtWidgets.QWidget):
+    """
+    Chat-based dock panel for iterative workflow building.
+    Reuses the LLM provider/key from the AI Assistant panel config.
+    Each turn automatically includes the current canvas as context.
+    """
+
+    _CONFIG_PATH = Path.home() / ".synapse_llm_config.json"
+
+    _PROVIDERS = ("Ollama", "Ollama Cloud", "OpenAI", "Claude", "Groq", "Gemini")
+
+    def __init__(self, graph, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(parent)
+        self.graph = graph
+        self._client = None
+        self._messages: list[dict] = []  # conversation history
+        self._catalog = build_condensed_catalog()
+        self._system = self._build_chat_system_prompt()
+        self._dark = True  # default; updated by theme signal
+
+        self._build_ui()
+        self._load_config()
+
+    # ------------------------------------------------------------------
+    def _build_chat_system_prompt(self) -> str:
+        """System prompt for conversational workflow editing.
+        Reuses the full system prompt (with examples and rules) and adds
+        conversation-specific instructions.
+        """
+        base = build_system_prompt(self._catalog)
+        chat_addendum = (
+            "\n\nADDITIONAL CONVERSATION RULES:\n"
+            "- You are in a multi-turn CONVERSATION. The user may ask to create, "
+            "modify, or ask questions about workflows.\n"
+            "- When the user asks to CREATE or MODIFY a workflow, respond with ONLY "
+            "a JSON object: {\"nodes\": [...], \"edges\": [...]}. No explanation, "
+            "no markdown fences.\n"
+            "- Return the COMPLETE workflow every time (all nodes + all edges), "
+            "not just the changed parts.\n"
+            "- When the user asks a QUESTION (not requesting a workflow change), "
+            "respond with a helpful text answer.\n"
+        )
+        return base + chat_addendum
+
+    # ------------------------------------------------------------------
+    def _build_style(self) -> str:
+        """Generate a theme-aware stylesheet."""
+        dark = self._dark
+        if dark:
+            bg = "#0d1117"; bg2 = "#161b22"; fg = "#c9d1d9"
+            border = "#30363d"; btn_bg = "#21262d"; btn_hover = "#30363d"
+            dis_fg = "#484f58"; dis_border = "#21262d"; sep = "#21262d"
+        else:
+            bg = "#ffffff"; bg2 = "#f6f8fa"; fg = "#24292f"
+            border = "#d0d7de"; btn_bg = "#f3f4f6"; btn_hover = "#e1e4e8"
+            dis_fg = "#8c959f"; dis_border = "#d0d7de"; sep = "#d0d7de"
+
+        return f"""
+        AIChatPanel {{ background: {bg}; }}
+        QLabel {{ color: {fg}; font-family: sans-serif; font-size: 12px; }}
+        QComboBox {{
+            background: {bg2}; color: {fg}; border: 1px solid {border};
+            border-radius: 6px; padding: 4px 8px; font-size: 12px; min-height: 22px;
+        }}
+        QComboBox::drop-down {{ border: none; width: 20px; }}
+        QComboBox QAbstractItemView {{
+            background: {bg2}; color: {fg}; border: 1px solid {border};
+            selection-background-color: #1f6feb;
+        }}
+        QLineEdit {{
+            background: {bg}; color: {fg}; border: 1px solid {border};
+            border-radius: 6px; padding: 5px 8px; font-size: 12px;
+        }}
+        QLineEdit:focus {{ border-color: #1f6feb; }}
+        QPushButton {{
+            background: {btn_bg}; color: {fg}; border: 1px solid {border};
+            border-radius: 6px; padding: 6px 14px;
+            font-family: sans-serif;
+            font-size: 12px; font-weight: 500;
+        }}
+        QPushButton:hover {{ background: {btn_hover}; border-color: #8b949e; }}
+        QPushButton:pressed {{ background: {bg2}; }}
+        QPushButton:disabled {{ color: {dis_fg}; border-color: {dis_border}; }}
+        QPushButton#sendBtn {{ background: #238636; color: #fff; border: 1px solid #2ea043; font-weight: 600; }}
+        QPushButton#sendBtn:hover {{ background: #2ea043; }}
+        QPushButton#loadBtn {{ background: #1f6feb; color: #fff; border: 1px solid #388bfd; }}
+        QPushButton#loadBtn:hover {{ background: #388bfd; }}
+        QPushButton#loadBtn:disabled {{ background: {btn_bg}; color: {dis_fg}; border-color: {dis_border}; }}
+        QPushButton#replaceBtn {{ background: #da3633; color: #fff; border: 1px solid #f85149; }}
+        QPushButton#replaceBtn:hover {{ background: #f85149; }}
+        QPushButton#replaceBtn:disabled {{ background: {btn_bg}; color: {dis_fg}; border-color: {dis_border}; }}
+        QPushButton#refreshBtn {{ padding: 4px 6px; font-size: 14px; }}
+        QTextBrowser {{
+            background: {bg}; color: {fg}; border: none;
+            font-family: sans-serif; font-size: 13px;
+        }}
+        QPlainTextEdit {{
+            background: {bg2}; color: {fg}; border: 1px solid {border};
+            border-radius: 8px; padding: 8px;
+            font-family: sans-serif; font-size: 13px;
+        }}
+        QPlainTextEdit:focus {{ border-color: #1f6feb; }}
+        QFrame[frameShape="4"] {{ color: {sep}; max-height: 1px; }}
+        """
+
+    def _apply_theme(self, is_dark=None):
+        """Apply the current theme stylesheet and store colors for bubbles."""
+        if is_dark is not None:
+            self._dark = is_dark
+        dark = self._dark
+        self._bubble_colors = {
+            "user_bg":   "#1f6feb",
+            "user_fg":   "#ffffff",
+            "ai_bg":     "#161b22" if dark else "#f1f3f5",
+            "ai_fg":     "#c9d1d9" if dark else "#24292f",
+            "ai_label":  "#58a6ff" if dark else "#0969da",
+            "ai_border": "#30363d" if dark else "#d0d7de",
+            "err_bg":    "#3d1214" if dark else "#ffeef0",
+            "err_fg":    "#f85149",
+            "sys_fg":    "#8b949e" if dark else "#57606a",
+        }
+        self.setStyleSheet(self._build_style())
+
+    def _build_ui(self):
+        self._apply_theme()
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(6)
+
+        # --- Settings bar (collapsible) --------------------------------
+        settings_frame = QtWidgets.QWidget()
+        settings_layout = QtWidgets.QVBoxLayout(settings_frame)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
+        settings_layout.setSpacing(4)
+
+        # Provider row
+        prov_row = QtWidgets.QHBoxLayout()
+        prov_row.addWidget(QtWidgets.QLabel("Provider"))
+        self._provider_combo = QtWidgets.QComboBox()
+        self._provider_combo.addItems(self._PROVIDERS)
+        self._provider_combo.currentTextChanged.connect(self._on_provider_changed)
+        prov_row.addWidget(self._provider_combo, stretch=1)
+        settings_layout.addLayout(prov_row)
+
+        # API key row (hidden for Ollama)
+        self._apikey_widget = QtWidgets.QWidget()
+        key_row = QtWidgets.QHBoxLayout(self._apikey_widget)
+        key_row.setContentsMargins(0, 0, 0, 0)
+        key_row.addWidget(QtWidgets.QLabel("Key"))
+        self._apikey_edit = QtWidgets.QLineEdit()
+        self._apikey_edit.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+        self._apikey_edit.setPlaceholderText("API key")
+        key_row.addWidget(self._apikey_edit)
+        settings_layout.addWidget(self._apikey_widget)
+        self._apikey_widget.hide()
+
+        # Model row
+        model_row = QtWidgets.QHBoxLayout()
+        model_row.addWidget(QtWidgets.QLabel("Model"))
+        self._model_combo = QtWidgets.QComboBox()
+        self._model_combo.setEditable(True)
+        self._model_combo.setMinimumWidth(120)
+        model_row.addWidget(self._model_combo, stretch=1)
+        refresh_btn = QtWidgets.QPushButton("⟳")
+        refresh_btn.setObjectName("refreshBtn")
+        refresh_btn.setFixedWidth(32)
+        refresh_btn.setToolTip("Refresh model list")
+        refresh_btn.clicked.connect(self._refresh_models)
+        model_row.addWidget(refresh_btn)
+        settings_layout.addLayout(model_row)
+
+        layout.addWidget(settings_frame)
+        layout.addWidget(_make_separator())
+
+        # --- Chat history display -------------------------------------
+        self._chat_display = QtWidgets.QTextBrowser()
+        self._chat_display.setOpenExternalLinks(False)
+        self._chat_display.setReadOnly(True)
+        layout.addWidget(self._chat_display, stretch=1)
+
+        # --- Input area -----------------------------------------------
+        self._input_edit = QtWidgets.QPlainTextEdit()
+        self._input_edit.setPlaceholderText("Ask me to build or modify a workflow…")
+        self._input_edit.setMaximumHeight(64)
+        layout.addWidget(self._input_edit)
+
+        # --- Action buttons -------------------------------------------
+        btn_row = QtWidgets.QHBoxLayout()
+        btn_row.setSpacing(6)
+
+        self._send_btn = QtWidgets.QPushButton("Send")
+        self._send_btn.setObjectName("sendBtn")
+        self._send_btn.clicked.connect(self._on_send)
+        btn_row.addWidget(self._send_btn)
+
+        self._load_btn = QtWidgets.QPushButton("Load")
+        self._load_btn.setObjectName("loadBtn")
+        self._load_btn.setToolTip("Load the last generated workflow into the canvas")
+        self._load_btn.clicked.connect(self._on_load)
+        self._load_btn.setEnabled(False)
+        btn_row.addWidget(self._load_btn)
+
+        self._replace_btn = QtWidgets.QPushButton("Replace")
+        self._replace_btn.setObjectName("replaceBtn")
+        self._replace_btn.setToolTip("Clear canvas and load the last generated workflow")
+        self._replace_btn.clicked.connect(self._on_replace)
+        self._replace_btn.setEnabled(False)
+        btn_row.addWidget(self._replace_btn)
+
+        clear_btn = QtWidgets.QPushButton("Clear")
+        clear_btn.clicked.connect(self._on_clear)
+        btn_row.addWidget(clear_btn)
+        layout.addLayout(btn_row)
+
+        # --- Status ---------------------------------------------------
+        self._status = QtWidgets.QLabel("Ready")
+        self._status.setStyleSheet("color: #484f58; font-size: 11px;")
+        layout.addWidget(self._status)
+
+        self._last_workflow: Optional[dict] = None
+
+    # ------------------------------------------------------------------
+    def _load_config(self):
+        """Restore provider/model/key from the shared AI Assistant config."""
+        try:
+            cfg = json.loads(self._CONFIG_PATH.read_text())
+        except Exception:
+            self._on_provider_changed(self._provider_combo.currentText())
+            return
+
+        provider = cfg.get("provider", "Ollama")
+        idx = self._provider_combo.findText(provider)
+        if idx >= 0:
+            self._provider_combo.setCurrentIndex(idx)
+
+        json_key = cfg.get("api_keys", {}).get(provider, "")
+        self._apikey_edit.setText(_retrieve_api_key(provider, json_key))
+
+        self._on_provider_changed(provider)
+
+        # Restore model after refresh
+        saved_model = cfg.get("last_models", {}).get(provider, "")
+        if saved_model:
+            idx = self._model_combo.findText(saved_model)
+            if idx >= 0:
+                self._model_combo.setCurrentIndex(idx)
+            else:
+                self._model_combo.setCurrentText(saved_model)
+
+        self._rebuild_client()
+
+    # ------------------------------------------------------------------
+    def _on_provider_changed(self, provider: str):
+        """Show/hide API key field and refresh models."""
+        is_local = provider == "Ollama"
+        self._apikey_widget.setVisible(not is_local)
+        self._refresh_models()
+
+    # ------------------------------------------------------------------
+    def _refresh_models(self):
+        """Populate the model dropdown from the selected provider."""
+        provider = self._provider_combo.currentText()
+        api_key = self._apikey_edit.text().strip()
+
+        # Create a temporary client just to list models
+        if provider == "Ollama":
+            tmp = OllamaClient()
+        elif provider == "Ollama Cloud":
+            tmp = OllamaClient(base_url=OllamaClient.CLOUD_BASE_URL, api_key=api_key)
+        elif provider == "OpenAI":
+            tmp = OpenAIClient(api_key=api_key)
+        elif provider == "Claude":
+            tmp = ClaudeClient(api_key=api_key)
+        elif provider == "Groq":
+            tmp = GroqClient(api_key=api_key)
+        elif provider == "Gemini":
+            tmp = GeminiClient(api_key=api_key)
+        else:
+            return
+
+        prev = self._model_combo.currentText()
+        self._model_combo.blockSignals(True)
+        self._model_combo.clear()
+        models = tmp.list_models()
+        if models:
+            self._model_combo.addItems(models)
+            idx = self._model_combo.findText(prev)
+            if idx >= 0:
+                self._model_combo.setCurrentIndex(idx)
+        self._model_combo.blockSignals(False)
+
+        self._rebuild_client()
+
+    # ------------------------------------------------------------------
+    def _rebuild_client(self):
+        """Create the LLM client from current UI selections."""
+        provider = self._provider_combo.currentText()
+        model = self._model_combo.currentText()
+        api_key = self._apikey_edit.text().strip()
+
+        if provider == "Ollama":
+            self._client = OllamaClient(model=model or OllamaClient.DEFAULT_MODEL)
+        elif provider == "Ollama Cloud":
+            self._client = OllamaClient(
+                base_url=OllamaClient.CLOUD_BASE_URL,
+                model=model or OllamaClient.DEFAULT_MODEL, api_key=api_key)
+        elif provider == "OpenAI":
+            self._client = OpenAIClient(api_key=api_key, model=model or OpenAIClient.DEFAULT_MODEL)
+        elif provider == "Claude":
+            self._client = ClaudeClient(api_key=api_key, model=model or ClaudeClient.DEFAULT_MODEL)
+        elif provider == "Groq":
+            self._client = GroqClient(api_key=api_key, model=model or GroqClient.DEFAULT_MODEL)
+        elif provider == "Gemini":
+            self._client = GeminiClient(api_key=api_key, model=model or GeminiClient.DEFAULT_MODEL)
+        else:
+            self._client = None
+
+        if self._client:
+            self.graph._llm_client = self._client
+            self._status.setText(f"{provider} / {self._client.model}")
+
+    # ------------------------------------------------------------------
+    def _on_send(self):
+        text = self._input_edit.toPlainText().strip()
+        if not text:
+            return
+        if self._client is None:
+            self._rebuild_client()
+            if self._client is None:
+                return
+
+        # Store clean user text in conversation history
+        self._messages.append({"role": "user", "content": text})
+        self._append_bubble("user", text)
+        self._input_edit.clear()
+
+        # Build messages for LLM: inject fresh canvas context before the
+        # conversation history so the LLM always sees the current state
+        canvas_ctx = ""
+        if self.graph.all_nodes():
+            canvas_json = serialize_graph(self.graph)
+            canvas_ctx = (
+                f"Current workflow on canvas:\n"
+                f"{json.dumps(canvas_json, indent=2)}\n\n"
+                "When modifying, return the COMPLETE updated workflow as JSON. "
+                "When answering a question, respond with text."
+            )
+
+        # Prepend canvas context as a system-injected user message at the start
+        llm_messages = []
+        if canvas_ctx:
+            llm_messages.append({"role": "user", "content": canvas_ctx})
+            llm_messages.append({"role": "assistant", "content": "Understood. I can see your current workflow. What would you like to change?"})
+        llm_messages.extend(self._messages)
+
+        # Disable send while processing
+        self._send_btn.setEnabled(False)
+        self._send_btn.setText("…")
+        self._status.setText("Thinking…")
+
+        # Background thread for LLM call
+        self._worker = _ChatWorker(self._client, self._system, llm_messages)
+        self._thread = QtCore.QThread()
+        self._worker.moveToThread(self._thread)
+        self._thread.started.connect(self._worker.run)
+        self._worker.result.connect(self._on_response)
+        self._worker.error.connect(self._on_error)
+        self._worker.result.connect(self._thread.quit)
+        self._worker.error.connect(self._thread.quit)
+        self._thread.finished.connect(self._worker.deleteLater)
+        self._thread.finished.connect(self._thread.deleteLater)
+        self._thread.start()
+
+    # ------------------------------------------------------------------
+    def _on_response(self, response: str):
+        self._send_btn.setEnabled(True)
+        self._send_btn.setText("Send")
+        self._messages.append({"role": "assistant", "content": response})
+
+        # Check if response is a workflow JSON
+        try:
+            workflow = json.loads(response)
+            if "nodes" in workflow and "edges" in workflow:
+                self._last_workflow = workflow
+                n = len(workflow["nodes"])
+                e = len(workflow["edges"])
+                # print(f"[AI Chat] Workflow: {json.dumps(workflow, indent=2)[:2000]}")
+                self._append_bubble("assistant",
+                    f"Workflow generated: {n} node(s), {e} edge(s).\n"
+                    f"Click 'Load into Canvas' or 'Replace Canvas'.")
+                self._load_btn.setEnabled(True)
+                self._replace_btn.setEnabled(True)
+                self._status.setText(f"Workflow ready — {n} nodes")
+                return
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # Plain text response
+        self._append_bubble("assistant", response)
+        self._status.setText("Ready")
+
+    # ------------------------------------------------------------------
+    def _on_error(self, msg: str):
+        self._send_btn.setEnabled(True)
+        self._send_btn.setText("Send")
+        self._append_bubble("error", msg)
+        self._status.setText("Error")
+        # Remove the last user message that failed
+        if self._messages and self._messages[-1]["role"] == "user":
+            self._messages.pop()
+
+    # ------------------------------------------------------------------
+    def _on_load(self):
+        if not self._last_workflow:
+            return
+        loader = WorkflowLoader(self.graph)
+        all_nodes = self.graph.all_nodes()
+        if all_nodes:
+            max_x = max(n.pos()[0] for n in all_nodes) + 300
+            min_y = min(n.pos()[1] for n in all_nodes)
+        else:
+            max_x, min_y = 100, 100
+        _ok, msg = loader.build(self._last_workflow, origin_x=int(max_x), origin_y=int(min_y))
+        self._append_bubble("system", msg)
+
+    def _on_replace(self):
+        if not self._last_workflow:
+            return
+        for node in list(self.graph.all_nodes()):
+            self.graph.remove_node(node)
+        loader = WorkflowLoader(self.graph)
+        _ok, msg = loader.build(self._last_workflow)
+        self._append_bubble("system", msg)
+
+    def _on_clear(self):
+        self._messages.clear()
+        self._chat_display.clear()
+        self._last_workflow = None
+        self._load_btn.setEnabled(False)
+        self._replace_btn.setEnabled(False)
+        self._status.setText("Chat cleared")
+
+    # ------------------------------------------------------------------
+    def _append_bubble(self, role: str, text: str):
+        """Append a chat-style message bubble with tail to the display."""
+        c = self._bubble_colors
+        text_escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        text_html = text_escaped.replace("\n", "<br>")
+
+        # ◢ = bottom-right tail (U+25E2), ◣ = bottom-left tail (U+25E3)
+        # Add spacing before each message
+        self._chat_display.append("<div style='margin:0; padding:0; line-height:6px;'>&nbsp;</div>")
+
+        if role == "user":
+            html = (
+                f"<table width='100%' cellpadding='0' cellspacing='0'>"
+                f"<tr><td width='15%'></td>"
+                f"<td style='background:{c['user_bg']}; color:{c['user_fg']}; "
+                f"padding:8px 14px; border-radius:14px 14px 4px 14px;'>"
+                f"<span style='font-size:13px; line-height:1.5;'>"
+                f"{text_html}</span></td></tr>"
+                f"<tr><td></td>"
+                f"<td align='right' style='padding:0; line-height:0; font-size:0;'>"
+                f"<span style='color:{c['user_bg']}; font-size:14px; "
+                f"line-height:0;'>&#9698;</span></td></tr>"
+                f"</table>"
+            )
+        elif role == "assistant":
+            html = (
+                f"<table width='100%' cellpadding='0' cellspacing='0'>"
+                f"<tr><td style='background:{c['ai_bg']}; color:{c['ai_fg']}; "
+                f"padding:8px 14px; border-radius:4px 14px 14px 14px; "
+                f"border:1px solid {c['ai_border']};'>"
+                f"<span style='color:{c['ai_label']}; font-size:10px; "
+                f"font-weight:600;'>AI</span><br>"
+                f"<span style='font-size:13px; line-height:1.5;'>"
+                f"{text_html}</span></td>"
+                f"<td width='15%'></td></tr>"
+                f"<tr><td style='padding:0; line-height:0; font-size:0;'>"
+                f"<span style='color:{c['ai_bg']}; font-size:14px; "
+                f"line-height:0;'>&#9699;</span></td>"
+                f"<td></td></tr>"
+                f"</table>"
+            )
+        elif role == "error":
+            html = (
+                f"<table width='100%' cellpadding='0' cellspacing='0'>"
+                f"<tr><td style='background:{c['err_bg']}; color:{c['err_fg']}; "
+                f"padding:8px 14px; border-radius:12px;'>"
+                f"<span style='font-size:10px; font-weight:600;'>Error</span><br>"
+                f"<span style='font-size:13px;'>{text_html}</span></td>"
+                f"<td width='15%'></td></tr>"
+                f"<tr><td style='padding:0; line-height:0; font-size:0;'>"
+                f"<span style='color:{c['err_bg']}; font-size:14px; "
+                f"line-height:0;'>&#9699;</span></td>"
+                f"<td></td></tr>"
+                f"</table>"
+            )
+        else:  # system
+            html = (
+                f"<table width='100%' cellpadding='0' cellspacing='0'><tr>"
+                f"<td width='10%'></td>"
+                f"<td align='center' style='color:{c['sys_fg']}; "
+                f"font-size:11px; font-style:italic; padding:4px 0;'>"
+                f"{text_html}</td>"
+                f"<td width='10%'></td></tr></table>"
+            )
+
+        self._chat_display.append(html)
+        sb = self._chat_display.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+
+class _ChatWorker(QtCore.QObject):
+    """Background worker for multi-turn LLM calls."""
+    result = QtCore.Signal(str)
+    error = QtCore.Signal(str)
+
+    def __init__(self, client, system: str, messages: list[dict]):
+        super().__init__()
+        self._client = client
+        self._system = system
+        self._messages = messages
+
+    def run(self):
+        try:
+            if hasattr(self._client, 'chat_multi'):
+                text = self._client.chat_multi(self._system, self._messages)
+            else:
+                # Fallback: concatenate history into single user message
+                combined = "\n\n".join(
+                    f"[{m['role']}]: {m['content']}" for m in self._messages
+                )
+                text = self._client.chat(self._system, combined)
+            self.result.emit(text)
+        except Exception as exc:
+            self.error.emit(str(exc))

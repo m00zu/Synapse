@@ -33,6 +33,7 @@ PORT_COLORS = {
     'path':     (149, 165, 166),  # Grey       – file / folder path string
     'collection': (230, 180, 50), # Gold       – CollectionData (named bundle)
     'model':    (255, 140,  66),  # Coral/Orange – fitted model (regression, ML)
+    'html':     (235,  87, 135),  # Rose/Pink  – HtmlData (report content)
     'any':      ( 95, 106, 106),  # Dark grey  – generic / unknown type
 }
 
@@ -813,6 +814,10 @@ class NodeImageWidget(NodeBaseWidget):
                 if os.path.exists(path):
                     os.remove(path)
 
+            # Set display size BEFORE loading SVG so Qt lays out correctly
+            self._svg_widget.setFixedSize(dw, dh)
+            self._stack.setCurrentWidget(self._svg_widget)
+
             renderer = self._svg_widget.renderer()
             if renderer.isValid():
                 renderer.setAspectRatioMode(QtCore.Qt.AspectRatioMode.KeepAspectRatio)
@@ -820,8 +825,9 @@ class NodeImageWidget(NodeBaseWidget):
                 view_box = QtCore.QRectF(0, 0, default_size.width(), default_size.height())
                 renderer.setViewBox(view_box)
 
-            self._svg_widget.setFixedSize(dw, dh)
-            self._stack.setCurrentWidget(self._svg_widget)
+            # Force layout recalculation
+            self._layout_widget.updateGeometry()
+            QtWidgets.QApplication.processEvents()
 
         elif isinstance(data, bytes):
             # Raw SVG bytes — load directly into the QSvgWidget

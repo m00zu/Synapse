@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to upload to (e.g. v0.1.1). Leave empty to skip upload.'
+        description: 'Release tag to upload to (e.g. v0.1.2). Leave empty to skip upload.'
         type: string
         required: false
       build_windows:
@@ -53,7 +53,7 @@ jobs:
         env:
           PYTHONPATH: ./util
         run: |
-          python -m nuitka --show-progress --show-scons --onefile --windows-console-mode=attach --windows-icon-from-ico="./synapse/icons/synapse_icon.ico" --windows-product-name="Synapse" --product-name="Synapse" --onefile-tempdir-spec="{CACHE_DIR}/{PRODUCT}/{VERSION}" --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse.exe" --output-dir=dist --jobs=8 --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --nofollow-import-to=unittest --nofollow-import-to=doctest --product-version="0.1.1" main.py
+          python -m nuitka --show-progress --show-scons --onefile --windows-console-mode=attach --windows-icon-from-ico="./synapse/icons/synapse_icon.ico" --windows-product-name="Synapse" --product-name="Synapse" --onefile-tempdir-spec="{CACHE_DIR}/{PRODUCT}/{VERSION}" --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse.exe" --output-dir=dist --jobs=8 --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --nofollow-import-to=unittest --nofollow-import-to=doctest --product-version="0.1.2" main.py
 
       - name: Upload onefile artifact
         uses: actions/upload-artifact@v4
@@ -110,7 +110,7 @@ jobs:
         env:
           PYTHONPATH: ./util
         run: |
-          python -m nuitka --show-progress --show-scons --macos-create-app-bundle --macos-app-name="Synapse" --macos-app-icon=synapse/icons/synapse_icon.png --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse" --output-dir=dist --jobs=8 --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --product-version="0.1.1" main.py
+          python -m nuitka --show-progress --show-scons --macos-create-app-bundle --macos-app-name="Synapse" --macos-app-icon=synapse/icons/synapse_icon.png --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse" --output-dir=dist --jobs=8 --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --product-version="0.1.2" main.py
 
       - name: Rename app bundle
         run: |

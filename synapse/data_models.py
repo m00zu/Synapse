@@ -97,6 +97,16 @@ class StatData(TableData):
     pass
 
 
+class HtmlData(NodeData):
+    """Wraps an HTML string for report output.
+
+    payload: str — self-contained HTML document.
+    title:   optional report title.
+    """
+    payload: str          # HTML content
+    title: str = ""
+
+
 class ModelData(NodeData):
     """Wraps a fitted model for prediction.
 
