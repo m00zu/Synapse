@@ -291,6 +291,18 @@ FILE_MAP = {
     "synapse/plugins/figure_plotting/plot_nodes.py": {
         "_default": ("plugins/figure-plotting.md", "Plotting"),
     },
+    # ── report plugin ─────────────────────────────────────────────────────
+    "synapse/plugins/report_node.py": {
+        "_default": ("plugins/report.md", "Report Generation"),
+    },
+    # ── data_processing extras ────────────────────────────────────────────
+    "synapse/plugins/data_processing/script_node.py": {
+        "_default": ("nodes/data-tables/util.md", "Utility"),
+    },
+    # ── figure_plotting extras ────────────────────────────────────────────
+    "synapse/plugins/figure_plotting/svg_editor_node.py": {
+        "_default": ("plugins/figure-plotting.md", "Plotting"),
+    },
     # ── filopodia plugin ───────────────────────────────────────────────────
     "synapse/plugins/filopodia_nodes.py": {
         "_default": ("plugins/filopodia.md", "Filopodia Analysis"),

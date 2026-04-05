@@ -182,3 +182,39 @@ Performs principal component analysis (PCA) for multivariate data exploration.
 **Properties:** ``
 
 ---
+
+### Mixed Effects Model
+
+Fits a linear mixed-effects model (LMM) for hierarchical / nested data.
+
+??? note "Details"
+    Mixed-effects models are essential when observations are grouped (e.g.
+    cells within wells, animals within treatment groups, repeated measures
+    per subject). They estimate **fixed effects** (population-level trends)
+    and **random effects** (group-level deviations) simultaneously.
+    
+    Configuration:
+
+    - **y_col** — dependent (response) variable.
+    - **fixed_cols** — fixed-effect predictor(s), comma-separated.
+    - **group_col** — grouping variable for random intercepts (required).
+    - **random_slope_col** — optional predictor for random slopes.
+    - **REML** — use Restricted ML (default) or Full ML estimation.
+    
+    Outputs:
+
+    - **fixed_effects** — coefficient table with SE, z-value, p-value, 95% CI.
+    - **random_effects** — per-group random intercept (and slope) estimates.
+    - **summary** — model-level statistics: log-likelihood, AIC, BIC,
+      number of groups, ICC.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `in` | table |
+| **Output** | `fixed_effects` | stat |
+| **Output** | `random_effects` | table |
+| **Output** | `summary` | stat |
+
+**Properties:** ``
+
+---

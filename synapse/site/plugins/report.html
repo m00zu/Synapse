@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://m00zu.github.io/Synapse/nodes/data-tables/compute.html">
+        <link rel="canonical" href="https://m00zu.github.io/Synapse/plugins/report.html">
       
       
-        <link rel="prev" href="filter.html">
+        <link rel="prev" href="cheminformatics.html">
       
       
-        <link rel="next" href="transform.html">
+        <link rel="next" href="filopodia.html">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
-        <title>Compute - Synapse Manual</title>
+        <title>Report Generation - Synapse Manual</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#compute" class="md-skip">
+        <a href="#report-generation" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +96,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../index.html" title="Synapse Manual" class="md-header__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
+    <a href="../index.html" title="Synapse Manual" class="md-header__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.33 12.91c.09 1.55-.62 3.04-1.89 3.95l.77 1.49c.23.45.26.98.06 1.45-.19.47-.58.84-1.06 1l-.79.25a1.687 1.687 0 0 1-1.86-.55L14.44 18c-.89-.15-1.73-.53-2.44-1.1-.5.15-1 .23-1.5.23-.88 0-1.76-.27-2.5-.79-.53.16-1.07.23-1.62.22-.79.01-1.57-.15-2.3-.45a4.1 4.1 0 0 1-2.43-3.61c-.08-.72.04-1.45.35-2.11-.29-.75-.32-1.57-.07-2.33C2.3 7.11 3 6.32 3.87 5.82c.58-1.69 2.21-2.82 4-2.7 1.6-1.5 4.05-1.66 5.83-.37.42-.11.86-.17 1.3-.17 1.36-.03 2.65.57 3.5 1.64 2.04.53 3.5 2.35 3.58 4.47.05 1.11-.25 2.2-.86 3.13.07.36.11.72.11 1.09m-5-1.41c.57.07 1.02.5 1.02 1.07a1 1 0 0 1-1 1h-.63c-.32.9-.88 1.69-1.62 2.29.25.09.51.14.77.21 5.13-.07 4.53-3.2 4.53-3.25a2.59 2.59 0 0 0-2.69-2.49 1 1 0 0 1-1-1 1 1 0 0 1 1-1c1.23.03 2.41.49 3.33 1.3.05-.29.08-.59.08-.89-.06-1.24-.62-2.32-2.87-2.53-1.25-2.96-4.4-1.32-4.4-.4-.03.23.21.72.25.75a1 1 0 0 1 1 1c0 .55-.45 1-1 1-.53-.02-1.03-.22-1.43-.56-.48.31-1.03.5-1.6.56-.57.05-1.04-.35-1.07-.9a.97.97 0 0 1 .88-1.1c.16-.02.94-.14.94-.77 0-.66.25-1.29.68-1.79-.92-.25-1.91.08-2.91 1.29C6.75 5 6 5.25 5.45 7.2 4.5 7.67 4 8 3.78 9c1.08-.22 2.19-.13 3.22.25.5.19.78.75.59 1.29-.19.52-.77.78-1.29.59-.73-.32-1.55-.34-2.3-.06-.32.27-.32.83-.32 1.27 0 .74.37 1.43 1 1.83.53.27 1.12.41 1.71.4q-.225-.39-.39-.81a1.038 1.038 0 0 1 1.96-.68c.4 1.14 1.42 1.92 2.62 2.05 1.37-.07 2.59-.88 3.19-2.13.23-1.38 1.34-1.5 2.56-1.5m2 7.47-.62-1.3-.71.16 1 1.25zm-4.65-8.61a1 1 0 0 0-.91-1.03c-.71-.04-1.4.2-1.93.67-.57.58-.87 1.38-.84 2.19a1 1 0 0 0 1 1c.57 0 1-.45 1-1 0-.27.07-.54.23-.76.12-.1.27-.15.43-.15.55.03 1.02-.38 1.02-.92"/></svg>
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Compute
+              Report Generation
             
           </span>
         </div>
@@ -194,7 +194,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../index.html" title="Synapse Manual" class="md-nav__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
+    <a href="../index.html" title="Synapse Manual" class="md-nav__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.33 12.91c.09 1.55-.62 3.04-1.89 3.95l.77 1.49c.23.45.26.98.06 1.45-.19.47-.58.84-1.06 1l-.79.25a1.687 1.687 0 0 1-1.86-.55L14.44 18c-.89-.15-1.73-.53-2.44-1.1-.5.15-1 .23-1.5.23-.88 0-1.76-.27-2.5-.79-.53.16-1.07.23-1.62.22-.79.01-1.57-.15-2.3-.45a4.1 4.1 0 0 1-2.43-3.61c-.08-.72.04-1.45.35-2.11-.29-.75-.32-1.57-.07-2.33C2.3 7.11 3 6.32 3.87 5.82c.58-1.69 2.21-2.82 4-2.7 1.6-1.5 4.05-1.66 5.83-.37.42-.11.86-.17 1.3-.17 1.36-.03 2.65.57 3.5 1.64 2.04.53 3.5 2.35 3.58 4.47.05 1.11-.25 2.2-.86 3.13.07.36.11.72.11 1.09m-5-1.41c.57.07 1.02.5 1.02 1.07a1 1 0 0 1-1 1h-.63c-.32.9-.88 1.69-1.62 2.29.25.09.51.14.77.21 5.13-.07 4.53-3.2 4.53-3.25a2.59 2.59 0 0 0-2.69-2.49 1 1 0 0 1-1-1 1 1 0 0 1 1-1c1.23.03 2.41.49 3.33 1.3.05-.29.08-.59.08-.89-.06-1.24-.62-2.32-2.87-2.53-1.25-2.96-4.4-1.32-4.4-.4-.03.23.21.72.25.75a1 1 0 0 1 1 1c0 .55-.45 1-1 1-.53-.02-1.03-.22-1.43-.56-.48.31-1.03.5-1.6.56-.57.05-1.04-.35-1.07-.9a.97.97 0 0 1 .88-1.1c.16-.02.94-.14.94-.77 0-.66.25-1.29.68-1.79-.92-.25-1.91.08-2.91 1.29C6.75 5 6 5.25 5.45 7.2 4.5 7.67 4 8 3.78 9c1.08-.22 2.19-.13 3.22.25.5.19.78.75.59 1.29-.19.52-.77.78-1.29.59-.73-.32-1.55-.34-2.3-.06-.32.27-.32.83-.32 1.27 0 .74.37 1.43 1 1.83.53.27 1.12.41 1.71.4q-.225-.39-.39-.81a1.038 1.038 0 0 1 1.96-.68c.4 1.14 1.42 1.92 2.62 2.05 1.37-.07 2.59-.88 3.19-2.13.23-1.38 1.34-1.5 2.56-1.5m2 7.47-.62-1.3-.71.16 1 1.25zm-4.65-8.61a1 1 0 0 0-.91-1.03c-.71-.04-1.4.2-1.93.67-.57.58-.87 1.38-.84 2.19a1 1 0 0 0 1 1c.57 0 1-.45 1-1 0-.27.07-.54.23-.76.12-.1.27-.15.43-.15.55.03 1.02-.38 1.02-.92"/></svg>
@@ -224,7 +224,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../index.html" class="md-nav__link">
+      <a href="../index.html" class="md-nav__link">
         
   
   
@@ -305,7 +305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/installation.html" class="md-nav__link">
+      <a href="../getting-started/installation.html" class="md-nav__link">
         
   
   
@@ -333,7 +333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/interface.html" class="md-nav__link">
+      <a href="../getting-started/interface.html" class="md-nav__link">
         
   
   
@@ -361,7 +361,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/quick-start.html" class="md-nav__link">
+      <a href="../getting-started/quick-start.html" class="md-nav__link">
         
   
   
@@ -389,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/examples.html" class="md-nav__link">
+      <a href="../getting-started/examples.html" class="md-nav__link">
         
   
   
@@ -417,7 +417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/ai-assistant.html" class="md-nav__link">
+      <a href="../getting-started/ai-assistant.html" class="md-nav__link">
         
   
   
@@ -506,7 +506,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../concepts/nodes-and-connections.html" class="md-nav__link">
+      <a href="../concepts/nodes-and-connections.html" class="md-nav__link">
         
   
   
@@ -534,7 +534,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../concepts/data-types.html" class="md-nav__link">
+      <a href="../concepts/data-types.html" class="md-nav__link">
         
   
   
@@ -562,7 +562,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../concepts/batch-processing.html" class="md-nav__link">
+      <a href="../concepts/batch-processing.html" class="md-nav__link">
         
   
   
@@ -590,7 +590,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/plugins.html" class="md-nav__link">
+      <a href="../getting-started/plugins.html" class="md-nav__link">
         
   
   
@@ -618,7 +618,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../shortcuts.html" class="md-nav__link">
+      <a href="../shortcuts.html" class="md-nav__link">
         
   
   
@@ -707,7 +707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../workflows/cell-counting.html" class="md-nav__link">
+      <a href="../workflows/cell-counting.html" class="md-nav__link">
         
   
   
@@ -735,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../workflows/batch-analysis.html" class="md-nav__link">
+      <a href="../workflows/batch-analysis.html" class="md-nav__link">
         
   
   
@@ -767,8 +767,6 @@
       
   
   
-    
-  
   
   
     
@@ -781,11 +779,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
@@ -806,7 +806,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -824,7 +824,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../io-display.html" class="md-nav__link">
+      <a href="../nodes/io-display.html" class="md-nav__link">
         
   
   
@@ -849,8 +849,6 @@
                 
   
   
-    
-  
   
   
     
@@ -860,11 +858,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_2" >
         
           
           <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
@@ -885,7 +885,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -903,7 +903,7 @@
   
   
     <li class="md-nav__item">
-      <a href="filter.html" class="md-nav__link">
+      <a href="../nodes/data-tables/filter.html" class="md-nav__link">
         
   
   
@@ -928,37 +928,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compute
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="compute.html" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../nodes/data-tables/compute.html" class="md-nav__link">
         
   
   
@@ -974,92 +947,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#single-table-math" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Single Table Math
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#aggregate-table" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Aggregate Table
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#two-table-math" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Two Table Math
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#normalize-column" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Normalize Column
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#value-counts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Value Counts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#group-normalization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Group Normalization
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1072,7 +959,7 @@
   
   
     <li class="md-nav__item">
-      <a href="transform.html" class="md-nav__link">
+      <a href="../nodes/data-tables/transform.html" class="md-nav__link">
         
   
   
@@ -1100,7 +987,7 @@
   
   
     <li class="md-nav__item">
-      <a href="combine.html" class="md-nav__link">
+      <a href="../nodes/data-tables/combine.html" class="md-nav__link">
         
   
   
@@ -1128,7 +1015,7 @@
   
   
     <li class="md-nav__item">
-      <a href="util.html" class="md-nav__link">
+      <a href="../nodes/data-tables/util.html" class="md-nav__link">
         
   
   
@@ -1168,8 +1055,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -1180,13 +1069,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
@@ -1207,7 +1094,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1276,7 +1163,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/image-analysis/color.html" class="md-nav__link">
+      <a href="image-analysis/color.html" class="md-nav__link">
         
   
   
@@ -1304,7 +1191,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/image-analysis/exposure.html" class="md-nav__link">
+      <a href="image-analysis/exposure.html" class="md-nav__link">
         
   
   
@@ -1332,7 +1219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/image-analysis/filters.html" class="md-nav__link">
+      <a href="image-analysis/filters.html" class="md-nav__link">
         
   
   
@@ -1360,7 +1247,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/image-analysis/transform.html" class="md-nav__link">
+      <a href="image-analysis/transform.html" class="md-nav__link">
         
   
   
@@ -1388,7 +1275,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/image-analysis/morphology.html" class="md-nav__link">
+      <a href="image-analysis/morphology.html" class="md-nav__link">
         
   
   
@@ -1416,7 +1303,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/image-analysis/measurement.html" class="md-nav__link">
+      <a href="image-analysis/measurement.html" class="md-nav__link">
         
   
   
@@ -1444,7 +1331,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/image-analysis/roi-drawing.html" class="md-nav__link">
+      <a href="image-analysis/roi-drawing.html" class="md-nav__link">
         
   
   
@@ -1531,7 +1418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/statistical-analysis/descriptive.html" class="md-nav__link">
+      <a href="statistical-analysis/descriptive.html" class="md-nav__link">
         
   
   
@@ -1559,7 +1446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/statistical-analysis/regression.html" class="md-nav__link">
+      <a href="statistical-analysis/regression.html" class="md-nav__link">
         
   
   
@@ -1595,7 +1482,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/figure-plotting.html" class="md-nav__link">
+      <a href="figure-plotting.html" class="md-nav__link">
         
   
   
@@ -1674,7 +1561,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/sam2.html" class="md-nav__link">
+      <a href="sam2.html" class="md-nav__link">
         
   
   
@@ -1702,7 +1589,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/cellpose.html" class="md-nav__link">
+      <a href="cellpose.html" class="md-nav__link">
         
   
   
@@ -1730,7 +1617,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/video-tracking.html" class="md-nav__link">
+      <a href="video-tracking.html" class="md-nav__link">
         
   
   
@@ -1766,7 +1653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/volume.html" class="md-nav__link">
+      <a href="volume.html" class="md-nav__link">
         
   
   
@@ -1794,7 +1681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/cheminformatics.html" class="md-nav__link">
+      <a href="cheminformatics.html" class="md-nav__link">
         
   
   
@@ -1819,10 +1706,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../plugins/report.html" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Report Generation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="report.html" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1838,6 +1752,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Report
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#save-html" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Save HTML
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#display-html" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Display HTML
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1850,7 +1817,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../plugins/filopodia.html" class="md-nav__link">
+      <a href="filopodia.html" class="md-nav__link">
         
   
   
@@ -1939,7 +1906,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developing/creating-plugins.html" class="md-nav__link">
+      <a href="../developing/creating-plugins.html" class="md-nav__link">
         
   
   
@@ -1987,19 +1954,25 @@
   
 
 
-<h1 id="compute">Compute<a class="headerlink" href="#compute" title="Permanent link">&para;</a></h1>
-<h3 id="single-table-math">Single Table Math<a class="headerlink" href="#single-table-math" title="Permanent link">&para;</a></h3>
-<p>Creates or modifies a column using a pandas eval expression.</p>
+<h1 id="report-generation">Report Generation<a class="headerlink" href="#report-generation" title="Permanent link">&para;</a></h1>
+<h3 id="report">Report<a class="headerlink" href="#report" title="Permanent link">&para;</a></h3>
+<p>Generates an HTML scientific report from upstream tables and figures.</p>
 <details class="note">
 <summary>Details</summary>
-<p>Examples:</p>
+<p><strong>Workflow:</strong></p>
 <ul>
-<li><code>Ratio = Intensity_Ch1 / Intensity_Ch2</code> — create a new column</li>
-<li><code>Area_um2 = Area * 0.065 * 0.065</code> — convert pixels to physical units</li>
-<li><code>Normalized = Intensity / Intensity.mean()</code> — normalize to mean</li>
-<li><code>Log_Area = @np.log10(Area)</code> — use numpy functions with <code>@</code> prefix</li>
+<li>Connect table and/or figure inputs, then run the graph. The node collects all upstream data and prepares the report prompt.</li>
+<li>Click <strong>Generate with API</strong> to use the configured LLM, or click <strong>Copy for Web AI</strong> to paste into ChatGPT / Claude.ai / Gemini.</li>
+<li>
+<p>If using web AI, paste the response into the <strong>AI Response</strong> box, then click <strong>Build Report</strong> to render the HTML.</p>
+</li>
+<li>
+<p><strong>title</strong> — report title (default: "Analysis Report").</p>
+</li>
+<li>
+<p><strong>context</strong> — optional text giving the LLM additional context (e.g. "This is a cell viability assay comparing drug A vs control").</p>
+</li>
 </ul>
-<p>Uses pandas <code>DataFrame.eval()</code> syntax. The left side of <code>=</code> is the new column name.</p>
 </details>
 <table>
 <thead>
@@ -2012,52 +1985,28 @@
 <tbody>
 <tr>
 <td><strong>Input</strong></td>
-<td><code>in</code></td>
+<td><code>table</code></td>
 <td>table</td>
 </tr>
 <tr>
+<td><strong>Input</strong></td>
+<td><code>figure</code></td>
+<td>figure</td>
+</tr>
+<tr>
 <td><strong>Output</strong></td>
-<td><code>out</code></td>
-<td>table</td>
+<td><code>report</code></td>
+<td>html</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h3 id="aggregate-table">Aggregate Table<a class="headerlink" href="#aggregate-table" title="Permanent link">&para;</a></h3>
-<p>Reduces a table to aggregate statistics across rows, optionally grouped by column.</p>
+<h3 id="save-html">Save HTML<a class="headerlink" href="#save-html" title="Permanent link">&para;</a></h3>
+<p>Saves HtmlData to an HTML file on disk.</p>
 <details class="note">
 <summary>Details</summary>
-<p>Without grouping, all numeric columns are reduced to a single row.
-With grouping, each unique group gets its own summary row.</p>
-<table>
-<thead>
-<tr>
-<th>Group</th>
-<th>Area</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Control</td>
-<td>110</td>
-</tr>
-<tr>
-<td>Treated</td>
-<td>190</td>
-</tr>
-</tbody>
-</table>
-<p>Parameters:</p>
-<ul>
-<li><strong>Operation</strong> — sum, mean, median, min, max, count, std, var, auc</li>
-<li><strong>Group By</strong> — column name(s) to group by (comma-separated, leave empty for no grouping)</li>
-<li><strong>Columns</strong> — restrict to specific columns (comma-separated, leave empty = all numeric)</li>
-<li><strong>Sort By</strong> — column to sort by before computing AUC (required for auc, e.g. time column)</li>
-</ul>
-<p>The <strong>auc</strong> operation computes the area under the curve using the trapezoidal
-rule.  Rows are first sorted by the <em>Sort By</em> column, which serves as the
-x-axis (e.g. time).  Each selected numeric column is then integrated against
-that x-axis.</p>
+<p>Connect the <strong>html</strong> output from a Report node. Choose a save path
+and the node writes the self-contained HTML file.</p>
 </details>
 <table>
 <thead>
@@ -2070,32 +2019,18 @@ that x-axis.</p>
 <tbody>
 <tr>
 <td><strong>Input</strong></td>
-<td><code>in</code></td>
-<td>table</td>
-</tr>
-<tr>
-<td><strong>Output</strong></td>
-<td><code>out</code></td>
-<td>table</td>
+<td><code>html</code></td>
+<td>html</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Properties:</strong> <code>Operation</code></p>
 <hr />
-<h3 id="two-table-math">Two Table Math<a class="headerlink" href="#two-table-math" title="Permanent link">&para;</a></h3>
-<p>Computes a scalar arithmetic operation between one value from each of two input tables.</p>
+<h3 id="display-html">Display HTML<a class="headerlink" href="#display-html" title="Permanent link">&para;</a></h3>
+<p>Displays HtmlData content directly on the node surface.</p>
 <details class="note">
 <summary>Details</summary>
-<p>For each input table the node picks the first numeric column (or the column
-named in the matching property) and uses row 0 as the scalar value.
-Designed for comparing scalar outputs such as stained-area measurements.</p>
-<p>Outputs a single-row result table: <code>left_value | right_value | operation | result</code></p>
-<p>Parameters:</p>
-<ul>
-<li><strong>Operation</strong> — <code>left / right</code>, <code>left * right</code>, <code>left + right</code>, or <code>left - right</code></li>
-<li><strong>Left Column</strong> — column name in the left table (blank = first numeric)</li>
-<li><strong>Right Column</strong> — column name in the right table (blank = first numeric)</li>
-</ul>
+<p>Connect the <strong>html</strong> output from a Report node to preview the
+generated report inline without opening a browser.</p>
 </details>
 <table>
 <thead>
@@ -2108,130 +2043,8 @@ Designed for comparing scalar outputs such as stained-area measurements.</p>
 <tbody>
 <tr>
 <td><strong>Input</strong></td>
-<td><code>left</code></td>
-<td>table</td>
-</tr>
-<tr>
-<td><strong>Input</strong></td>
-<td><code>right</code></td>
-<td>table</td>
-</tr>
-<tr>
-<td><strong>Output</strong></td>
-<td><code>result</code></td>
-<td>table</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Properties:</strong> <code>Operation</code></p>
-<hr />
-<h3 id="normalize-column">Normalize Column<a class="headerlink" href="#normalize-column" title="Permanent link">&para;</a></h3>
-<p>Normalizes one or more numeric columns.</p>
-<details class="note">
-<summary>Details</summary>
-<p>Methods:</p>
-<ul>
-<li><em>Min-Max (0-1)</em> — scales each column to [0, 1]</li>
-<li><em>Z-score</em> — subtracts mean and divides by std (standard score)</li>
-<li><em>Log10 / Log2 / Ln</em> — log transform (adds 1 before log to handle zeros)</li>
-<li><em>Robust (IQR)</em> — subtracts median, divides by IQR; robust to outliers</li>
-</ul>
-<p>Parameters:</p>
-<ul>
-<li><strong>Columns</strong> — comma-separated names. Leave empty to normalize all numeric columns.</li>
-<li><strong>Suffix</strong> — text appended to new column names (e.g. <code>_norm</code>). Leave empty to overwrite in-place.</li>
-</ul>
-</details>
-<table>
-<thead>
-<tr>
-<th>Direction</th>
-<th>Port</th>
-<th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Input</strong></td>
-<td><code>in</code></td>
-<td>table</td>
-</tr>
-<tr>
-<td><strong>Output</strong></td>
-<td><code>out</code></td>
-<td>table</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Properties:</strong> <code>Method</code></p>
-<hr />
-<h3 id="value-counts">Value Counts<a class="headerlink" href="#value-counts" title="Permanent link">&para;</a></h3>
-<p>Counts occurrences of each unique value in a column.</p>
-<details class="note">
-<summary>Details</summary>
-<p>Outputs a two-column table with the original column name and a <code>count</code> column,
-sorted by count descending by default.</p>
-<p>Parameters:</p>
-<ul>
-<li><strong>Column</strong> — the column to count unique values in</li>
-<li><strong>Sort by count (descending)</strong> — sort results by frequency</li>
-<li><strong>Add percentage column</strong> — include a <code>pct</code> column with relative frequencies</li>
-</ul>
-</details>
-<table>
-<thead>
-<tr>
-<th>Direction</th>
-<th>Port</th>
-<th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Input</strong></td>
-<td><code>in</code></td>
-<td>table</td>
-</tr>
-<tr>
-<td><strong>Output</strong></td>
-<td><code>out</code></td>
-<td>table</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Properties:</strong> <code>,</code></p>
-<hr />
-<h3 id="group-normalization">Group Normalization<a class="headerlink" href="#group-normalization" title="Permanent link">&para;</a></h3>
-<p>Normalizes numerical columns relative to a specified control group mean.</p>
-<details class="note">
-<summary>Details</summary>
-<p>Each numeric column is divided by the mean of its corresponding control group,
-producing fold-change values. A mapping table widget lets you assign a different
-control group for each unique group in the data.</p>
-<p>Parameters:</p>
-<ul>
-<li><strong>Global Control Group</strong> — default control group name used for normalization</li>
-<li><strong>Target Column</strong> — column containing group labels (e.g. <code>Group</code>)</li>
-</ul>
-</details>
-<table>
-<thead>
-<tr>
-<th>Direction</th>
-<th>Port</th>
-<th>Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Input</strong></td>
-<td><code>in</code></td>
-<td>table</td>
-</tr>
-<tr>
-<td><strong>Output</strong></td>
-<td><code>out</code></td>
-<td>table</td>
+<td><code>html</code></td>
+<td>html</td>
 </tr>
 </tbody>
 </table>
@@ -2291,10 +2104,10 @@ control group for each unique group in the data.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.top", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "navigation.top", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

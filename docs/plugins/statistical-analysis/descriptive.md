@@ -113,12 +113,18 @@ Tests whether each numerical column in a DataFrame follows a normal distribution
     - *Kolmogorov-Smirnov* — compares against a theoretical normal CDF
     - *Anderson-Darling* — weighted variant sensitive to distribution tails
     
-    Outputs a summary table with test statistic, p-value (where applicable), and pass/fail result.
+    Outputs:
+
+    - **results** — summary table with test statistic, p-value, and pass/fail per column.
+    - **qq_plot** — Q-Q (quantile-quantile) plots for each column. Points following the red dashed reference line indicate normality; systematic curvature suggests non-normal distribution.
+    
+    Use the **Group Column** option to test normality per group (e.g. per treatment condition before running a t-test or ANOVA).
 
 | Direction | Port | Type |
 |-----------|------|------|
 | **Input** | `in` | table |
 | **Output** | `results` | table |
+| **Output** | `qq_plot` | figure |
 
 **Properties:** `Test(s)`
 
@@ -169,8 +175,96 @@ Tests whether two or more groups have equal variance (homoscedasticity).
 | Direction | Port | Type |
 |-----------|------|------|
 | **Input** | `in` | table |
-| **Output** | `stats_table` | stat |
+| **Output** | `result` | table |
 
 **Properties:** `Test`
+
+---
+
+### Effect Size
+
+Calculates effect sizes for pairwise group comparisons.
+
+??? note "Details"
+    Measures how large the difference between groups is, complementing
+    p-values from statistical tests. Journals increasingly require effect
+    sizes alongside significance testing.
+    
+    Methods:
+
+    - *Auto* — Cohen's d for 2 groups, Eta-squared for 3+ groups
+    - *Cohen's d* — standardised mean difference (pooled SD)
+    - *Hedges' g* — Cohen's d with small-sample bias correction
+    - *Glass's delta* — mean difference divided by the control group SD
+    - *Rank-biserial r* — effect size for Mann-Whitney U (non-parametric)
+    - *Eta-squared* — proportion of variance explained (ANOVA-style)
+    - *Omega-squared* — bias-corrected eta-squared
+    
+    Output columns: group1, group2, n1, n2, effect_size, ci_lower,
+    ci_upper, magnitude, method.
+    
+    **magnitude** uses conventional thresholds:
+
+    - Cohen's d / Hedges' g / Glass's delta: negligible < 0.2, small < 0.5, medium < 0.8, large >= 0.8
+    - Eta-squared / Omega-squared: negligible < 0.01, small < 0.06, medium < 0.14, large >= 0.14
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `in` | table |
+| **Output** | `results` | table |
+
+**Properties:** `Method`, `CI Level`, `Bootstrap Iterations`
+
+---
+
+### Descriptive Stats
+
+Computes comprehensive descriptive statistics for numeric columns.
+
+??? note "Details"
+    Calculates per-group (or overall) statistics including central tendency,
+    dispersion, shape, and confidence intervals — everything needed for a
+    publication-ready summary table.
+    
+    Output columns: group, column, n, mean, median, std, sem, ci_lower, ci_upper, min, q1, q3, max, iqr, skewness, kurtosis, cv.
+    
+    - **group_col** — optional grouping column. If set, statistics are computed per group. Leave blank for overall stats.
+    - **value_cols** — columns to summarise. Leave blank for all numeric.
+    - **ci_level** — confidence interval level (default 0.95).
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `in` | table |
+| **Output** | `results` | table |
+
+**Properties:** `CI Level`
+
+---
+
+### Distribution Fit
+
+Fits data to candidate probability distributions and ranks them by goodness-of-fit (AIC / BIC / Kolmogorov-Smirnov).
+
+??? note "Details"
+    Select which distributions to test, or use **All** to try every candidate.
+    The node outputs a ranking table with fitted parameters and a figure
+    overlaying the best-fit PDFs on the empirical histogram.
+    
+    Candidate distributions: Normal, Log-Normal, Exponential, Gamma, Weibull,
+    Beta, Rayleigh, Uniform, Cauchy, Logistic, Pareto, Student-t, Inverse Gaussian.
+    
+    Outputs:
+
+    - **results** — one row per tested distribution with shape/loc/scale params,
+      log-likelihood, AIC, BIC, KS statistic, and KS p-value, sorted by AIC.
+
+    - **figure** — histogram of the data with top-N best-fit PDF curves overlaid.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `in` | table |
+| **Output** | `results` | table |
+
+**Properties:** `Distributions`, `Overlay Top-N`, `Histogram Bins`, `Fig Width`, `Fig Height`
 
 ---

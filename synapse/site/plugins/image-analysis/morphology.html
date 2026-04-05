@@ -1500,6 +1500,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#particle-classify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Particle Classify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#white-top-hat" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1934,6 +1967,34 @@
     
   
     Cheminformatics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../report.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Report Generation
   
 
     
@@ -2632,6 +2693,56 @@ from the upstream data.</p>
 <td><strong>Output</strong></td>
 <td><code>label_image</code></td>
 <td>label_image</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="particle-classify">Particle Classify<a class="headerlink" href="#particle-classify" title="Permanent link">&para;</a></h3>
+<p>Assigns particles to named groups by drawing shapes around them.</p>
+<details class="note">
+<summary>Details</summary>
+<h3 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Connect a <strong>label image</strong> (from Particle Props or Watershed).</li>
+<li>Click <strong>+ New Group</strong> to create groups (Group 1, Group 2, …).</li>
+<li>Select a group, then draw a <strong>rect</strong> or <strong>lasso</strong> around particles.</li>
+<li>All labels fully enclosed by the shape are assigned to that group.</li>
+<li>Unassigned labels remain as "Ungrouped" (label 0 in output).</li>
+</ul>
+<h3 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>label_image</strong> — relabeled: Group 1 → 1, Group 2 → 2, ungrouped → 0.</li>
+<li><strong>table</strong> — original particle table with an added <code>group</code> column.</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>label_image</code></td>
+<td>label_image</td>
+</tr>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>image</code></td>
+<td>image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>label_image</code></td>
+<td>label_image</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>table</code></td>
+<td>table</td>
 </tr>
 </tbody>
 </table>

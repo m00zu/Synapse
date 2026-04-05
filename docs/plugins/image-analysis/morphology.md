@@ -301,6 +301,33 @@ Selects particles visually by clicking them directly in the label image.
 
 ---
 
+### Particle Classify
+
+Assigns particles to named groups by drawing shapes around them.
+
+??? note "Details"
+    ### Usage
+    
+    - Connect a **label image** (from Particle Props or Watershed).
+    - Click **+ New Group** to create groups (Group 1, Group 2, …).
+    - Select a group, then draw a **rect** or **lasso** around particles.
+    - All labels fully enclosed by the shape are assigned to that group.
+    - Unassigned labels remain as "Ungrouped" (label 0 in output).
+    
+    ### Outputs
+    
+    - **label_image** — relabeled: Group 1 → 1, Group 2 → 2, ungrouped → 0.
+    - **table** — original particle table with an added `group` column.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `label_image` | label_image |
+| **Input** | `image` | image |
+| **Output** | `label_image` | label_image |
+| **Output** | `table` | table |
+
+---
+
 ### White Top-Hat
 
 Applies a morphological white top-hat filter to extract small bright features.

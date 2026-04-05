@@ -88,6 +88,7 @@ nav:
       - Video & Tracking: plugins/video-tracking.md
     - 3D Volume: plugins/volume.md
     - Cheminformatics: plugins/cheminformatics.md
+    - Report Generation: plugins/report.md
     - Filopodia Analysis: plugins/filopodia.md
   - Developing:
     - Creating Plugins: developing/creating-plugins.md

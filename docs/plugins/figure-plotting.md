@@ -359,6 +359,9 @@ Creates a scatter plot with a fitted regression line and optional 95% confidence
     fits the equation and R-squared are annotated on the plot
     automatically.
     
+    Connect the optional **predictions** input (from Model Predict) to
+    overlay predicted data points as red × markers on the plot.
+    
     Columns:
 
     - **x_col** — numeric column for the X axis
@@ -376,9 +379,10 @@ Creates a scatter plot with a fitted regression line and optional 95% confidence
 |-----------|------|------|
 | **Input** | `data` | table |
 | **Input** | `curve` | table |
+| **Input** | `predictions` | table |
 | **Output** | `plot` | figure |
 
-**Properties:** `Auto-Fit (no curve input)`, ``, ``, `Color Palette`
+**Properties:** `Auto-Fit (no curve input)`, ``, ``, `Color Palette`, `Equation X Pos`, `Equation Y Pos`, `Equation Font Size`, `Eq / R² Line Spacing`
 
 ---
 
@@ -444,6 +448,65 @@ Creates a polar angle distribution plot for angular data.
 
 ---
 
+### Radar Chart
+
+Creates a radar (spider / star) chart comparing multiple metrics across groups.
+
+??? note "Details"
+    Ideal for comparing phenotype profiles, treatment effects, or multi-parameter
+    characterisations side by side.
+    
+    The input table should have a **group column** (one row per group) and
+    multiple **metric columns** (numeric) that become the radar axes.
+    
+    - **group_col** — column identifying each group / sample.
+    - **metric_cols** — numeric columns to plot (leave blank = all numeric).
+    - **normalize** — scale each axis to [0, 1] so different units are comparable.
+    - **fill_alpha** — transparency of filled polygon area.
+    
+    Outputs:
+
+    - **plot** — radar chart figure.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `data` | table |
+| **Output** | `plot` | figure |
+
+**Properties:** ``, `Fill Alpha`, `Line Width`, `Palette`, `Fig Width`, `Fig Height`
+
+---
+
+### Bland-Altman
+
+Creates a Bland-Altman plot for method-comparison / agreement analysis.
+
+??? note "Details"
+    The Bland-Altman plot shows the **difference** between two measurements
+    against their **mean**, with lines for the mean bias and 95% limits of
+    agreement (mean +/- 1.96 SD). Used to assess whether two measurement
+    methods are interchangeable.
+    
+    Inputs:
+
+    - **table** — DataFrame with two numeric columns to compare.
+    
+    Outputs:
+
+    - **plot** — Bland-Altman figure with bias and LoA lines.
+    - **stats** — bias (mean difference), SD of differences, upper/lower LoA,
+      95% CI of bias.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `data` | table |
+| **Output** | `plot` | figure |
+| **Output** | `stats` | stat |
+
+**Properties:** `CI Level`, ``, ``, `Fig Width`, `Fig Height`
+
+---
+
 ### Save Figure
 
 Saves a matplotlib figure to disk. Click Browse to choose file location and format.
@@ -461,5 +524,58 @@ Saves a matplotlib figure to disk. Click Browse to choose file location and form
 | **Input** | `figure` | figure |
 
 **Properties:** `DPI`
+
+---
+
+### Multi-Panel Figure
+
+Composes multiple figures into a single multi-panel publication figure.
+
+??? note "Details"
+    Each input port corresponds to a panel (A, B, C, …). Figures are
+    rendered to SVG and combined into a single vector SVG document with
+    panel labels and configurable grid layout.
+    
+    - **n_panels** — number of input ports / panels (2–9).
+    - **layout** — grid arrangement: Auto, 1×2, 2×1, 2×2, etc.
+    - **panel_labels** — labelling style for panels.
+    - **label_fontsize** — font size for A/B/C labels.
+    - **fig_width** / **fig_height** — overall figure size in inches.
+    - **spacing** — gap between panels (fraction of panel size).
+    
+    The output is a FigureData with vector SVG. Save as SVG for vector
+    output, or PNG/TIFF for raster at any DPI.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `Panel A` | figure |
+| **Input** | `Panel B` | figure |
+| **Output** | `figure` | figure |
+
+**Properties:** `Panel Labels`, `Label Weight`
+
+---
+
+### SVG Editor
+
+Converts an upstream matplotlib Figure to SVG for interactive element editing.
+
+??? note "Details"
+    Usage:
+
+    - Click any highlighted element to select it.
+    - Double-click to open the properties panel (fill, stroke, opacity, etc.).
+    - Drag text labels (orange cursor) to reposition them.
+    - Click "Apply" in the properties panel to commit changes.
+    - Click "Reset SVG" to discard edits and reload from the figure.
+    
+    Edits are stored in the `_svg_data` node property and survive
+    re-evaluation as long as the upstream figure is unchanged. Reset SVG
+    clears them.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `in` | figure |
+| **Output** | `out` | figure |
 
 ---
