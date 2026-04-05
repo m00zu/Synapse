@@ -1582,6 +1582,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#mixed-effects-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mixed Effects Model
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1813,6 +1824,34 @@
     
   
     Cheminformatics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../report.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Report Generation
   
 
     
@@ -2286,6 +2325,63 @@ Override with the <strong>X Column</strong> field if the new table uses a differ
 <tr>
 <td><strong>Output</strong></td>
 <td><code>variance</code></td>
+<td>stat</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> ``</p>
+<hr />
+<h3 id="mixed-effects-model">Mixed Effects Model<a class="headerlink" href="#mixed-effects-model" title="Permanent link">&para;</a></h3>
+<p>Fits a linear mixed-effects model (LMM) for hierarchical / nested data.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Mixed-effects models are essential when observations are grouped (e.g.
+cells within wells, animals within treatment groups, repeated measures
+per subject). They estimate <strong>fixed effects</strong> (population-level trends)
+and <strong>random effects</strong> (group-level deviations) simultaneously.</p>
+<p>Configuration:</p>
+<ul>
+<li><strong>y_col</strong> — dependent (response) variable.</li>
+<li><strong>fixed_cols</strong> — fixed-effect predictor(s), comma-separated.</li>
+<li><strong>group_col</strong> — grouping variable for random intercepts (required).</li>
+<li><strong>random_slope_col</strong> — optional predictor for random slopes.</li>
+<li><strong>REML</strong> — use Restricted ML (default) or Full ML estimation.</li>
+</ul>
+<p>Outputs:</p>
+<ul>
+<li><strong>fixed_effects</strong> — coefficient table with SE, z-value, p-value, 95% CI.</li>
+<li><strong>random_effects</strong> — per-group random intercept (and slope) estimates.</li>
+<li><strong>summary</strong> — model-level statistics: log-likelihood, AIC, BIC,
+  number of groups, ICC.</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>fixed_effects</code></td>
+<td>stat</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>random_effects</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>summary</code></td>
 <td>stat</td>
 </tr>
 </tbody>

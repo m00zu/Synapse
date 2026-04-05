@@ -1129,6 +1129,61 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#python-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python Script
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1811,6 +1866,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../plugins/report.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Report Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../plugins/filopodia.html" class="md-nav__link">
         
   
@@ -1953,9 +2036,10 @@
 <p>Displays an input table in an editable spreadsheet widget and outputs the modified result.</p>
 <details class="note">
 <summary>Details</summary>
-<p>The node accepts a TableData input and presents it in an interactive QTableWidget
-where you can edit cell values, add/remove rows and columns, rename headers, and
-sort by clicking column headers. Changes are pushed downstream automatically.</p>
+<p>The node accepts a TableData input and presents it in an Excel-like spreadsheet
+where you can type anywhere to add data, double-click column headers to rename
+them, single-click headers to sort, and right-click for insert/delete operations.
+Copy/paste and Delete key are supported. Changes are pushed downstream automatically.</p>
 <p>Parameters:</p>
 <ul>
 <li><strong>Reset Edits on Next Run</strong> — when checked, discards local edits and reloads from upstream on the next evaluation</li>
@@ -2117,6 +2201,139 @@ The reference row itself is kept (will become 0).</p>
 </tr>
 </tbody>
 </table>
+<hr />
+<h3 id="python-script">Python Script<a class="headerlink" href="#python-script" title="Permanent link">&para;</a></h3>
+<p>Run custom Python code with dynamic input and output ports.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Use this node for operations that no dedicated node covers — custom
+formulas, advanced scipy/skimage functions, string parsing, conditional
+logic, or any one-off data transformation.</p>
+<h3 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Inputs / Outputs</strong> spinboxes control how many ports the node has.</li>
+<li>Click <strong>Edit Script…</strong> to open the full code editor (dark theme).</li>
+<li>The inline preview on the node card shows the current script.</li>
+<li><code>print()</code> output is shown as a popup after execution.</li>
+</ul>
+<h3 id="variables">Variables<a class="headerlink" href="#variables" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>in_1</code>, <code>in_2</code>, …</td>
+<td>Data from each input port (DataFrame, ndarray, or raw value). Unconnected = <code>None</code>.</td>
+</tr>
+<tr>
+<td><code>out_1</code>, <code>out_2</code>, …</td>
+<td>Assign results here to send downstream.</td>
+</tr>
+<tr>
+<td><code>pd</code></td>
+<td>pandas</td>
+</tr>
+<tr>
+<td><code>np</code></td>
+<td>numpy</td>
+</tr>
+<tr>
+<td><code>scipy</code></td>
+<td>scipy (use <code>scipy.stats</code>, <code>scipy.ndimage</code>, etc.)</td>
+</tr>
+<tr>
+<td><code>skimage</code></td>
+<td>scikit-image (use <code>skimage.filters</code>, etc.)</td>
+</tr>
+<tr>
+<td><code>cv2</code></td>
+<td>OpenCV</td>
+</tr>
+<tr>
+<td><code>PIL</code></td>
+<td>Pillow</td>
+</tr>
+<tr>
+<td><code>plt</code></td>
+<td>matplotlib.pyplot</td>
+</tr>
+<tr>
+<td><code>set_progress(0-100)</code></td>
+<td>Update the node's progress bar during long operations</td>
+</tr>
+</tbody>
+</table>
+<p>You can <code>import</code> any additional module installed in your environment.</p>
+<h3 id="output-types">Output types<a class="headerlink" href="#output-types" title="Permanent link">&para;</a></h3>
+<p>Results are auto-wrapped: DataFrame → TableData, 2D ndarray → ImageData,
+Figure → FigureData, scalar → single-cell TableData.
+To force a type, use: <code>out_1 = MaskData(payload=arr)</code> or <code>ImageData(payload=arr, bit_depth=16)</code>.</p>
+<h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>Fold-change</strong> (qPCR) — <code>df['fold_change'] = 2 ** (-df['ddCt'])</code>:</p>
+</li>
+<li>
+<p><code>df = in_1.copy()</code></p>
+</li>
+<li><code>df['fold_change'] = 2 ** (-df['ddCt'])</code></li>
+<li>
+<p><code>out_1 = df</code></p>
+</li>
+<li>
+<p><strong>Column ratio</strong> — <code>df['ratio'] = df['intensity'] / df['area']</code>:</p>
+</li>
+<li>
+<p><code>df = in_1.copy()</code></p>
+</li>
+<li><code>df['ratio'] = df['intensity'] / df['area']</code></li>
+<li><code>out_1 = df</code></li>
+</ul>
+<p><strong>Split by median</strong> (set Outputs to 2):</p>
+<ul>
+<li><code>med = in_1['value'].median()</code></li>
+<li><code>out_1 = in_1[in_1['value'] &gt; med]</code></li>
+<li><code>out_2 = in_1[in_1['value'] &lt;= med]</code></li>
+</ul>
+<p><strong>Custom scipy test</strong>:</p>
+<ul>
+<li><code>from scipy.stats import mannwhitneyu</code></li>
+<li><code>g1 = in_1[in_1['group']=='A']['value']</code></li>
+<li><code>u, p = mannwhitneyu(g1, g2)</code></li>
+<li><code>out_1 = pd.DataFrame({'U': [u], 'p': [p]})</code></li>
+</ul>
+<p><strong>Image filter</strong>:</p>
+<ul>
+<li><code>from scipy.ndimage import gaussian_filter</code></li>
+<li><code>out_1 = gaussian_filter(in_1, sigma=3)</code></li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in_1</code></td>
+<td>any</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>out_1</code></td>
+<td>any</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Inputs</code>, <code>Outputs</code></p>
 <hr />
 
 

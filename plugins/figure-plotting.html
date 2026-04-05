@@ -1718,10 +1718,54 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#radar-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Radar Chart
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bland-altman" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bland-Altman
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#save-figure" class="md-nav__link">
     <span class="md-ellipsis">
       
         Save Figure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-panel-figure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Panel Figure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#svg-editor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SVG Editor
       
     </span>
   </a>
@@ -1923,6 +1967,34 @@
     
   
     Cheminformatics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="report.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Report Generation
   
 
     
@@ -2642,6 +2714,8 @@ the significant-hit rows as a table for downstream filtering.</p>
 NonlinearRegressionNode to overlay a custom fit. For simple linear
 fits the equation and R-squared are annotated on the plot
 automatically.</p>
+<p>Connect the optional <strong>predictions</strong> input (from Model Predict) to
+overlay predicted data points as red × markers on the plot.</p>
 <p>Columns:</p>
 <ul>
 <li><strong>x_col</strong> — numeric column for the X axis</li>
@@ -2676,13 +2750,18 @@ automatically.</p>
 <td>table</td>
 </tr>
 <tr>
+<td><strong>Input</strong></td>
+<td><code>predictions</code></td>
+<td>table</td>
+</tr>
+<tr>
 <td><strong>Output</strong></td>
 <td><code>plot</code></td>
 <td>figure</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Properties:</strong> <code>Auto-Fit (no curve input)</code>, <code>,</code>, <code>Color Palette</code></p>
+<p><strong>Properties:</strong> <code>Auto-Fit (no curve input)</code>, <code>,</code>, <code>Color Palette</code>, <code>Equation X Pos</code>, <code>Equation Y Pos</code>, <code>Equation Font Size</code>, <code>Eq / R² Line Spacing</code></p>
 <hr />
 <h3 id="survival-plot">Survival Plot<a class="headerlink" href="#survival-plot" title="Permanent link">&para;</a></h3>
 <p>Draws Kaplan-Meier survival curves from SurvivalAnalysisNode output.</p>
@@ -2780,6 +2859,95 @@ log-rank p-value annotation from the <code>log_rank</code> port.</p>
 </tbody>
 </table>
 <hr />
+<h3 id="radar-chart">Radar Chart<a class="headerlink" href="#radar-chart" title="Permanent link">&para;</a></h3>
+<p>Creates a radar (spider / star) chart comparing multiple metrics across groups.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Ideal for comparing phenotype profiles, treatment effects, or multi-parameter
+characterisations side by side.</p>
+<p>The input table should have a <strong>group column</strong> (one row per group) and
+multiple <strong>metric columns</strong> (numeric) that become the radar axes.</p>
+<ul>
+<li><strong>group_col</strong> — column identifying each group / sample.</li>
+<li><strong>metric_cols</strong> — numeric columns to plot (leave blank = all numeric).</li>
+<li><strong>normalize</strong> — scale each axis to [0, 1] so different units are comparable.</li>
+<li><strong>fill_alpha</strong> — transparency of filled polygon area.</li>
+</ul>
+<p>Outputs:</p>
+<ul>
+<li><strong>plot</strong> — radar chart figure.</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>data</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>plot</code></td>
+<td>figure</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>`,</code>Fill Alpha<code>,</code>Line Width<code>,</code>Palette<code>,</code>Fig Width<code>,</code>Fig Height`</p>
+<hr />
+<h3 id="bland-altman">Bland-Altman<a class="headerlink" href="#bland-altman" title="Permanent link">&para;</a></h3>
+<p>Creates a Bland-Altman plot for method-comparison / agreement analysis.</p>
+<details class="note">
+<summary>Details</summary>
+<p>The Bland-Altman plot shows the <strong>difference</strong> between two measurements
+against their <strong>mean</strong>, with lines for the mean bias and 95% limits of
+agreement (mean +/- 1.96 SD). Used to assess whether two measurement
+methods are interchangeable.</p>
+<p>Inputs:</p>
+<ul>
+<li><strong>table</strong> — DataFrame with two numeric columns to compare.</li>
+</ul>
+<p>Outputs:</p>
+<ul>
+<li><strong>plot</strong> — Bland-Altman figure with bias and LoA lines.</li>
+<li><strong>stats</strong> — bias (mean difference), SD of differences, upper/lower LoA,
+  95% CI of bias.</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>data</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>plot</code></td>
+<td>figure</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>stats</code></td>
+<td>stat</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>CI Level</code>, <code>,</code>, <code>Fig Width</code>, <code>Fig Height</code></p>
+<hr />
 <h3 id="save-figure">Save Figure<a class="headerlink" href="#save-figure" title="Permanent link">&para;</a></h3>
 <p>Saves a matplotlib figure to disk. Click Browse to choose file location and format.</p>
 <details class="note">
@@ -2808,6 +2976,90 @@ Users can also type any path with a custom extension directly.</p>
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>DPI</code></p>
+<hr />
+<h3 id="multi-panel-figure">Multi-Panel Figure<a class="headerlink" href="#multi-panel-figure" title="Permanent link">&para;</a></h3>
+<p>Composes multiple figures into a single multi-panel publication figure.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Each input port corresponds to a panel (A, B, C, …). Figures are
+rendered to SVG and combined into a single vector SVG document with
+panel labels and configurable grid layout.</p>
+<ul>
+<li><strong>n_panels</strong> — number of input ports / panels (2–9).</li>
+<li><strong>layout</strong> — grid arrangement: Auto, 1×2, 2×1, 2×2, etc.</li>
+<li><strong>panel_labels</strong> — labelling style for panels.</li>
+<li><strong>label_fontsize</strong> — font size for A/B/C labels.</li>
+<li><strong>fig_width</strong> / <strong>fig_height</strong> — overall figure size in inches.</li>
+<li><strong>spacing</strong> — gap between panels (fraction of panel size).</li>
+</ul>
+<p>The output is a FigureData with vector SVG. Save as SVG for vector
+output, or PNG/TIFF for raster at any DPI.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>Panel A</code></td>
+<td>figure</td>
+</tr>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>Panel B</code></td>
+<td>figure</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>figure</code></td>
+<td>figure</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Panel Labels</code>, <code>Label Weight</code></p>
+<hr />
+<h3 id="svg-editor">SVG Editor<a class="headerlink" href="#svg-editor" title="Permanent link">&para;</a></h3>
+<p>Converts an upstream matplotlib Figure to SVG for interactive element editing.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Usage:</p>
+<ul>
+<li>Click any highlighted element to select it.</li>
+<li>Double-click to open the properties panel (fill, stroke, opacity, etc.).</li>
+<li>Drag text labels (orange cursor) to reposition them.</li>
+<li>Click "Apply" in the properties panel to commit changes.</li>
+<li>Click "Reset SVG" to discard edits and reload from the figure.</li>
+</ul>
+<p>Edits are stored in the <code>_svg_data</code> node property and survive
+re-evaluation as long as the upstream figure is unchanged. Reset SVG
+clears them.</p>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>figure</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>out</code></td>
+<td>figure</td>
+</tr>
+</tbody>
+</table>
 <hr />
 
 

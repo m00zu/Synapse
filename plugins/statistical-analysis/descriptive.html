@@ -1554,6 +1554,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#effect-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Effect Size
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#descriptive-stats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Descriptive Stats
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#distribution-fit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Distribution Fit
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1813,6 +1846,34 @@
     
   
     Cheminformatics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../report.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Report Generation
   
 
     
@@ -2158,7 +2219,12 @@
 <li><em>Kolmogorov-Smirnov</em> — compares against a theoretical normal CDF</li>
 <li><em>Anderson-Darling</em> — weighted variant sensitive to distribution tails</li>
 </ul>
-<p>Outputs a summary table with test statistic, p-value (where applicable), and pass/fail result.</p>
+<p>Outputs:</p>
+<ul>
+<li><strong>results</strong> — summary table with test statistic, p-value, and pass/fail per column.</li>
+<li><strong>qq_plot</strong> — Q-Q (quantile-quantile) plots for each column. Points following the red dashed reference line indicate normality; systematic curvature suggests non-normal distribution.</li>
+</ul>
+<p>Use the <strong>Group Column</strong> option to test normality per group (e.g. per treatment condition before running a t-test or ANOVA).</p>
 </details>
 <table>
 <thead>
@@ -2178,6 +2244,11 @@
 <td><strong>Output</strong></td>
 <td><code>results</code></td>
 <td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>qq_plot</code></td>
+<td>figure</td>
 </tr>
 </tbody>
 </table>
@@ -2255,12 +2326,140 @@ for all groups at once (Levene, Bartlett).</p>
 </tr>
 <tr>
 <td><strong>Output</strong></td>
-<td><code>stats_table</code></td>
-<td>stat</td>
+<td><code>result</code></td>
+<td>table</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Properties:</strong> <code>Test</code></p>
+<hr />
+<h3 id="effect-size">Effect Size<a class="headerlink" href="#effect-size" title="Permanent link">&para;</a></h3>
+<p>Calculates effect sizes for pairwise group comparisons.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Measures how large the difference between groups is, complementing
+p-values from statistical tests. Journals increasingly require effect
+sizes alongside significance testing.</p>
+<p>Methods:</p>
+<ul>
+<li><em>Auto</em> — Cohen's d for 2 groups, Eta-squared for 3+ groups</li>
+<li><em>Cohen's d</em> — standardised mean difference (pooled SD)</li>
+<li><em>Hedges' g</em> — Cohen's d with small-sample bias correction</li>
+<li><em>Glass's delta</em> — mean difference divided by the control group SD</li>
+<li><em>Rank-biserial r</em> — effect size for Mann-Whitney U (non-parametric)</li>
+<li><em>Eta-squared</em> — proportion of variance explained (ANOVA-style)</li>
+<li><em>Omega-squared</em> — bias-corrected eta-squared</li>
+</ul>
+<p>Output columns: group1, group2, n1, n2, effect_size, ci_lower,
+ci_upper, magnitude, method.</p>
+<p><strong>magnitude</strong> uses conventional thresholds:</p>
+<ul>
+<li>Cohen's d / Hedges' g / Glass's delta: negligible &lt; 0.2, small &lt; 0.5, medium &lt; 0.8, large &gt;= 0.8</li>
+<li>Eta-squared / Omega-squared: negligible &lt; 0.01, small &lt; 0.06, medium &lt; 0.14, large &gt;= 0.14</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>results</code></td>
+<td>table</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Method</code>, <code>CI Level</code>, <code>Bootstrap Iterations</code></p>
+<hr />
+<h3 id="descriptive-stats">Descriptive Stats<a class="headerlink" href="#descriptive-stats" title="Permanent link">&para;</a></h3>
+<p>Computes comprehensive descriptive statistics for numeric columns.</p>
+<details class="note">
+<summary>Details</summary>
+<p>Calculates per-group (or overall) statistics including central tendency,
+dispersion, shape, and confidence intervals — everything needed for a
+publication-ready summary table.</p>
+<p>Output columns: group, column, n, mean, median, std, sem, ci_lower, ci_upper, min, q1, q3, max, iqr, skewness, kurtosis, cv.</p>
+<ul>
+<li><strong>group_col</strong> — optional grouping column. If set, statistics are computed per group. Leave blank for overall stats.</li>
+<li><strong>value_cols</strong> — columns to summarise. Leave blank for all numeric.</li>
+<li><strong>ci_level</strong> — confidence interval level (default 0.95).</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>results</code></td>
+<td>table</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>CI Level</code></p>
+<hr />
+<h3 id="distribution-fit">Distribution Fit<a class="headerlink" href="#distribution-fit" title="Permanent link">&para;</a></h3>
+<p>Fits data to candidate probability distributions and ranks them by goodness-of-fit (AIC / BIC / Kolmogorov-Smirnov).</p>
+<details class="note">
+<summary>Details</summary>
+<p>Select which distributions to test, or use <strong>All</strong> to try every candidate.
+The node outputs a ranking table with fitted parameters and a figure
+overlaying the best-fit PDFs on the empirical histogram.</p>
+<p>Candidate distributions: Normal, Log-Normal, Exponential, Gamma, Weibull,
+Beta, Rayleigh, Uniform, Cauchy, Logistic, Pareto, Student-t, Inverse Gaussian.</p>
+<p>Outputs:</p>
+<ul>
+<li>
+<p><strong>results</strong> — one row per tested distribution with shape/loc/scale params,
+  log-likelihood, AIC, BIC, KS statistic, and KS p-value, sorted by AIC.</p>
+</li>
+<li>
+<p><strong>figure</strong> — histogram of the data with top-N best-fit PDF curves overlaid.</p>
+</li>
+</ul>
+</details>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Port</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td><code>in</code></td>
+<td>table</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td><code>results</code></td>
+<td>table</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties:</strong> <code>Distributions</code>, <code>Overlay Top-N</code>, <code>Histogram Bins</code>, <code>Fig Width</code>, <code>Fig Height</code></p>
 <hr />
 
 
