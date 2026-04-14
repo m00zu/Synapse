@@ -710,99 +710,10 @@ class LlamaCppClient:
 from synapse.ai.clients.groq import GroqClient  # re-export
 
 # ---------------------------------------------------------------------------
-# Gemini client (Google, cloud)
+# Gemini client — moved to synapse/ai/clients/gemini.py
 # ---------------------------------------------------------------------------
 
-class GeminiClient:
-    DEFAULT_MODEL = "gemini-2.5-flash-lite"   # fallback; real list populated via Refresh
-    BASE_URL      = "https://generativelanguage.googleapis.com/v1beta"
-
-    def __init__(self, api_key: str = "", model: str = DEFAULT_MODEL):
-        self.api_key = api_key
-        self.model   = model
-
-    def list_models(self) -> list[str]:
-        if not self.api_key:
-            return []
-        try:
-            resp = requests.get(
-                f"{self.BASE_URL}/models",
-                params={"key": self.api_key},
-                timeout=5,
-            )
-            resp.raise_for_status()
-            return sorted(
-                m["name"].replace("models/", "")
-                for m in resp.json().get("models", [])
-                if "generateContent" in m.get("supportedGenerationMethods", [])
-            )
-        except Exception:
-            return []
-
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        url = f"{self.BASE_URL}/models/{self.model}:generateContent"
-        parts = [{"text": user}]
-        if images:
-            for b64 in images:
-                parts.append({
-                    "inline_data": {
-                        "mime_type": "image/png",
-                        "data": b64,
-                    }
-                })
-        payload = {
-            "system_instruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": parts}],
-            "generationConfig": {
-                "temperature": 0.1,
-                "response_mime_type": "application/json",
-            },
-        }
-        resp = requests.post(
-            url,
-            params={"key": self.api_key},
-            json=payload,
-            timeout=120,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        candidates = data.get("candidates", [])
-        if not candidates:
-            # Gemini blocks responses via safety filters without raising an HTTP error
-            prompt_feedback = data.get("promptFeedback", {})
-            block_reason = prompt_feedback.get("blockReason", "unknown")
-            raise ValueError(f"Gemini returned no candidates (blockReason: {block_reason})")
-        candidate = candidates[0]
-        if "content" not in candidate:
-            finish = candidate.get("finishReason", "unknown")
-            raise ValueError(f"Gemini candidate has no content (finishReason: {finish})")
-        return candidate["content"]["parts"][0]["text"]
-
-    def chat_multi(self, system: str, messages: list[dict]) -> str:
-        """Multi-turn chat for Gemini."""
-        url = f"{self.BASE_URL}/models/{self.model}:generateContent"
-        # Convert messages to Gemini format
-        contents = []
-        for m in messages:
-            role = "model" if m["role"] == "assistant" else "user"
-            contents.append({"role": role, "parts": [{"text": m["content"]}]})
-        payload = {
-            "system_instruction": {"parts": [{"text": system}]},
-            "contents": contents,
-            "generationConfig": {"temperature": 0.1},
-        }
-        resp = requests.post(url, params={"key": self.api_key},
-                             json=payload, timeout=120)
-        resp.raise_for_status()
-        data = resp.json()
-        candidates = data.get("candidates", [])
-        if not candidates:
-            raise ValueError(f"Gemini returned no candidates")
-        candidate = candidates[0]
-        if "content" not in candidate:
-            raise ValueError(f"Gemini candidate has no content")
-        return candidate["content"]["parts"][0]["text"]
-
+from synapse.ai.clients.gemini import GeminiClient  # re-export
 
 # ---------------------------------------------------------------------------
 # Claude client — moved to synapse/ai/clients/claude.py
