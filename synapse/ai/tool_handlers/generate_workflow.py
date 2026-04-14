@@ -2,6 +2,48 @@
 from __future__ import annotations
 
 import json
+import re
+
+
+_FENCE_RE = re.compile(r"```(?:json|JSON)?\s*\n(.*?)\n```", re.DOTALL)
+
+
+def _coerce_json(raw: str) -> dict:
+    """Pull the first JSON object out of potentially-messy LLM output.
+
+    Some cloud models wrap JSON in prose or markdown fences even when told
+    not to. We try:
+      1. raw JSON
+      2. markdown fenced block
+      3. first `{...}` span (greedy outer-brace match)
+    """
+    s = (raw or "").strip()
+    # Happy path — parses directly.
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        pass
+    # Fenced code block.
+    m = _FENCE_RE.search(s)
+    if m:
+        try:
+            return json.loads(m.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+    # Greedy outer-brace span.
+    first = s.find("{")
+    last = s.rfind("}")
+    if first != -1 and last != -1 and last > first:
+        try:
+            return json.loads(s[first:last + 1])
+        except json.JSONDecodeError:
+            pass
+    # Give up — re-raise the original exception with the raw text prefix so
+    # the caller can see what the model actually said.
+    raise json.JSONDecodeError(
+        f"could not extract JSON from model output (first 200 chars): {s[:200]!r}",
+        s, 0,
+    )
 
 
 def make_generate_workflow_handler(graph, client):
@@ -35,7 +77,7 @@ def make_generate_workflow_handler(graph, client):
                 system=sel_prompt,
                 messages=[{"role": "user", "content": user_message}],
             )
-            selection = json.loads(raw1)
+            selection = _coerce_json(raw1)
             selected_names: list[str] = list(selection.get("nodes", []))
         except Exception as e:
             return {"error": f"Pass 1 (node selection) failed: {type(e).__name__}: {e}"}
@@ -47,7 +89,7 @@ def make_generate_workflow_handler(graph, client):
                 system=detail_sys,
                 messages=[{"role": "user", "content": user_message}],
             )
-            workflow = json.loads(raw2)
+            workflow = _coerce_json(raw2)
         except Exception as e:
             return {"error": f"Pass 2 (workflow JSON) failed: {type(e).__name__}: {e}"}
 
