@@ -603,79 +603,10 @@ def build_detailed_cards(
 from synapse.ai.clients.ollama import OllamaClient  # re-export
 
 # ---------------------------------------------------------------------------
-# OpenAI client (cloud)
+# OpenAI client — moved to synapse/ai/clients/openai.py
 # ---------------------------------------------------------------------------
 
-class OpenAIClient:
-    DEFAULT_MODEL = "gpt-4o-mini"
-    BASE_URL      = "https://api.openai.com/v1"
-
-    def __init__(self, api_key: str = "", model: str = DEFAULT_MODEL):
-        self.api_key = api_key
-        self.model   = model
-
-    def list_models(self) -> list[str]:
-        if not self.api_key:
-            return []
-        try:
-            resp = requests.get(
-                f"{self.BASE_URL}/models",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                timeout=5,
-            )
-            resp.raise_for_status()
-            # Keep only GPT chat-completion models; exclude fine-tune / embedding / tts / whisper / dall-e
-            return sorted(
-                m["id"] for m in resp.json().get("data", [])
-                if m["id"].startswith("gpt-") or m["id"].startswith("o1") or m["id"].startswith("o3")
-            )
-        except Exception:
-            return []
-
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        # Build user content — text-only or multimodal
-        if images:
-            user_content: list | str = [{"type": "text", "text": user}]
-            for b64 in images:
-                user_content.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/png;base64,{b64}"},
-                })
-        else:
-            user_content = user
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user",   "content": user_content},
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.1,
-        }
-        resp = requests.post(
-            f"{self.BASE_URL}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json=payload,
-            timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-
-    def chat_multi(self, system: str, messages: list[dict]) -> str:
-        """Multi-turn chat."""
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "system", "content": system}] + messages,
-            "temperature": 0.1,
-        }
-        resp = requests.post(
-            f"{self.BASE_URL}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json=payload, timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-
+from synapse.ai.clients.openai import OpenAIClient  # re-export
 
 # ---------------------------------------------------------------------------
 # LlamaCpp client  (local GGUF model — no Ollama, no Torch, CPU-friendly)
