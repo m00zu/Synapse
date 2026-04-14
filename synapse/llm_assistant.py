@@ -2241,9 +2241,31 @@ class AIChatPanel(QtWidgets.QWidget):
 
     # ------------------------------------------------------------------
     def _on_provider_changed(self, provider: str):
-        """Show/hide API key field and refresh models."""
+        """Show/hide API key field, save old provider's key, load new one, refresh models."""
+        # Save the key currently in the field to the provider we're leaving,
+        # then load the saved key for the new provider. Without this the field
+        # keeps the old provider's key and chat requests get 401'd.
+        old = getattr(self, "_current_provider", None)
+        if old and old != provider:
+            old_key = self._apikey_edit.text().strip()
+            _store_api_key(old, old_key)
+        self._current_provider = provider
+
         is_local = provider == "Ollama"
         self._apikey_widget.setVisible(not is_local)
+        self._apikey_edit.setPlaceholderText(
+            "ollama signin → copy key" if provider == "Ollama Cloud"
+            else "Paste your API key here"
+        )
+
+        # Load the saved key for the new provider (file → env var → empty).
+        try:
+            cfg = json.loads(self._CONFIG_PATH.read_text())
+        except Exception:
+            cfg = {}
+        json_key = cfg.get("api_keys", {}).get(provider, "")
+        self._apikey_edit.setText(_retrieve_api_key(provider, json_key))
+
         self._refresh_models()
 
     # ------------------------------------------------------------------
