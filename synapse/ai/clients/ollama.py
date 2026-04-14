@@ -2,11 +2,21 @@
 from __future__ import annotations
 
 import json
+import platform
 import requests
 from typing import Iterator, Optional
 
 from synapse.ai.clients.base import LLMClient, StreamEvent
 from synapse.ai.schema import RESPONSE_SCHEMA
+
+
+# Ollama Cloud's WAF rejects the default `python-requests/x.y.z` User-Agent
+# with 401 on /api/chat (while /api/tags still works). Mirror the headers
+# sent by the official `ollama` Python SDK so cloud requests pass through.
+_UA = (
+    f"synapse-ollama/1 ({platform.machine()} {platform.system().lower()}) "
+    f"Python/{platform.python_version()}"
+)
 
 
 class OllamaClient(LLMClient):
@@ -21,7 +31,10 @@ class OllamaClient(LLMClient):
         self.api_key  = api_key
 
     def _headers(self) -> dict:
-        h = {}
+        h = {
+            "User-Agent": _UA,
+            "Accept": "application/json",
+        }
         if self.api_key:
             h["Authorization"] = f"Bearer {self.api_key}"
         return h

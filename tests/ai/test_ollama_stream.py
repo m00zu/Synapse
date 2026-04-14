@@ -49,3 +49,18 @@ def test_ollama_stream_error_emits_error_event():
             system="s", messages=[{"role": "user", "content": "hi"}]))
     assert events[-1].kind == "error"
     assert "network down" in events[-1].error
+
+
+def test_ollama_stream_sends_custom_user_agent_and_accept():
+    """Ollama Cloud's WAF rejects default python-requests UA on /api/chat.
+    Confirm we send a non-default User-Agent + Accept header."""
+    client = OllamaClient(api_key="oc-test")
+    with patch("synapse.ai.clients.ollama.requests.post",
+               return_value=_fake_ndjson_response([])) as pm:
+        list(client.chat_with_tools_stream(system="s", messages=[]))
+    _, kwargs = pm.call_args
+    headers = kwargs["headers"]
+    assert "User-Agent" in headers
+    assert "python-requests" not in headers["User-Agent"]
+    assert headers.get("Accept") == "application/json"
+    assert headers.get("Authorization") == "Bearer oc-test"
