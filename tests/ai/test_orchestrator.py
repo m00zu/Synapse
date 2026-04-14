@@ -114,3 +114,41 @@ def test_orchestrator_cancel_flag_aborts_mid_stream():
     # Either cancelled mid-stream, or clean turn_done — either is acceptable
     # depending on where the cancel flag was checked. Must not hang.
     assert "cancelled" in kinds or "turn_done" in kinds
+
+
+def test_orchestrator_dedups_preappended_user_message():
+    """Regression: AIChatPanel appends the user message to history before
+    handing it to the worker. The orchestrator must not append a duplicate —
+    consecutive user messages cause some providers (Ollama Cloud +
+    nemotron-3-super) to return HTTP 500."""
+    g = FakeGraph()
+    client = _mock_client([[
+        StreamEvent(kind="text", text="hi back"),
+        StreamEvent(kind="done"),
+    ]])
+    existing_history = [{"role": "user", "content": "say hi"}]
+    orch = ChatOrchestrator(
+        graph=g, client=client, dispatcher=_dispatcher(g),
+        history=existing_history,
+    )
+    list(orch.run_turn("say hi"))  # same text as what's already in history
+    user_msgs = [m for m in orch.history if m.get("role") == "user"]
+    assert len(user_msgs) == 1
+    assert user_msgs[0]["content"] == "say hi"
+
+
+def test_orchestrator_still_appends_when_history_ends_in_assistant():
+    """Sanity: dedup only fires when the last history entry is an identical
+    user message. Normal multi-turn flow must keep appending."""
+    g = FakeGraph()
+    client = _mock_client([[StreamEvent(kind="done")]])
+    orch = ChatOrchestrator(
+        graph=g, client=client, dispatcher=_dispatcher(g),
+        history=[
+            {"role": "user", "content": "previous question"},
+            {"role": "assistant", "content": "previous answer"},
+        ],
+    )
+    list(orch.run_turn("new question"))
+    user_msgs = [m["content"] for m in orch.history if m.get("role") == "user"]
+    assert user_msgs == ["previous question", "new question"]

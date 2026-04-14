@@ -129,7 +129,18 @@ class ChatOrchestrator:
 
     # ------------------------------------------------------------------
     def run_turn(self, user_text: str) -> Iterator[OrchestratorEvent]:
-        self.history.append({"role": "user", "content": user_text})
+        # Defensive dedup: callers (like AIChatPanel) may already have appended
+        # the user message to their shared history before handing it in.
+        # Consecutive duplicate user messages make some providers 500
+        # (observed on Ollama Cloud / nemotron-3-super).
+        last = self.history[-1] if self.history else None
+        already_there = (
+            isinstance(last, dict)
+            and last.get("role") == "user"
+            and last.get("content") == user_text
+        )
+        if not already_there:
+            self.history.append({"role": "user", "content": user_text})
         tool_calls_used = 0
         system = self._build_system()
 
