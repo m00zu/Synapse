@@ -14,6 +14,9 @@ def _fake_ndjson_response(chunks: list[str], done: bool = True):
     resp = MagicMock()
     resp.iter_lines.return_value = iter(lines)
     resp.raise_for_status.return_value = None
+    # Configure context manager to return self (for 'with' statement)
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = None
     return resp
 
 

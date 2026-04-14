@@ -90,26 +90,26 @@ class OllamaClient(LLMClient):
             "options": {"temperature": 0.1},
         }
         try:
-            resp = requests.post(
+            with requests.post(
                 f"{self.base_url}/api/chat",
                 json=payload,
                 headers=self._headers(),
                 stream=True,
                 timeout=120,
-            )
-            resp.raise_for_status()
-            for raw in resp.iter_lines():
-                if not raw:
-                    continue
-                try:
-                    obj = json.loads(raw)
-                except json.JSONDecodeError:
-                    continue
-                piece = obj.get("message", {}).get("content", "")
-                if piece:
-                    yield StreamEvent(kind="text", text=piece)
-                if obj.get("done"):
-                    break
+            ) as resp:
+                resp.raise_for_status()
+                for raw in resp.iter_lines():
+                    if not raw:
+                        continue
+                    try:
+                        obj = json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
+                    piece = obj.get("message", {}).get("content", "")
+                    if piece:
+                        yield StreamEvent(kind="text", text=piece)
+                    if obj.get("done"):
+                        break
             yield StreamEvent(kind="done")
         except Exception as e:
             yield StreamEvent(kind="error", error=str(e))
