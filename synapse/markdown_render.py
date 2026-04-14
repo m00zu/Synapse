@@ -2,6 +2,12 @@
 
 Uses python-markdown with fenced_code, tables, codehilite (Pygments inline
 styles). Output is safe for QTextBrowser which handles a subset of HTML.
+
+**Thread-safety**: the shared ``_RENDERER`` instance uses ``.reset()`` between
+calls to avoid accumulating state; this is NOT thread-safe. All calls must
+come from the Qt main thread. Phase 2's ``ChatStreamWorker`` must marshal
+rendering to the main thread OR construct a fresh ``markdown.Markdown`` per
+call before invoking from a worker.
 """
 from __future__ import annotations
 

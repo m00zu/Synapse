@@ -141,33 +141,9 @@ _NODE_SELECTION_SCHEMA: dict = {
     "required": ["nodes"],
 }
 
-RESPONSE_SCHEMA: dict = {
-    "type": "object",
-    "properties": {
-        "nodes": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id":    {"type": "integer"},
-                    "type":  {"type": "string"},
-                    "props": {"type": "object"},
-                },
-                "required": ["id", "type"],
-            },
-        },
-        "edges": {
-            "type": "array",
-            "description": "Connections as [src, dst] or [src, dst, \"out_port\"] or [src, dst, \"out_port\", \"in_port\"] for multi-output/input nodes.",
-            "items": {
-                "type": "array",
-                "minItems": 2,
-                "maxItems": 4,
-            },
-        },
-    },
-    "required": ["nodes", "edges"],
-}
+# RESPONSE_SCHEMA moved to synapse/ai/schema.py; re-export for callers that
+# still import it from here.
+from synapse.ai.schema import RESPONSE_SCHEMA  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Helpers

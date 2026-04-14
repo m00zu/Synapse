@@ -26,6 +26,10 @@ class LlamaCppClient(LLMClient):
         self.n_ctx        = n_ctx
         self.n_threads    = n_threads
         self.n_gpu_layers = n_gpu_layers
+        # Satisfy LLMClient.model contract (used by callers even though
+        # supports_vision is overridden to False for GGUF).
+        import os as _os
+        self.model = _os.path.basename(model_path)
         self._llm         = None   # lazy-loaded on first chat() call
 
     @property

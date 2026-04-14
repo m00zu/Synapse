@@ -6,6 +6,7 @@ import requests
 from typing import Iterator, Optional
 
 from synapse.ai.clients.base import LLMClient, StreamEvent
+from synapse.ai.schema import RESPONSE_SCHEMA
 
 
 class OllamaClient(LLMClient):
@@ -36,8 +37,6 @@ class OllamaClient(LLMClient):
 
     def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
         """Legacy non-streaming single-turn (kept for backward compat — JSON format)."""
-        # Import here to avoid circular import at module load time.
-        from synapse.llm_assistant import RESPONSE_SCHEMA
         user_msg: dict = {"role": "user", "content": user}
         if images:
             user_msg["images"] = images
