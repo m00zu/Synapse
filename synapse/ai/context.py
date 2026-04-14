@@ -7,8 +7,6 @@ Phase 2a implements:
 """
 from __future__ import annotations
 
-from typing import Iterable
-
 __all__ = ["graph_summary", "estimate_tokens", "HistoryRoller"]
 
 
@@ -122,8 +120,10 @@ class HistoryRoller:
                 ),
             }] + messages[first_kept:]
 
-        # Truncate old tool results (more than TOOL_RESULT_TRUNCATE_AFTER_TURNS
-        # user turns ago).
+        # Truncate tool results that are at least TOOL_RESULT_TRUNCATE_AFTER_TURNS
+        # user turns in the past. Walking backwards, we increment the counter
+        # when we cross a user message. A tool whose counter is already >= the
+        # threshold lived that many user turns ago — it's stale enough to drop.
         user_turns_so_far = 0
         out_reversed = list(reversed(out))
         for idx, m in enumerate(out_reversed):

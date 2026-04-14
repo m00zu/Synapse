@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-__all__ = ["TOOLS", "TOOL_NAMES", "ToolDispatcher", "ToolResult"]
+__all__ = ["TOOLS", "TOOL_NAMES", "ToolDispatcher"]
 
 
 TOOL_NAMES = (
@@ -163,15 +163,6 @@ TOOLS: list[dict] = [
 ]
 
 
-class ToolResult(dict):
-    """Dict subclass with an ``ok`` property so tool handlers can return either
-    ``ToolResult(...)`` or a regular dict with an ``"error"`` key."""
-
-    @property
-    def ok(self) -> bool:
-        return "error" not in self
-
-
 class ToolDispatcher:
     """Register handlers and dispatch by name."""
 
@@ -189,6 +180,14 @@ class ToolDispatcher:
         return tuple(self._handlers)
 
     def dispatch(self, name: str, tool_input: dict) -> Any:
+        """Call the registered handler and return its result.
+
+        Failure contract: any error — unknown tool name, exception inside the
+        handler, or a non-dict return — is converted to ``{"error": "..."}``.
+        Handlers should signal failure by returning a dict containing an
+        ``"error"`` key rather than raising; both are accepted but returning
+        a dict is preferred so tool output stays uniform for the orchestrator.
+        """
         handler = self._handlers.get(name)
         if handler is None:
             return {"error": f"No handler registered for tool: {name}"}
