@@ -149,16 +149,25 @@ TOOLS: list[dict] = [
     {
         "name": "read_node_output",
         "description": (
-            "Peek at the last-evaluated output of a node: shape, dtype, "
+            "Peek at the last-evaluated output of one or more nodes: shape, dtype, "
             "head-of-table, min/max/NaN-count for images, or error string. "
-            "Includes a small thumbnail only when the active client supports vision."
+            "Works on ANY node that has been evaluated — not just terminal nodes. "
+            "Pass `node_id` for a single node, or `node_ids` (up to 8) for a batch. "
+            "Includes a small thumbnail only when the active client supports vision "
+            "AND the batch contains fewer than 3 images (to avoid blowing token budget). "
+            "Results are capped by a per-call token budget — over-large batches are "
+            "truncated with a `truncated: true` flag."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "node_id": {"type": "string", "description": "Id of the node to read."},
+                "node_id": {"type": "string",
+                            "description": "Id of a single node to read."},
+                "node_ids": {"type": "array",
+                             "items": {"type": "string"},
+                             "maxItems": 8,
+                             "description": "Ids of multiple nodes to read (max 8)."},
             },
-            "required": ["node_id"],
         },
     },
 ]

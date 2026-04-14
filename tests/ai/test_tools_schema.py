@@ -39,6 +39,17 @@ def test_modify_workflow_operations_is_array():
     assert ops_enum is not None, "modify_workflow ops must be enumerated"
 
 
-def test_read_node_output_requires_node_id():
+def test_read_node_output_accepts_node_id_or_node_ids():
     rno = next(t for t in TOOLS if t["name"] == "read_node_output")
-    assert "node_id" in rno["input_schema"].get("required", [])
+    props = rno["input_schema"]["properties"]
+    # Both options must be declared on the schema.
+    assert "node_id" in props
+    assert "node_ids" in props
+    # node_ids must be an array of strings, capped at 8.
+    nids = props["node_ids"]
+    assert nids["type"] == "array"
+    assert nids["items"]["type"] == "string"
+    assert nids.get("maxItems") == 8
+    # The schema-level `required` is intentionally absent — the handler
+    # validates that exactly one of the two fields is supplied.
+    assert "required" not in rno["input_schema"]
