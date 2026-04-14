@@ -45,13 +45,22 @@ VISION_MODELS: tuple[str, ...] = (
 
 
 def is_vision_model(model: str) -> bool:
-    """True if model name matches a known vision-capable family."""
+    """True if model name matches a known vision-capable family.
+
+    Case-insensitive substring match against :data:`VISION_MODELS`. Returns
+    False for empty / None / unknown models — callers fall back to text-only,
+    which is always safe.
+    """
     m = (model or "").lower()
     return any(tag in m for tag in VISION_MODELS)
 
 
 class LLMClient(ABC):
     """Abstract base for all Synapse LLM clients.
+
+    Concrete subclasses must set an instance attribute ``self.model`` in
+    ``__init__`` — it is used by :attr:`supports_vision` to detect vision
+    capability.
 
     Existing sync methods `chat()` and `chat_multi()` are kept on concrete
     subclasses for backward compatibility but are not part of this ABC —

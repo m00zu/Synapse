@@ -25,6 +25,15 @@ def test_stream_event_error_kind():
     assert ev.error == "boom"
 
 
+def test_stream_event_tool_call_kind():
+    tc = {"name": "inspect_canvas", "input": {"node_ids": ["n1"]}}
+    ev = StreamEvent(kind="tool_call", tool_call=tc)
+    assert ev.kind == "tool_call"
+    assert ev.tool_call == tc
+    assert ev.text is None
+    assert ev.error is None
+
+
 def test_stream_event_rejects_unknown_kind():
     with pytest.raises(ValueError):
         StreamEvent(kind="not_a_kind")
