@@ -102,6 +102,8 @@ class GeminiClient(LLMClient):
         messages: list[dict],
         tools: Optional[list[dict]] = None,
     ) -> Iterator[StreamEvent]:
+        from synapse.ai.clients.tool_adapters import to_gemini_tools
+
         url = f"{self.BASE_URL}/models/{self.model}:streamGenerateContent"
         contents = []
         for m in messages:
@@ -112,6 +114,9 @@ class GeminiClient(LLMClient):
             "contents": contents,
             "generationConfig": {"temperature": 0.1},
         }
+        if tools:
+            payload["tools"] = to_gemini_tools(tools)
+
         try:
             with requests.post(
                 url,
@@ -137,9 +142,19 @@ class GeminiClient(LLMClient):
                         continue
                     parts = (cands[0].get("content") or {}).get("parts") or []
                     for p in parts:
-                        piece = p.get("text") or ""
-                        if piece:
-                            yield StreamEvent(kind="text", text=piece)
+                        text = p.get("text")
+                        fn = p.get("functionCall")
+                        if text:
+                            yield StreamEvent(kind="text", text=text)
+                        if fn:
+                            yield StreamEvent(
+                                kind="tool_call",
+                                tool_call={
+                                    "id": fn.get("name", ""),  # Gemini has no call id
+                                    "name": fn.get("name", ""),
+                                    "input": fn.get("args") or {},
+                                },
+                            )
             yield StreamEvent(kind="done")
         except Exception as e:
             yield StreamEvent(kind="error", error=str(e))

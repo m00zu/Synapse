@@ -50,3 +50,29 @@ def test_gemini_stream_error_event():
         events = list(client.chat_with_tools_stream(system="s", messages=[]))
     assert events[-1].kind == "error"
     assert "quota exceeded" in events[-1].error
+
+
+def test_gemini_stream_emits_tool_call_event_when_tools_enabled():
+    from synapse.ai.tools import TOOLS
+    client = GeminiClient(api_key="gk-test")
+    lines = [
+        b'data: {"candidates":[{"content":{"parts":['
+        b'{"functionCall":{"name":"inspect_canvas","args":{"node_ids":["a"]}}}'
+        b']}}]}',
+    ]
+    resp = MagicMock()
+    resp.iter_lines.return_value = iter(lines)
+    resp.raise_for_status.return_value = None
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = False
+    with patch("synapse.ai.clients.gemini.requests.post", return_value=resp) as pm:
+        events = list(client.chat_with_tools_stream(
+            system="s", messages=[], tools=TOOLS,
+        ))
+    _, kwargs = pm.call_args
+    assert "tools" in kwargs["json"]
+    assert "functionDeclarations" in kwargs["json"]["tools"][0]
+    tcs = [e for e in events if e.kind == "tool_call"]
+    assert len(tcs) == 1
+    assert tcs[0].tool_call["name"] == "inspect_canvas"
+    assert tcs[0].tool_call["input"] == {"node_ids": ["a"]}
