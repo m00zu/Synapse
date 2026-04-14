@@ -639,6 +639,8 @@ from synapse.ai.clients.claude import ClaudeClient  # re-export
 
 from synapse.ai.clients.runpod import RunPodClient  # re-export
 
+from synapse.markdown_render import render_markdown
+
 
 # Properties that are framework-internal and should not be sent to the LLM
 _IGNORE_PROPS: frozenset = frozenset([
@@ -2478,6 +2480,10 @@ class AIChatPanel(QtWidgets.QWidget):
                 f"</table>"
             )
         elif role == "assistant":
+            body_html = render_markdown(text)
+            if not body_html:
+                # Fallback for any edge case where markdown rendering returns empty
+                body_html = text_html
             html = (
                 f"<table width='100%' cellpadding='0' cellspacing='0'>"
                 f"<tr><td style='background:{c['ai_bg']}; color:{c['ai_fg']}; "
@@ -2485,8 +2491,8 @@ class AIChatPanel(QtWidgets.QWidget):
                 f"border:1px solid {c['ai_border']};'>"
                 f"<span style='color:{c['ai_label']}; font-size:10px; "
                 f"font-weight:600;'>AI</span><br>"
-                f"<span style='font-size:13px; line-height:1.5;'>"
-                f"{text_html}</span></td>"
+                f"<div style='font-size:13px; line-height:1.5;'>"
+                f"{body_html}</div></td>"
                 f"<td width='15%'></td></tr>"
                 f"<tr><td style='padding:0; line-height:0; font-size:0;'>"
                 f"<span style='color:{c['ai_bg']}; font-size:14px; "
