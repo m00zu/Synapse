@@ -616,6 +616,14 @@ from synapse.ai.clients.claude import ClaudeClient  # re-export
 from synapse.ai.clients.runpod import RunPodClient  # re-export
 
 from synapse.markdown_render import render_markdown
+from synapse.ai import get_use_orchestrator, ToolDispatcher
+from synapse.ai.chat_worker import ChatStreamWorker
+from synapse.ai.tool_handlers.inspect_canvas import make_inspect_canvas_handler
+from synapse.ai.tool_handlers.explain_node import explain_node_handler
+from synapse.ai.tool_handlers.read_node_output import make_read_node_output_handler
+from synapse.ai.tool_handlers.generate_workflow import make_generate_workflow_handler
+from synapse.ai.tool_handlers.modify_workflow import make_modify_workflow_handler
+from synapse.ai.tool_handlers.write_python_script import make_write_python_script_handler
 
 
 # Properties that are framework-internal and should not be sent to the LLM
@@ -2208,6 +2216,7 @@ class AIChatPanel(QtWidgets.QWidget):
         layout.addWidget(self._status)
 
         self._last_workflow: Optional[dict] = None
+        self._orch_stream_buffer = ""
 
     # ------------------------------------------------------------------
     def _load_config(self):
@@ -2346,6 +2355,12 @@ class AIChatPanel(QtWidgets.QWidget):
         self._append_bubble("user", text)
         self._input_edit.clear()
 
+        if get_use_orchestrator():
+            self._run_with_orchestrator(text)
+        else:
+            self._run_with_legacy_worker(text)
+
+    def _run_with_legacy_worker(self, text: str):
         # Build messages for LLM: inject fresh canvas context before the
         # conversation history so the LLM always sees the current state
         canvas_ctx = ""
@@ -2358,19 +2373,16 @@ class AIChatPanel(QtWidgets.QWidget):
                 "When answering a question, respond with text."
             )
 
-        # Prepend canvas context as a system-injected user message at the start
         llm_messages = []
         if canvas_ctx:
             llm_messages.append({"role": "user", "content": canvas_ctx})
             llm_messages.append({"role": "assistant", "content": "Understood. I can see your current workflow. What would you like to change?"})
         llm_messages.extend(self._messages)
 
-        # Disable send while processing
         self._send_btn.setEnabled(False)
         self._send_btn.setText("…")
         self._status.setText("Thinking…")
 
-        # Background thread for LLM call
         self._worker = _ChatWorker(self._client, self._system, llm_messages)
         self._thread = QtCore.QThread()
         self._worker.moveToThread(self._thread)
@@ -2382,6 +2394,179 @@ class AIChatPanel(QtWidgets.QWidget):
         self._thread.finished.connect(self._worker.deleteLater)
         self._thread.finished.connect(self._thread.deleteLater)
         self._thread.start()
+
+    # ------------------------------------------------------------------
+    # Phase 2b: orchestrator path
+    # ------------------------------------------------------------------
+    def _build_dispatcher(self) -> ToolDispatcher:
+        """Fresh ToolDispatcher wired to the current graph + client."""
+        d = ToolDispatcher()
+        d.register("inspect_canvas", make_inspect_canvas_handler(self.graph))
+        d.register("explain_node", explain_node_handler)
+        d.register("read_node_output", make_read_node_output_handler(
+            self.graph,
+            supports_vision=lambda: getattr(self._client, "supports_vision", False),
+        ))
+        d.register("generate_workflow",
+                   make_generate_workflow_handler(self.graph, self._client))
+
+        def _factory(type_name: str, node_id: str):
+            try:
+                node = self.graph.create_node(type_name, push_undo=False)
+            except Exception:
+                # Fallback: find a registered identifier ending in the class name.
+                try:
+                    registered = self.graph.registered_nodes()
+                except Exception:
+                    registered = []
+                match = next(
+                    (n for n in registered if n.endswith("." + type_name) or n == type_name),
+                    None,
+                )
+                if match is None:
+                    raise ValueError(f"Unknown node class: {type_name}")
+                node = self.graph.create_node(match, push_undo=False)
+            node._llm_id = node_id
+            return node
+
+        d.register("modify_workflow",
+                   make_modify_workflow_handler(self.graph, node_factory=_factory))
+        d.register("write_python_script",
+                   make_write_python_script_handler(self.graph, self._client))
+        return d
+
+    def _run_with_orchestrator(self, user_text: str):
+        self._send_btn.setText("⏹")
+        try:
+            self._send_btn.clicked.disconnect()
+        except Exception:
+            pass
+        self._send_btn.clicked.connect(self._on_stop_orchestrator)
+        self._status.setText("Thinking…")
+
+        self._orch_stream_buffer = ""
+        dispatcher = self._build_dispatcher()
+        self._orch_worker = ChatStreamWorker(
+            graph=self.graph,
+            client=self._client,
+            dispatcher=dispatcher,
+            history=list(self._messages),
+            user_text=user_text,
+        )
+        self._orch_thread = QtCore.QThread()
+        self._orch_worker.moveToThread(self._orch_thread)
+        self._orch_thread.started.connect(self._orch_worker.run)
+
+        self._orch_worker.token_received.connect(self._on_orch_token)
+        self._orch_worker.tool_call_started.connect(self._on_orch_tool_started)
+        self._orch_worker.tool_call_finished.connect(self._on_orch_tool_finished)
+        self._orch_worker.workflow_preview.connect(self._on_orch_workflow_preview)
+        self._orch_worker.cap_exceeded.connect(self._on_orch_cap)
+        self._orch_worker.error.connect(self._on_orch_error)
+        self._orch_worker.cancelled.connect(self._on_orch_cancelled)
+        self._orch_worker.turn_finished.connect(self._on_orch_turn_finished)
+        self._orch_worker.turn_finished.connect(self._orch_thread.quit)
+        self._orch_thread.finished.connect(self._orch_worker.deleteLater)
+        self._orch_thread.finished.connect(self._orch_thread.deleteLater)
+        self._orch_thread.start()
+
+    def _on_stop_orchestrator(self):
+        if getattr(self, "_orch_worker", None):
+            self._orch_worker.request_cancel()
+
+    def _on_orch_token(self, piece: str):
+        self._orch_stream_buffer = (self._orch_stream_buffer or "") + piece
+
+    def _on_orch_tool_started(self, name: str, inp: dict):
+        preview = json.dumps(inp)
+        if len(preview) > 80:
+            preview = preview[:77] + "…"
+        self._append_bubble("system", f"🔧 {name}({preview})")
+
+    def _on_orch_tool_finished(self, name: str, result: dict):
+        if "error" in result:
+            self._append_bubble("system", f"🔧 {name} → error: {result['error']}")
+        else:
+            keys = ", ".join(list(result.keys())[:4])
+            self._append_bubble("system", f"🔧 {name} → ok ({keys})")
+
+    def _on_orch_workflow_preview(self, result: dict):
+        workflow = result.get("workflow") or {}
+        self._last_workflow = workflow
+        if result.get("canvas_was_empty"):
+            self._apply_workflow_from_orchestrator(replace=True)
+            self._append_bubble(
+                "system",
+                f"✅ Applied: {result.get('node_count', 0)} nodes, "
+                f"{result.get('edge_count', 0)} edges.",
+            )
+        else:
+            types = ", ".join(result.get("preview_types", [])[:8])
+            reply = QtWidgets.QMessageBox.question(
+                self, "Apply workflow?",
+                f"Proposed workflow: {result.get('node_count')} node(s), "
+                f"{result.get('edge_count')} edge(s).\n\nTypes: {types}\n\n"
+                "Apply to canvas?",
+                QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Discard,
+            )
+            if reply == QtWidgets.QMessageBox.Apply:
+                self._apply_workflow_from_orchestrator(replace=False)
+                self._append_bubble("system", "✅ Applied.")
+            else:
+                self._append_bubble("system", "Discarded.")
+
+    def _apply_workflow_from_orchestrator(self, replace: bool):
+        """Mirror the exact calls from _on_load (merge) and _on_replace (replace)."""
+        if not self._last_workflow:
+            return
+        if replace:
+            # Same as _on_replace: clear existing nodes then build at default origin.
+            for node in list(self.graph.all_nodes()):
+                self.graph.remove_node(node)
+            loader = WorkflowLoader(self.graph)
+            _ok, msg = loader.build(self._last_workflow)
+            self._append_bubble("system", msg)
+        else:
+            # Same as _on_load: offset past existing nodes.
+            all_nodes = self.graph.all_nodes()
+            if all_nodes:
+                max_x = max(n.pos()[0] for n in all_nodes) + 300
+                min_y = min(n.pos()[1] for n in all_nodes)
+            else:
+                max_x, min_y = 100, 100
+            loader = WorkflowLoader(self.graph)
+            _ok, msg = loader.build(self._last_workflow,
+                                    origin_x=int(max_x), origin_y=int(min_y))
+            self._append_bubble("system", msg)
+
+    def _on_orch_cap(self, tool_name: str):
+        self._append_bubble(
+            "system",
+            f"[tool budget exhausted at `{tool_name}` — answering with what I have]",
+        )
+
+    def _on_orch_error(self, msg: str):
+        self._append_bubble("error", msg)
+
+    def _on_orch_cancelled(self):
+        self._append_bubble("system", "cancelled")
+
+    def _on_orch_turn_finished(self):
+        self._send_btn.setEnabled(True)
+        self._send_btn.setText("Send")
+        try:
+            self._send_btn.clicked.disconnect()
+        except Exception:
+            pass
+        self._send_btn.clicked.connect(self._on_send)
+        try:
+            self._status.setText(f"{self._provider_combo.currentText()} / {self._client.model}")
+        except Exception:
+            self._status.setText("Ready")
+        if self._orch_stream_buffer:
+            self._append_bubble("assistant", self._orch_stream_buffer)
+            self._messages.append({"role": "assistant", "content": self._orch_stream_buffer})
+        self._orch_stream_buffer = ""
 
     # ------------------------------------------------------------------
     def _on_response(self, response: str):

@@ -15,7 +15,9 @@ def make_modify_workflow_handler(graph, node_factory: Callable[[str, str], objec
 
     def _lookup(node_id: str):
         for n in graph.all_nodes():
-            if n.id == node_id:
+            if getattr(n, "id", None) == node_id:
+                return n
+            if getattr(n, "_llm_id", None) == node_id:
                 return n
         return None
 
