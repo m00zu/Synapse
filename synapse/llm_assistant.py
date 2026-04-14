@@ -2570,6 +2570,11 @@ class AIChatPanel(QtWidgets.QWidget):
     def _on_orch_error(self, msg: str):
         print(f"[chat] _on_orch_error: {msg!r}")  # DEBUG
         self._append_bubble("error", msg)
+        # Pop the user message that was just added — otherwise it lingers in
+        # history and gets re-sent on the next turn, which can compound
+        # failures on some providers.
+        if self._messages and self._messages[-1].get("role") == "user":
+            self._messages.pop()
 
     def _on_orch_cancelled(self):
         print("[chat] _on_orch_cancelled")  # DEBUG

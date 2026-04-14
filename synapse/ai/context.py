@@ -10,6 +10,12 @@ from __future__ import annotations
 __all__ = ["graph_summary", "estimate_tokens", "HistoryRoller"]
 
 
+def _node_type(node) -> str:
+    """Return the node's class name. Works for both FakeNode (has type_name
+    attribute) and real NodeGraphQt nodes (use Python class name)."""
+    return getattr(node, "type_name", None) or type(node).__name__
+
+
 def _chain_types_if_linear(nodes: list) -> list[str] | None:
     """Return the type chain if the graph is a single linear path, else None."""
     if not nodes:
@@ -39,7 +45,7 @@ def _chain_types_if_linear(nodes: list) -> list[str] | None:
         cur = next_node
     if len(visited) != len(nodes):
         return None  # disconnected sub-graph
-    return [n.type_name for n in visited]
+    return [_node_type(n) for n in visited]
 
 
 def graph_summary(graph) -> str:
@@ -56,7 +62,7 @@ def graph_summary(graph) -> str:
         return f"Canvas: {n} nodes — " + " → ".join(chain) + "."
 
     from collections import Counter
-    type_counts = Counter(node.type_name for node in nodes)
+    type_counts = Counter(_node_type(node) for node in nodes)
     parts = [
         (f"{t}×{c}" if c > 1 else t)
         for t, c in type_counts.most_common(5)
