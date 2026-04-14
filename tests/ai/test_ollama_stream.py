@@ -64,3 +64,33 @@ def test_ollama_stream_sends_custom_user_agent_and_accept():
     assert "python-requests" not in headers["User-Agent"]
     assert headers.get("Accept") == "application/json"
     assert headers.get("Authorization") == "Bearer oc-test"
+
+
+def test_ollama_stream_detects_tool_call_from_ndjson():
+    from synapse.ai.tools import TOOLS
+    client = OllamaClient(model="gemma3:2b")
+    lines = [
+        b'{"message":{"content":"<tool_call>{\\"name\\":"},"done":false}',
+        b'{"message":{"content":"\\"inspect_canvas\\",\\"input\\":{}}</tool_call>"},"done":false}',
+        b'{"message":{"content":""},"done":true}',
+    ]
+    resp = MagicMock()
+    resp.iter_lines.return_value = iter(lines)
+    resp.raise_for_status.return_value = None
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = False
+    with patch("synapse.ai.clients.ollama.requests.post", return_value=resp) as pm:
+        events = list(client.chat_with_tools_stream(
+            system="sys", messages=[{"role": "user", "content": "hi"}],
+            tools=TOOLS,
+        ))
+    # System prompt was augmented with the fallback protocol addendum.
+    _, kwargs = pm.call_args
+    sys_msg = kwargs["json"]["messages"][0]
+    assert sys_msg["role"] == "system"
+    assert "<tool_call>" in sys_msg["content"]
+    # One tool_call event.
+    tcs = [e for e in events if e.kind == "tool_call"]
+    assert len(tcs) == 1
+    assert tcs[0].tool_call["name"] == "inspect_canvas"
+    assert tcs[0].tool_call["input"] == {}

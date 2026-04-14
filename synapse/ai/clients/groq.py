@@ -78,9 +78,18 @@ class GroqClient(LLMClient):
         messages: list[dict],
         tools: Optional[list[dict]] = None,
     ) -> Iterator[StreamEvent]:
+        from synapse.ai.clients.tool_adapters import build_fallback_prompt
+        from synapse.ai.clients._fallback_parser import StreamedToolCallParser
+
+        effective_system = system
+        parser: StreamedToolCallParser | None = None
+        if tools:
+            effective_system = build_fallback_prompt(tools) + "\n\n" + system
+            parser = StreamedToolCallParser()
+
         payload = {
             "model": self.model,
-            "messages": [{"role": "system", "content": system}] + messages,
+            "messages": [{"role": "system", "content": effective_system}] + messages,
             "temperature": 0.1,
             "stream": True,
         }
@@ -111,7 +120,24 @@ class GroqClient(LLMClient):
                         continue
                     piece = (choices[0].get("delta") or {}).get("content") or ""
                     if piece:
-                        yield StreamEvent(kind="text", text=piece)
+                        if parser is not None:
+                            for kind, payload_ev in parser.feed(piece):
+                                if kind == "text":
+                                    yield StreamEvent(kind="text", text=payload_ev)
+                                elif kind == "tool_call":
+                                    tc = payload_ev
+                                    yield StreamEvent(
+                                        kind="tool_call",
+                                        tool_call={
+                                            "id": tc.get("name", ""),
+                                            "name": tc.get("name", ""),
+                                            "input": tc.get("input") or {},
+                                        },
+                                    )
+                                elif kind == "error":
+                                    yield StreamEvent(kind="error", error=str(payload_ev))
+                        else:
+                            yield StreamEvent(kind="text", text=piece)
             yield StreamEvent(kind="done")
         except Exception as e:
             yield StreamEvent(kind="error", error=str(e))
