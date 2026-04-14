@@ -51,3 +51,36 @@ def test_openai_stream_error_emits_error_event():
         events = list(client.chat_with_tools_stream(system="s", messages=[]))
     assert events[-1].kind == "error"
     assert "timeout" in events[-1].error
+
+
+def test_openai_stream_emits_tool_call_event_when_tools_enabled():
+    from synapse.ai.tools import TOOLS
+    client = OpenAIClient(api_key="sk-test")
+    lines = [
+        b'data: {"choices":[{"delta":{"tool_calls":['
+        b'{"index":0,"id":"call_1","type":"function",'
+        b'"function":{"name":"inspect_canvas","arguments":""}}]}}]}',
+        b'data: {"choices":[{"delta":{"tool_calls":['
+        b'{"index":0,"function":{"arguments":"{\\"node_ids\\":" }}]}}]}',
+        b'data: {"choices":[{"delta":{"tool_calls":['
+        b'{"index":0,"function":{"arguments":"[\\"a\\"]}"}}]}}]}',
+        b'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+        b'data: [DONE]',
+    ]
+    resp = MagicMock()
+    resp.iter_lines.return_value = iter(lines)
+    resp.raise_for_status.return_value = None
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = False
+    with patch("synapse.ai.clients.openai.requests.post", return_value=resp) as pm:
+        events = list(client.chat_with_tools_stream(
+            system="s", messages=[], tools=TOOLS,
+        ))
+    _, kwargs = pm.call_args
+    assert "tools" in kwargs["json"]
+    assert kwargs["json"]["tools"][0]["type"] == "function"
+    tcs = [e for e in events if e.kind == "tool_call"]
+    assert len(tcs) == 1
+    assert tcs[0].tool_call["id"] == "call_1"
+    assert tcs[0].tool_call["name"] == "inspect_canvas"
+    assert tcs[0].tool_call["input"] == {"node_ids": ["a"]}

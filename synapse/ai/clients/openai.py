@@ -82,12 +82,18 @@ class OpenAIClient(LLMClient):
         messages: list[dict],
         tools: Optional[list[dict]] = None,
     ) -> Iterator[StreamEvent]:
+        from synapse.ai.clients.tool_adapters import to_openai_tools
+
         payload = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}] + messages,
             "temperature": 0.1,
             "stream": True,
         }
+        if tools:
+            payload["tools"] = to_openai_tools(tools)
+        partial: dict[int, dict] = {}
+
         try:
             with requests.post(
                 f"{self.BASE_URL}/chat/completions",
@@ -113,9 +119,31 @@ class OpenAIClient(LLMClient):
                     choices = obj.get("choices") or []
                     if not choices:
                         continue
-                    piece = (choices[0].get("delta") or {}).get("content") or ""
+                    delta = choices[0].get("delta") or {}
+                    piece = delta.get("content") or ""
                     if piece:
                         yield StreamEvent(kind="text", text=piece)
+                    tool_deltas = delta.get("tool_calls") or []
+                    for tcd in tool_deltas:
+                        idx = tcd.get("index", 0)
+                        slot = partial.setdefault(idx, {"id": "", "name": "", "args": ""})
+                        if tcd.get("id"):
+                            slot["id"] = tcd["id"]
+                        fn = tcd.get("function") or {}
+                        if fn.get("name"):
+                            slot["name"] = fn["name"]
+                        if fn.get("arguments"):
+                            slot["args"] += fn["arguments"]
+                for idx in sorted(partial):
+                    slot = partial[idx]
+                    try:
+                        parsed = json.loads(slot["args"] or "{}")
+                    except json.JSONDecodeError:
+                        parsed = {}
+                    yield StreamEvent(
+                        kind="tool_call",
+                        tool_call={"id": slot["id"], "name": slot["name"], "input": parsed},
+                    )
             yield StreamEvent(kind="done")
         except Exception as e:
             yield StreamEvent(kind="error", error=str(e))
