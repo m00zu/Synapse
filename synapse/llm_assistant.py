@@ -597,85 +597,10 @@ def build_detailed_cards(
 
 
 # ---------------------------------------------------------------------------
-# Ollama HTTP client
+# Ollama HTTP client — moved to synapse/ai/clients/ollama.py
 # ---------------------------------------------------------------------------
 
-class OllamaClient:
-    DEFAULT_MODEL    = "gemma3:12b"
-    DEFAULT_BASE_URL = "http://localhost:11434"
-    CLOUD_BASE_URL   = "https://ollama.com"
-
-    def __init__(self, base_url: str = DEFAULT_BASE_URL, model: str = DEFAULT_MODEL,
-                 api_key: str = ""):
-        self.base_url = base_url.rstrip("/")
-        self.model    = model
-        self.api_key  = api_key
-
-    def _headers(self) -> dict:
-        h = {}
-        if self.api_key:
-            h["Authorization"] = f"Bearer {self.api_key}"
-        return h
-
-    # ------------------------------------------------------------------
-    def list_models(self) -> list[str]:
-        """Returns available model names, or [] if Ollama is not reachable."""
-        try:
-            resp = requests.get(f"{self.base_url}/api/tags", timeout=5,
-                                headers=self._headers())
-            resp.raise_for_status()
-            return [m["name"] for m in resp.json().get("models", [])]
-        except Exception:
-            return []
-
-    # ------------------------------------------------------------------
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        """
-        Sends a chat request to Ollama and returns the raw JSON string
-        from the model's message content.
-        *images*: optional list of base64-encoded PNG strings for vision models.
-        Raises requests.RequestException on network/HTTP errors.
-        """
-        user_msg: dict = {"role": "user", "content": user}
-        if images:
-            user_msg["images"] = images  # Ollama accepts base64 directly
-        payload = {
-            "model":   self.model,
-            "messages": [
-                {"role": "system",  "content": system},
-                user_msg,
-            ],
-            "stream":  False,
-            "options": {"temperature": 0.1},
-        }
-        # Structured output (format) is only supported by locally-run models.
-        # Cloud-hosted models ignore it, so we only send it for local Ollama.
-        if not self.api_key:
-            payload["format"] = RESPONSE_SCHEMA
-        resp = requests.post(
-            f"{self.base_url}/api/chat",
-            json=payload,
-            headers=self._headers(),
-            timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["message"]["content"]
-
-    def chat_multi(self, system: str, messages: list[dict]) -> str:
-        """Multi-turn chat. *messages* is a list of {role, content} dicts."""
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "system", "content": system}] + messages,
-            "stream": False,
-            "options": {"temperature": 0.1},
-        }
-        resp = requests.post(
-            f"{self.base_url}/api/chat", json=payload,
-            headers=self._headers(), timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["message"]["content"]
-
+from synapse.ai.clients.ollama import OllamaClient  # re-export
 
 # ---------------------------------------------------------------------------
 # OpenAI client (cloud)
