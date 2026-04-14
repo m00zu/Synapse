@@ -97,6 +97,8 @@ class ClaudeClient(LLMClient):
         messages: list[dict],
         tools: Optional[list[dict]] = None,
     ) -> Iterator[StreamEvent]:
+        from synapse.ai.clients.tool_adapters import to_anthropic_tools
+
         payload = {
             "model": self.model,
             "max_tokens": 4096,
@@ -104,11 +106,16 @@ class ClaudeClient(LLMClient):
             "messages": messages,
             "stream": True,
         }
+        if tools:
+            payload["tools"] = to_anthropic_tools(tools)
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
         }
+        # State for the current tool_use content block.
+        pending_tool: dict | None = None  # {"id","name","buf"}
+
         try:
             with requests.post(
                 f"{self.BASE_URL}/messages",
@@ -130,12 +137,37 @@ class ClaudeClient(LLMClient):
                     except json.JSONDecodeError:
                         continue
                     etype = obj.get("type")
-                    if etype == "content_block_delta":
+                    if etype == "content_block_start":
+                        cb = obj.get("content_block") or {}
+                        if cb.get("type") == "tool_use":
+                            pending_tool = {
+                                "id": cb.get("id", ""),
+                                "name": cb.get("name", ""),
+                                "buf": "",
+                            }
+                    elif etype == "content_block_delta":
                         delta = obj.get("delta") or {}
                         if delta.get("type") == "text_delta":
                             piece = delta.get("text") or ""
                             if piece:
                                 yield StreamEvent(kind="text", text=piece)
+                        elif delta.get("type") == "input_json_delta" and pending_tool is not None:
+                            pending_tool["buf"] += delta.get("partial_json") or ""
+                    elif etype == "content_block_stop":
+                        if pending_tool is not None:
+                            try:
+                                parsed_input = json.loads(pending_tool["buf"] or "{}")
+                            except json.JSONDecodeError:
+                                parsed_input = {}
+                            yield StreamEvent(
+                                kind="tool_call",
+                                tool_call={
+                                    "id": pending_tool["id"],
+                                    "name": pending_tool["name"],
+                                    "input": parsed_input,
+                                },
+                            )
+                            pending_tool = None
                     elif etype == "message_stop":
                         break
             yield StreamEvent(kind="done")
