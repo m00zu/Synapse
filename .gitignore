@@ -78,6 +78,7 @@ sync_plugins.sh
 _*.py
 _*.ipynb
 !__init__.py
+!synapse/ai/clients/_fallback_parser.py
 /test_*.py
 /benchmark_*.py
 _plot_functions/
