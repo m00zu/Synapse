@@ -39,6 +39,15 @@ class ChatOrchestrator:
       - ClaudeClient : user role with content: [{type:tool_result, ...}]
       - OpenAIClient : tool role with tool_call_id + content JSON
       - others       : plain user message with inline JSON (Gemini/Ollama/Groq)
+
+    History is per-turn. The caller passes in a fresh copy of the panel's
+    conversation history each turn; the orchestrator mutates its own copy
+    in-place while looping (appending tool_use + tool_result messages), but
+    those mutations are discarded when ``run_turn`` completes. Only the final
+    assistant text is persisted back to the panel's history. This is a
+    deliberate Phase 2b trade-off — the LLM sees a clean conversation of
+    user/assistant turns and does not see prior tool-use rounds. Phase 3 may
+    revisit this if chained tool reasoning across user turns becomes important.
     """
 
     DEFAULT_MAX_TOOL_CALLS = 4

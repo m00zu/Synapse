@@ -2550,6 +2550,16 @@ class AIChatPanel(QtWidgets.QWidget):
 
     def _on_orch_cancelled(self):
         self._append_bubble("system", "cancelled")
+        # Defensive: turn_finished will fire via ChatStreamWorker's finally:
+        # block, which re-enables the Send button. Restore state here too in
+        # case that signal is ever disconnected or delayed.
+        self._send_btn.setEnabled(True)
+        self._send_btn.setText("Send")
+        try:
+            self._send_btn.clicked.disconnect()
+        except Exception:
+            pass
+        self._send_btn.clicked.connect(self._on_send)
 
     def _on_orch_turn_finished(self):
         self._send_btn.setEnabled(True)
