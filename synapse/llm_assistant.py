@@ -609,98 +609,10 @@ from synapse.ai.clients.ollama import OllamaClient  # re-export
 from synapse.ai.clients.openai import OpenAIClient  # re-export
 
 # ---------------------------------------------------------------------------
-# LlamaCpp client  (local GGUF model — no Ollama, no Torch, CPU-friendly)
+# LlamaCpp client — moved to synapse/ai/clients/llamacpp.py
 # ---------------------------------------------------------------------------
-#
-# Install:  pip install llama-cpp-python
-#   Mac/Linux prebuilt wheels (CPU):
-#       pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
-#   Windows prebuilt:
-#       pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
-#
-# Usage:
-#   client = LlamaCppClient("path/to/synapse-qwen.gguf")
-#   workflow_json = client.chat(system_prompt, user_prompt)
-#
-# Shipping with Nuitka:
-#   --include-package=llama_cpp
-#   --include-data-files=synapse-qwen.gguf=synapse-qwen.gguf
-#
 
-class LlamaCppClient:
-    """
-    Drop-in replacement for OllamaClient that loads a GGUF model directly
-    via llama-cpp-python.  No server, no Torch, no Ollama required.
-
-    The model is loaded once on first use and cached for subsequent calls.
-    """
-
-    def __init__(self, model_path: str, n_ctx: int = 4096,
-                 n_threads: int = 0, n_gpu_layers: int = 0):
-        """
-        model_path   : path to the .gguf file
-        n_ctx        : context window in tokens (must cover system + user + JSON reply)
-        n_threads    : CPU threads (0 = auto-detect)
-        n_gpu_layers : layers to offload to GPU (0 = CPU-only, the default)
-        """
-        self.model_path   = model_path
-        self.n_ctx        = n_ctx
-        self.n_threads    = n_threads
-        self.n_gpu_layers = n_gpu_layers
-        self._llm         = None   # lazy-loaded on first chat() call
-
-    # ------------------------------------------------------------------
-    def _load(self):
-        if self._llm is not None:
-            return
-        try:
-            from llama_cpp import Llama
-        except ImportError as e:
-            raise ImportError(
-                "llama-cpp-python is not installed. "
-                "Run: pip install llama-cpp-python"
-            ) from e
-
-        import os
-        if not os.path.isfile(self.model_path):
-            raise FileNotFoundError(
-                f"GGUF model not found: {self.model_path}\n"
-                "Fine-tune and export the model first (see finetune/train.py)."
-            )
-
-        self._llm = Llama(
-            model_path=self.model_path,
-            n_ctx=self.n_ctx,
-            n_threads=self.n_threads or None,   # None → llama.cpp auto-selects
-            n_gpu_layers=self.n_gpu_layers,      # 0 = CPU-only
-            verbose=False,
-        )
-
-    # ------------------------------------------------------------------
-    def list_models(self) -> list[str]:
-        """Returns the model filename so the UI can display it."""
-        import os
-        name = os.path.basename(self.model_path)
-        return [name] if os.path.isfile(self.model_path) else []
-
-    # ------------------------------------------------------------------
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        """
-        Runs inference and returns the raw JSON string.
-        Raises FileNotFoundError if the GGUF file is missing.
-        Note: images are ignored — GGUF models don't support vision.
-        """
-        self._load()
-        response = self._llm.create_chat_completion(
-            messages=[
-                {"role": "system",  "content": system},
-                {"role": "user",    "content": user},
-            ],
-            temperature=0.1,
-            max_tokens=2048,
-            response_format={"type": "json_object"},   # constrained JSON output
-        )
-        return response["choices"][0]["message"]["content"]
+from synapse.ai.clients.llamacpp import LlamaCppClient  # re-export
 
 
 # ---------------------------------------------------------------------------
@@ -722,74 +634,10 @@ from synapse.ai.clients.gemini import GeminiClient  # re-export
 from synapse.ai.clients.claude import ClaudeClient  # re-export
 
 # ---------------------------------------------------------------------------
-# RunPod serverless client (async polling)
+# RunPod client — moved to synapse/ai/clients/runpod.py
 # ---------------------------------------------------------------------------
 
-class RunPodClient:
-    """
-    Client for RunPod serverless vLLM endpoints using the synchronous runsync API.
-
-    Uses raw prompt completion (not OpenAI chat format) — the actual output format is:
-      {"output": [{"choices": [{"tokens": ["..."]}], "usage": {...}}], "status": "COMPLETED"}
-
-    System + user message are combined using the ChatML template (Qwen2.5 / instruct models).
-    No model field is needed — the model is fixed by the RunPod deployment.
-    """
-    BASE_URL = "https://api.runpod.ai/v2"
-    # Sentinel attributes so _on_model_changed doesn't crash; not used in requests
-    model         = ""
-    DEFAULT_MODEL = ""
-
-    def __init__(self, api_key: str = "", endpoint_id: str = ""):
-        self.api_key     = api_key
-        self.endpoint_id = endpoint_id
-
-    def _headers(self) -> dict:
-        return {
-            "Content-Type":  "application/json",
-            "Authorization": f"{self.api_key}",
-        }
-
-    def list_models(self) -> list[str]:
-        """No model list for RunPod — model is fixed at deployment."""
-        return []
-
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        if not self.endpoint_id:
-            raise ValueError("RunPod endpoint ID is not configured.")
-
-        # ChatML / Qwen2.5 instruct template
-        prompt = (
-            f"<|im_start|>system\n{system}<|im_end|>\n"
-            f"<|im_start|>user\n{user}<|im_end|>\n"
-            f"<|im_start|>assistant\n"
-        )
-        payload = {
-            "input": {
-                "prompt": prompt,
-                "sampling_params": {
-                    "temperature": 0.1,
-                    "max_tokens":  4096,
-                    "stop":        ["<|im_end|>"],
-                },
-            }
-        }
-        url  = f"{self.BASE_URL}/{self.endpoint_id}/runsync"
-        resp = requests.post(url, headers=self._headers(), json=payload, timeout=120)
-        resp.raise_for_status()
-        data   = resp.json()
-        status = data.get("status", "")
-        if status in ("FAILED", "CANCELLED", "TIMED_OUT"):
-            raise ValueError(f"RunPod job {status}: {data.get('error', 'no detail')}")
-
-        # Output is a list: [{"choices": [{"tokens": ["..."]}]}]
-        output = data.get("output", [])
-        if isinstance(output, list) and output:
-            choices = output[0].get("choices", [])
-            if choices:
-                tokens = choices[0].get("tokens", [])
-                return "".join(tokens)
-        raise ValueError(f"Unexpected RunPod output format: {output}")
+from synapse.ai.clients.runpod import RunPodClient  # re-export
 
 
 # Properties that are framework-internal and should not be sent to the LLM
