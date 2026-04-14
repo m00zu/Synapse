@@ -25,6 +25,8 @@ def _image_thumbnail_b64(arr) -> str | None:
     except Exception:
         return None
     a = arr
+    if a.size == 0:
+        return None
     if a.ndim == 2:
         img = Image.fromarray(_to_uint8(a))
     elif a.ndim == 3 and a.shape[-1] in (3, 4):

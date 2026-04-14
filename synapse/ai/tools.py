@@ -24,10 +24,11 @@ TOOLS: list[dict] = [
     {
         "name": "generate_workflow",
         "description": (
-            "Generate a full Synapse workflow from scratch given a natural-language goal. "
-            "Runs the two-pass node-selection + JSON-generation pipeline. "
-            "If the canvas is empty the workflow is applied silently; otherwise a "
-            "preview payload is returned for the UI to confirm."
+            "Generate a full Synapse workflow JSON from a natural-language goal. "
+            "Runs the two-pass node-selection + JSON-generation pipeline and returns "
+            "a preview payload (node/edge counts + the workflow dict + canvas-was-empty "
+            "flag). The caller decides how to apply it: silently when canvas_was_empty "
+            "is true, or via an Apply/Discard UI confirm when false."
         ),
         "input_schema": {
             "type": "object",
@@ -86,8 +87,8 @@ TOOLS: list[dict] = [
             "properties": {
                 "node_id": {"type": "string", "description": "Target PythonScriptNode id."},
                 "description": {"type": "string", "description": "What the code should do."},
-                "n_inputs":  {"type": "integer", "minimum": 1, "maximum": 8, "default": 1},
-                "n_outputs": {"type": "integer", "minimum": 1, "maximum": 8, "default": 1},
+                "n_inputs":  {"type": "integer", "minimum": 1, "maximum": 8},
+                "n_outputs": {"type": "integer", "minimum": 1, "maximum": 8},
                 "input_hints": {
                     "type": "array",
                     "items": {
@@ -127,7 +128,7 @@ TOOLS: list[dict] = [
                     "items": {"type": "string"},
                     "description": "If omitted, returns all nodes.",
                 },
-                "include_props": {"type": "boolean", "default": True},
+                "include_props": {"type": "boolean"},
             },
         },
     },
