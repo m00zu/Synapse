@@ -37,6 +37,7 @@ _ENV_VAR_MAP = {
     "Gemini":      "GEMINI_API_KEY",
     "RunPod":      "RUNPOD_API_KEY",
     "Ollama Cloud": "OLLAMA_API_KEY",
+    "OpenRouter":  "OPENROUTER_API_KEY",
 }
 
 _KEYS_PATH = Path(__file__).parent.parent / ".api_keys"
@@ -614,6 +615,12 @@ from synapse.ai.clients.claude import ClaudeClient  # re-export
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.runpod import RunPodClient  # re-export
+
+# ---------------------------------------------------------------------------
+# OpenRouter client — OpenAI-compatible gateway (free-tier models)
+# ---------------------------------------------------------------------------
+
+from synapse.ai.clients.openrouter import OpenRouterClient  # re-export
 
 from synapse.markdown_render import render_markdown
 from synapse.ai import get_use_orchestrator, ToolDispatcher
@@ -1243,7 +1250,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
     Accepts a NodeGraph instance so it can call WorkflowLoader after generation.
     """
 
-    _PROVIDERS   = ("Ollama", "Ollama Cloud", "OpenAI", "Claude", "Groq", "Gemini", "RunPod", "Synapse Fine-tune")
+    _PROVIDERS   = ("Ollama", "Ollama Cloud", "OpenRouter", "OpenAI", "Claude", "Groq", "Gemini", "RunPod", "Synapse Fine-tune")
     _GGUF_DIR    = Path(__file__).parent.parent / "finetune" / "output"
     _CONFIG_PATH = Path.home() / ".synapse_llm_config.json"
 
@@ -1573,6 +1580,13 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             no_model_msg  = (
                 "No models returned — check your Anthropic API key and click ⟳.\n"
                 "Get a key at console.anthropic.com"
+            )
+        elif provider == "OpenRouter":
+            self._client = OpenRouterClient(api_key=api_key)
+            default_model = OpenRouterClient.DEFAULT_MODEL
+            no_model_msg  = (
+                "No models returned — check your OpenRouter key and click ⟳.\n"
+                "Free-tier models (tagged ':free') listed first. Get a key at openrouter.ai"
             )
         elif provider == "RunPod":
             endpoint_id   = self._endpoint_edit.text().strip() if hasattr(self, "_endpoint_edit") else ""
@@ -2005,7 +2019,7 @@ class AIChatPanel(QtWidgets.QWidget):
 
     _CONFIG_PATH = Path.home() / ".synapse_llm_config.json"
 
-    _PROVIDERS = ("Ollama", "Ollama Cloud", "OpenAI", "Claude", "Groq", "Gemini")
+    _PROVIDERS = ("Ollama", "Ollama Cloud", "OpenRouter", "OpenAI", "Claude", "Groq", "Gemini")
 
     def __init__(self, graph, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
@@ -2297,6 +2311,8 @@ class AIChatPanel(QtWidgets.QWidget):
             tmp = GroqClient(api_key=api_key)
         elif provider == "Gemini":
             tmp = GeminiClient(api_key=api_key)
+        elif provider == "OpenRouter":
+            tmp = OpenRouterClient(api_key=api_key)
         else:
             return
 
@@ -2334,6 +2350,10 @@ class AIChatPanel(QtWidgets.QWidget):
             self._client = GroqClient(api_key=api_key, model=model or GroqClient.DEFAULT_MODEL)
         elif provider == "Gemini":
             self._client = GeminiClient(api_key=api_key, model=model or GeminiClient.DEFAULT_MODEL)
+        elif provider == "OpenRouter":
+            self._client = OpenRouterClient(
+                api_key=api_key, model=model or OpenRouterClient.DEFAULT_MODEL,
+            )
         else:
             self._client = None
 
