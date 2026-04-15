@@ -111,8 +111,10 @@ def test_full_turn_with_write_python_script_and_modify_workflow():
     client.model = "m"
 
     dispatcher = ToolDispatcher()
+    def _fact(t, i):
+        n = FakeNode(i, t); graph.add_node(n); return n
     dispatcher.register("modify_workflow", make_modify_workflow_handler(
-        graph, node_factory=lambda t, i: FakeNode(i, t)))
+        graph, node_factory=_fact))
     dispatcher.register("write_python_script",
                         make_write_python_script_handler(graph, client))
 

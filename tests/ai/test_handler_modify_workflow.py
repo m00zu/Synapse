@@ -3,18 +3,22 @@ from synapse.ai.tool_handlers.modify_workflow import make_modify_workflow_handle
 
 
 class _Factory:
-    """Tiny stand-in for NodeGraphQt's create_node. Tests record each call."""
-    def __init__(self):
+    """Tiny stand-in for NodeGraphQt's create_node. Like NodeGraphQt, this
+    factory is responsible for registering the new node in the graph —
+    modify_workflow's add_node op no longer calls graph.add_node() itself."""
+    def __init__(self, graph):
+        self.graph = graph
         self.created = []
 
     def __call__(self, type_name: str, node_id: str) -> FakeNode:
         n = FakeNode(node_id, type_name)
+        self.graph.add_node(n)
         self.created.append(n)
         return n
 
 
 def _setup():
-    g = FakeGraph(); factory = _Factory()
+    g = FakeGraph(); factory = _Factory(g)
     handler = make_modify_workflow_handler(graph=g, node_factory=factory)
     return g, factory, handler
 

@@ -23,8 +23,10 @@ def _all_tool_dispatcher():
     d.register("explain_node", explain_node_handler)
     d.register("read_node_output", make_read_node_output_handler(graph, lambda: False))
     d.register("generate_workflow", make_generate_workflow_handler(graph, client))
+    def _fact(t, i):
+        n = FakeNode(i, t); graph.add_node(n); return n
     d.register("modify_workflow", make_modify_workflow_handler(
-        graph, node_factory=lambda t, i: FakeNode(i, t)))
+        graph, node_factory=_fact))
     d.register("write_python_script", make_write_python_script_handler(graph, client))
     return d, graph
 

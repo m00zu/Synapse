@@ -7,10 +7,10 @@ from typing import Callable
 def make_modify_workflow_handler(graph, node_factory: Callable[[str, str], object]):
     """Bind a handler to (graph, node_factory).
 
-    ``node_factory(type_name: str, node_id: str)`` creates a new node of the
-    requested type and returns it. Phase 2b will supply a factory backed by
-    NodeGraphQt's ``create_node`` + the class registry; Phase 2a tests supply
-    a trivial callable that yields FakeNode instances.
+    ``node_factory(type_name: str, node_id: str)`` must create AND register
+    the node in ``graph``, then return it. NodeGraphQt's ``create_node``
+    does both; test factories yielding FakeNode need to call
+    ``graph.add_node(n)`` themselves.
     """
 
     def _lookup(node_id: str):
@@ -28,8 +28,18 @@ def make_modify_workflow_handler(graph, node_factory: Callable[[str, str], objec
                 return False, "add_node requires 'type' and 'id'", None
             if _lookup(op["id"]) is not None:
                 return False, f"node id already exists: {op['id']}", None
-            node = node_factory(op["type"], op["id"])
-            graph.add_node(node)
+            try:
+                node = node_factory(op["type"], op["id"])
+            except Exception as e:
+                return False, f"{type(e).__name__}: {e}", None
+            # Factory is responsible for adding to the graph — NodeGraphQt's
+            # create_node already registers the node; calling graph.add_node
+            # again would double-register and corrupt internal bookkeeping
+            # (seen as ``KeyError: '_TEMP_property_widget_types'`` on real
+            # NodeGraphQt). Test factories that yield FakeNode must add
+            # inside the factory body.
+            if node is None:
+                return False, "node factory returned None", None
             return True, "", {"op": "add_node", "id": op["id"]}
         if kind == "remove_node":
             nid = op.get("id")
