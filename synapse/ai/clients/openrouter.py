@@ -31,6 +31,14 @@ class OpenRouterClient(LLMClient):
         self.model   = model
 
     def _auth_headers(self) -> dict:
+        # DEBUG — show whether a key is actually present (first/last chars only).
+        import sys as _sys
+        key_preview = (
+            self.api_key[:7] + "…" + self.api_key[-4:]
+            if len(self.api_key) > 12 else ("<empty>" if not self.api_key else "<short>")
+        )
+        print(f"[openrouter] auth key_preview={key_preview} "
+              f"key_len={len(self.api_key)}", file=_sys.stderr)
         return {
             "Authorization": f"Bearer {self.api_key}",
             "HTTP-Referer":  _REFERER,
