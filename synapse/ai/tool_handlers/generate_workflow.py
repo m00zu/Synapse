@@ -95,12 +95,26 @@ def make_generate_workflow_handler(graph, client):
 
         nodes = workflow.get("nodes") or []
         edges = workflow.get("edges") or []
+        canvas_was_empty = len(list(graph.all_nodes())) == 0
         return {
             "node_count": len(nodes),
             "edge_count": len(edges),
             "preview_types": [n.get("type", "?") for n in nodes],
             "workflow": workflow,
-            "canvas_was_empty": len(list(graph.all_nodes())) == 0,
+            "canvas_was_empty": canvas_was_empty,
+            # Tell the model *unambiguously* whether the workflow is now on the
+            # canvas. True means the UI will auto-apply it (empty canvas);
+            # False means it's waiting on a user Apply/Discard confirm.
+            "applied": canvas_was_empty,
+            "hint": (
+                "Workflow has been applied to the canvas. Do NOT call "
+                "modify_workflow to add the same nodes again — they are "
+                "already there. If you want to tweak or extend the workflow "
+                "(add/remove/wire nodes, set properties), use modify_workflow."
+                if canvas_was_empty else
+                "User will be prompted to Apply or Discard this workflow. "
+                "Do NOT call modify_workflow now; wait for confirmation."
+            ),
         }
 
     return _handler

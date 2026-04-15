@@ -24,11 +24,14 @@ TOOLS: list[dict] = [
     {
         "name": "generate_workflow",
         "description": (
-            "Generate a full Synapse workflow JSON from a natural-language goal. "
-            "Runs the two-pass node-selection + JSON-generation pipeline and returns "
-            "a preview payload (node/edge counts + the workflow dict + canvas-was-empty "
-            "flag). The caller decides how to apply it: silently when canvas_was_empty "
-            "is true, or via an Apply/Discard UI confirm when false."
+            "Generate a complete Synapse workflow from a natural-language goal. "
+            "If the canvas is empty, the workflow is AUTO-APPLIED — the nodes "
+            "are already on the canvas when the call returns, no further action "
+            "needed. If the canvas has existing nodes, the UI asks the user to "
+            "Apply or Discard. The result includes an `applied` boolean you can "
+            "check. After this returns with applied=true, DO NOT call "
+            "modify_workflow to add the same nodes again; use modify_workflow "
+            "only to *tweak* or *extend* an already-applied workflow."
         ),
         "input_schema": {
             "type": "object",
