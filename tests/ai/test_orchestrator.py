@@ -185,6 +185,46 @@ def test_orchestrator_forces_prose_fallback_when_model_only_calls_tools():
     )
 
 
+def test_orchestrator_short_circuits_after_successful_generate_workflow():
+    """generate_workflow is terminal. After it succeeds, any follow-up tool
+    calls the model makes are ignored — we go straight to the prose finale."""
+    g = FakeGraph()
+    # Register a no-op generate_workflow that always succeeds.
+    def _gw(inp):
+        return {"node_count": 3, "edge_count": 2, "preview_types": ["A", "B", "C"],
+                "workflow": {"nodes": [], "edges": []},
+                "canvas_was_empty": True, "applied": True}
+    d = _dispatcher(g)
+    d.register("generate_workflow", _gw)
+
+    # Stream 1: model calls generate_workflow.
+    # Stream 2 (prose finale, tools=None path): model replies briefly.
+    client = _mock_client([
+        [
+            StreamEvent(kind="tool_call", tool_call={"id": "t1", "name": "generate_workflow",
+                                                      "input": {"goal": "x"}}),
+            # Model tries to follow up with more tool calls; we should ignore
+            # them by exiting the stream loop early and forcing prose.
+            StreamEvent(kind="tool_call", tool_call={"id": "t2", "name": "inspect_canvas",
+                                                      "input": {}}),
+            StreamEvent(kind="done"),
+        ],
+        [
+            StreamEvent(kind="text", text="Done — I built a 3-node pipeline."),
+            StreamEvent(kind="done"),
+        ],
+    ])
+    orch = ChatOrchestrator(graph=g, client=client, dispatcher=d)
+    events = list(orch.run_turn("build a workflow"))
+    # Exactly ONE tool_call_started: generate_workflow. The inspect_canvas
+    # event that followed is discarded by the short-circuit.
+    started = [e.tool_name for e in events if e.kind == "tool_call_started"]
+    assert started == ["generate_workflow"]
+    # Prose finale fires.
+    assert any("3-node pipeline" in (e.text or "") for e in events if e.kind == "text")
+    assert events[-1].kind == "turn_done"
+
+
 def test_orchestrator_skips_prose_fallback_when_turn_has_text():
     """If the model already produced any prose, no fallback nudge."""
     g = FakeGraph()

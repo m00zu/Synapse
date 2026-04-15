@@ -204,6 +204,14 @@ class ChatOrchestrator:
                         kind="tool_call_finished",
                         tool_name=tc_name, tool_result=result, tool_call_id=tc_id,
                     )
+                    # Short-circuit: generate_workflow is terminal. Once the
+                    # workflow is applied (or queued for user approval), the
+                    # turn should end. Weaker models tend to follow up with
+                    # inspect_canvas / read_node_output / modify_workflow on
+                    # nodes that haven't even been evaluated — pure noise.
+                    if tc_name == "generate_workflow" and isinstance(result, dict) and "error" not in result:
+                        cap_hit = True  # reuse the cap-hit exit path
+                        break
                     break  # restart the loop with a fresh stream call
                 elif ev.kind == "error":
                     yield OrchestratorEvent(kind="error", error=ev.error)
