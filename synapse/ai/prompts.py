@@ -33,9 +33,28 @@ Tool-use discipline (IMPORTANT):
     already-populated canvas. Use it only when the user asks for changes on
     top of an existing workflow, or when a generate_workflow result is
     pending Apply (applied=false).
+  * BATCH modify_workflow ops. A single modify_workflow call accepts an
+    arbitrarily long `operations` array. Put EVERY add_node, set_prop, and
+    connect for a given user request into ONE call — do NOT split across
+    multiple modify_workflow turns. You have a 4-tool-call budget per user
+    turn and splitting wastes it.
   * After a single successful workflow-mutating tool call, reply to the user
     with a short summary of what was done and stop calling tools, unless the
     user asked a follow-up question that genuinely needs more information.
+
+Extending an existing canvas:
+  * If the canvas already has nodes and the user asks you to add to, extend,
+    or build on top of it — do NOT call generate_workflow. That tool builds
+    a fresh standalone pipeline; existing work and cached node evaluations
+    would be duplicated or wired incorrectly.
+  * Instead: call inspect_canvas first to see the current node ids and
+    types. Decide which existing node is the attachment point (usually a
+    terminal — no outgoing connections). Then call modify_workflow ONCE
+    with all the add_node + set_prop ops for new nodes PLUS connect ops
+    that use the real existing node id as src/dst. Example connect op:
+    `{"op": "connect", "src": "0x143bc9f90", "dst": "<new_llm_id>", ...}`.
+  * Call generate_workflow only when the canvas is empty OR the user
+    explicitly asks for a completely separate pipeline.
 """
 
 

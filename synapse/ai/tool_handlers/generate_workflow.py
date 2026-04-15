@@ -58,6 +58,25 @@ def make_generate_workflow_handler(graph, client):
         if not goal:
             return {"error": "generate_workflow requires 'goal' (string)."}
         constraints = (tool_input or {}).get("constraints") or ""
+        force_overwrite = bool((tool_input or {}).get("force_overwrite"))
+
+        # Guard: refuse on a populated canvas unless the caller explicitly
+        # overrides. Building a fresh standalone pipeline when the user
+        # already has one typically means duplicated nodes and wasted
+        # cached evaluations — extension via modify_workflow is the right
+        # path. The LLM sees this error, then follows the prompt's
+        # "Extending an existing canvas" rubric.
+        if len(list(graph.all_nodes())) > 0 and not force_overwrite:
+            return {"error": (
+                "Canvas is not empty. Do NOT call generate_workflow to add to "
+                "an existing pipeline — that would create a disconnected or "
+                "duplicated workflow. Instead: call inspect_canvas to see the "
+                "existing nodes, then call modify_workflow ONCE with all "
+                "add_node + set_prop + connect ops needed, using the real "
+                "existing node ids as src/dst for the attachment connect op. "
+                "If the user explicitly asks for a completely separate "
+                "pipeline from scratch, retry with force_overwrite=true."
+            )}
 
         # Import lazily — llm_assistant is heavy.
         from synapse.llm_assistant import (

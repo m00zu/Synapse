@@ -42,7 +42,22 @@ def test_generate_workflow_bad_json_returns_error():
     assert "error" in out
 
 
-def test_generate_workflow_canvas_was_empty_false_when_graph_has_nodes():
+def test_generate_workflow_refuses_on_non_empty_canvas():
+    """Guard against duplicate pipelines: refuse generate_workflow when the
+    canvas already has nodes, pointing the model at modify_workflow."""
+    from tests.ai.fakes import FakeNode
+    g = FakeGraph(); g.add_node(FakeNode("pre", "Existing"))
+    handler = make_generate_workflow_handler(graph=g, client=MagicMock())
+    out = handler({"goal": "build something"})
+    assert "error" in out
+    assert "modify_workflow" in out["error"]
+    assert "inspect_canvas" in out["error"]
+    assert "force_overwrite" in out["error"]
+
+
+def test_generate_workflow_force_overwrite_bypasses_non_empty_guard():
+    """force_overwrite=true allows a from-scratch pipeline even with
+    existing nodes — used when the user explicitly wants a separate one."""
     from tests.ai.fakes import FakeNode
     g = FakeGraph(); g.add_node(FakeNode("pre", "Existing"))
     client = _mock_client_yielding(
@@ -50,8 +65,10 @@ def test_generate_workflow_canvas_was_empty_false_when_graph_has_nodes():
         pass2_json='{"nodes":[{"id":1,"type":"CSVLoader"}],"edges":[]}',
     )
     handler = make_generate_workflow_handler(graph=g, client=client)
-    out = handler({"goal": "x"})
+    out = handler({"goal": "x", "force_overwrite": True})
+    assert "error" not in out
     assert out["canvas_was_empty"] is False
+    assert out["applied"] is False
 
 
 def test_generate_workflow_tolerates_prose_before_json():

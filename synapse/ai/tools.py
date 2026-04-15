@@ -25,19 +25,24 @@ TOOLS: list[dict] = [
         "name": "generate_workflow",
         "description": (
             "Generate a complete Synapse workflow from a natural-language goal. "
-            "If the canvas is empty, the workflow is AUTO-APPLIED — the nodes "
-            "are already on the canvas when the call returns, no further action "
-            "needed. If the canvas has existing nodes, the UI asks the user to "
-            "Apply or Discard. The result includes an `applied` boolean you can "
-            "check. After this returns with applied=true, DO NOT call "
-            "modify_workflow to add the same nodes again; use modify_workflow "
-            "only to *tweak* or *extend* an already-applied workflow."
+            "Use this ONLY when the canvas is empty, or the user explicitly "
+            "asks for a new, separate pipeline. On an empty canvas the "
+            "workflow is AUTO-APPLIED and the call returns with applied=true. "
+            "On a non-empty canvas the tool returns an error asking you to use "
+            "inspect_canvas + modify_workflow instead (so you don't duplicate "
+            "existing nodes or lose cached evaluations). If the user really "
+            "wants a from-scratch pipeline alongside existing work, retry with "
+            "force_overwrite=true and the UI will prompt for Apply/Discard."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "goal": {"type": "string", "description": "User's goal in plain English."},
                 "constraints": {"type": "string", "description": "Optional extra constraints."},
+                "force_overwrite": {"type": "boolean",
+                                    "description": "Allow generation on a non-empty canvas. "
+                                                   "Only set when the user explicitly wants a "
+                                                   "new separate pipeline."},
             },
             "required": ["goal"],
         },
