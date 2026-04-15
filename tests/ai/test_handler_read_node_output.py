@@ -202,3 +202,85 @@ def test_node_ids_truncation_pops_results_when_cap_too_tight():
     out = handler({"node_ids": ["a", "b", "c", "d", "e"]})
     assert out["truncated"] is True
     assert 0 < len(out["results"]) < 5
+
+
+# --- multi-port node support ---------------------------------------------
+
+def test_multi_port_node_returns_ports_dict():
+    """A node with 2+ output ports (e.g. OutlierDetectionNode with kept/removed)
+    returns {kind, node_id, ports: {port_name: {...}}} by default."""
+    g = FakeGraph()
+    n = FakeNode("n1", "OutlierDetectionNode")
+    n.output_values["kept"] = _TableStub(pd.DataFrame({"x": [1, 2, 3]}))
+    n.output_values["removed"] = _TableStub(pd.DataFrame({"x": [99]}))
+    n.add_output("kept")
+    n.add_output("removed")
+    g.add_node(n)
+    handler = make_read_node_output_handler(g, supports_vision=lambda: False)
+    out = handler({"node_id": "n1"})
+    assert "ports" in out
+    assert set(out["ports"].keys()) == {"kept", "removed"}
+    assert out["ports"]["kept"]["metadata"]["shape"] == [3, 1]
+    assert out["ports"]["removed"]["metadata"]["shape"] == [1, 1]
+    # Both ports produced tables → overall kind still "table".
+    assert out["kind"] == "table"
+
+
+def test_multi_port_mixed_kinds_summarises_as_multi():
+    g = FakeGraph()
+    n = FakeNode("n1", "MixedOutputNode")
+    n.output_values["table_port"] = _TableStub(pd.DataFrame({"x": [1]}))
+    n.output_values["image_port"] = _ImageStub(np.zeros((5, 5), dtype=np.uint8))
+    n.add_output("table_port")
+    n.add_output("image_port")
+    g.add_node(n)
+    handler = make_read_node_output_handler(g, supports_vision=lambda: False)
+    out = handler({"node_id": "n1"})
+    assert out["kind"] == "multi"
+    assert out["ports"]["table_port"]["kind"] == "table"
+    assert out["ports"]["image_port"]["kind"] == "image"
+
+
+def test_single_port_node_stays_flat_for_backward_compat():
+    """Single-port nodes must still return the Phase-2a flat shape."""
+    g = FakeGraph()
+    n = FakeNode("n1", "SingleOutNode")
+    n.output_values["out_1"] = _TableStub(pd.DataFrame({"x": [1, 2]}))
+    n.add_output("out_1")
+    g.add_node(n)
+    handler = make_read_node_output_handler(g, supports_vision=lambda: False)
+    out = handler({"node_id": "n1"})
+    assert out["kind"] == "table"
+    assert "ports" not in out
+    assert out["metadata"]["shape"] == [2, 1]
+    assert out.get("port") == "out_1"
+
+
+def test_port_filter_targets_specific_port():
+    g = FakeGraph()
+    n = FakeNode("n1", "OutlierDetectionNode")
+    n.output_values["kept"] = _TableStub(pd.DataFrame({"x": [1, 2, 3]}))
+    n.output_values["removed"] = _TableStub(pd.DataFrame({"x": [99]}))
+    n.add_output("kept")
+    n.add_output("removed")
+    g.add_node(n)
+    handler = make_read_node_output_handler(g, supports_vision=lambda: False)
+    out = handler({"node_id": "n1", "port": "removed"})
+    # Single-port return shape.
+    assert out["kind"] == "table"
+    assert out["port"] == "removed"
+    assert out["metadata"]["shape"] == [1, 1]
+    assert "ports" not in out
+
+
+def test_port_filter_unknown_port_returns_error():
+    g = FakeGraph()
+    n = FakeNode("n1", "OutlierDetectionNode")
+    n.output_values["kept"] = _TableStub(pd.DataFrame({"x": [1]}))
+    n.add_output("kept")
+    n.add_output("removed")
+    g.add_node(n)
+    handler = make_read_node_output_handler(g, supports_vision=lambda: False)
+    out = handler({"node_id": "n1", "port": "not_a_port"})
+    assert "error" in out
+    assert "kept" in out["error"]  # should list available ports

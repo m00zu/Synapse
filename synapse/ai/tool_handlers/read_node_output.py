@@ -71,19 +71,11 @@ def _classify(unwrapped) -> str:
     return "other"
 
 
-def _read_one(node, include_thumbnail: bool) -> dict:
-    """Build a result dict for a single node. ``include_thumbnail`` is AND-gated
-    with vision-capability by the caller."""
-    node_id = node.id
-    if not getattr(node, "output_values", None):
-        return {"kind": "empty", "node_id": node_id}
-    first_port = next(iter(node.outputs()), None)
-    if first_port is None:
-        return {"kind": "empty", "node_id": node_id}
-    raw = node.output_values.get(first_port)
-    unwrapped = _unwrap(raw)
+def _read_single_port(unwrapped, include_thumbnail: bool) -> dict:
+    """Build a {kind, metadata, text_preview, thumbnail?} dict for ONE port's
+    unwrapped payload. No node_id — caller decides how to wrap."""
     if unwrapped is None:
-        return {"kind": "empty", "node_id": node_id}
+        return {"kind": "empty"}
 
     try:
         import pandas as pd
@@ -95,7 +87,6 @@ def _read_one(node, include_thumbnail: bool) -> dict:
         df = unwrapped
         return {
             "kind": "table",
-            "node_id": node_id,
             "metadata": {"shape": list(df.shape),
                          "columns": list(df.columns.astype(str))},
             "text_preview": df.head(10).to_markdown(index=False),
@@ -109,7 +100,7 @@ def _read_one(node, include_thumbnail: bool) -> dict:
             "max": float(arr.max()) if arr.size else None,
             "nan_count": int(np.isnan(arr).sum()) if arr.dtype.kind == "f" else 0,
         }
-        out = {"kind": "image", "node_id": node_id, "metadata": meta, "text_preview": ""}
+        out = {"kind": "image", "metadata": meta, "text_preview": ""}
         if include_thumbnail:
             thumb = _image_thumbnail_b64(arr)
             if thumb:
@@ -118,9 +109,68 @@ def _read_one(node, include_thumbnail: bool) -> dict:
 
     return {
         "kind": "other",
-        "node_id": node_id,
         "metadata": {"type": type(unwrapped).__name__},
         "text_preview": repr(unwrapped)[:500],
+    }
+
+
+def _read_one(node, include_thumbnail: bool, port_filter: str | None = None) -> dict:
+    """Build a result dict for a single node, covering ALL output ports
+    (or a single port when ``port_filter`` is given). Nodes with multiple
+    outputs (e.g. OutlierDetectionNode's kept/removed pair) are visible
+    in full so the model can reason about each output individually.
+    """
+    node_id = node.id
+    if not getattr(node, "output_values", None):
+        return {"kind": "empty", "node_id": node_id}
+
+    port_names = list(node.outputs())
+    if not port_names:
+        return {"kind": "empty", "node_id": node_id}
+
+    # If caller requested a specific port, return the legacy single-port
+    # shape so callers doing `out["kind"]` keep working.
+    if port_filter is not None:
+        if port_filter not in port_names:
+            return {
+                "kind": "empty",
+                "node_id": node_id,
+                "error": f"node {node_id} has no output port named {port_filter!r}; "
+                         f"available: {port_names}",
+            }
+        unwrapped = _unwrap(node.output_values.get(port_filter))
+        res = _read_single_port(unwrapped, include_thumbnail)
+        res["node_id"] = node_id
+        res["port"] = port_filter
+        return res
+
+    # Default: read every port. For backward-compat, a single-port node
+    # returns the flat shape {kind, node_id, metadata, text_preview, ...}
+    # — same as Phase 2a. Multi-port nodes (e.g. OutlierDetectionNode with
+    # kept/removed) return {kind: "multi"|..., node_id, ports: {port_name: {...}}}.
+    if len(port_names) == 1:
+        p = port_names[0]
+        unwrapped = _unwrap(node.output_values.get(p))
+        res = _read_single_port(unwrapped, include_thumbnail)
+        res["node_id"] = node_id
+        res["port"] = p
+        return res
+
+    ports_data: dict = {}
+    for p in port_names:
+        unwrapped = _unwrap(node.output_values.get(p))
+        ports_data[p] = _read_single_port(unwrapped, include_thumbnail)
+    distinct_kinds = {pd["kind"] for pd in ports_data.values()}
+    if distinct_kinds == {"empty"}:
+        summary_kind = "empty"
+    elif len(distinct_kinds) == 1:
+        summary_kind = distinct_kinds.pop()
+    else:
+        summary_kind = "multi"
+    return {
+        "kind": summary_kind,
+        "node_id": node_id,
+        "ports": ports_data,
     }
 
 
@@ -147,6 +197,7 @@ def make_read_node_output_handler(
         inp = tool_input or {}
         single_id = inp.get("node_id")
         batch_ids = inp.get("node_ids")
+        port_filter = inp.get("port") or None
 
         # Validate: exactly one of the two must be present.
         if single_id and batch_ids:
@@ -154,12 +205,14 @@ def make_read_node_output_handler(
         if not single_id and not batch_ids:
             return {"error": "read_node_output: requires 'node_id' or 'node_ids'."}
 
-        # Single-node path — preserves Phase 2a shape for existing callers.
+        # Single-node path — returns per-port data by default; caller can
+        # target a specific port via `port`.
         if single_id:
             node = _lookup(single_id)
             if node is None:
                 return {"error": f"No node with id: {single_id}"}
-            return _read_one(node, include_thumbnail=supports_vision())
+            return _read_one(node, include_thumbnail=supports_vision(),
+                             port_filter=port_filter)
 
         # Batch path.
         if not isinstance(batch_ids, list):
@@ -179,17 +232,20 @@ def make_read_node_output_handler(
                 resolved.append((nid, node))
 
         # Pre-classify to decide thumbnail inclusion for the whole batch.
+        # Count distinct image *ports* across all nodes so multi-output
+        # nodes with multiple image ports don't silently attach thumbnails
+        # past the batch budget.
         image_count = 0
         for _, node in resolved:
-            if node is None:
+            if node is None or not getattr(node, "output_values", None):
                 continue
-            first_port = next(iter(node.outputs()), None)
-            if first_port is None:
-                continue
-            raw = node.output_values.get(first_port) if getattr(node, "output_values", None) else None
-            unwrapped = _unwrap(raw)
-            if _classify(unwrapped) == "image":
-                image_count += 1
+            ports = list(node.outputs()) if not port_filter else [port_filter]
+            for p in ports:
+                if p not in node.outputs():
+                    continue
+                unwrapped = _unwrap(node.output_values.get(p))
+                if _classify(unwrapped) == "image":
+                    image_count += 1
         include_thumb = supports_vision() and image_count < THUMBNAIL_BATCH_LIMIT
 
         results: list[dict] = []
@@ -198,7 +254,8 @@ def make_read_node_output_handler(
             if node is None:
                 results.append({"error": f"No node with id: {nid}", "node_id": nid})
             else:
-                results.append(_read_one(node, include_thumbnail=include_thumb))
+                results.append(_read_one(node, include_thumbnail=include_thumb,
+                                          port_filter=port_filter))
             # Budget check — trim trailing thumbnails, then trailing text_preview,
             # then mark truncated and stop adding to the list.
             approx = estimate_tokens(json.dumps({"results": results}))

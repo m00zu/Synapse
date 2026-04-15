@@ -152,14 +152,18 @@ TOOLS: list[dict] = [
     {
         "name": "read_node_output",
         "description": (
-            "Peek at the last-evaluated output of one or more nodes: shape, dtype, "
-            "head-of-table, min/max/NaN-count for images, or error string. "
-            "Works on ANY node that has been evaluated — not just terminal nodes. "
-            "Pass `node_id` for a single node, or `node_ids` (up to 8) for a batch. "
-            "Includes a small thumbnail only when the active client supports vision "
-            "AND the batch contains fewer than 3 images (to avoid blowing token budget). "
-            "Results are capped by a per-call token budget — over-large batches are "
-            "truncated with a `truncated: true` flag."
+            "Peek at the last-evaluated output(s) of one or more nodes. Nodes "
+            "with multiple output ports (e.g. `OutlierDetectionNode` which "
+            "emits BOTH `kept` and `removed` tables) return per-port data in "
+            "a `ports` dict — you see each port's shape, columns, head, "
+            "and type individually. Works on ANY evaluated node, not just "
+            "terminal ones. "
+            "Pass `node_id` for one node, or `node_ids` (up to 8) for a batch. "
+            "Optionally pass `port` to target a specific output port name "
+            "(e.g. `port: 'removed'`); without it you get all ports. "
+            "Thumbnails attached only when vision-capable AND fewer than 3 "
+            "images across the batch. Per-call token budget truncates oversized "
+            "replies with `truncated: true`."
         ),
         "input_schema": {
             "type": "object",
@@ -170,6 +174,9 @@ TOOLS: list[dict] = [
                              "items": {"type": "string"},
                              "maxItems": 8,
                              "description": "Ids of multiple nodes to read (max 8)."},
+                "port": {"type": "string",
+                         "description": "Optional: read only this output port name. "
+                                        "Omit to get all ports keyed by name under `ports`."},
             },
         },
     },
