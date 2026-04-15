@@ -72,7 +72,25 @@ class ChatOrchestrator:
 
     # ------------------------------------------------------------------
     def _build_system(self) -> str:
-        return BASE_SYSTEM_PROMPT + "\n\n" + graph_summary(self.graph)
+        # Include the condensed node catalog on every turn so the LLM can
+        # see what nodes exist even when it's using modify_workflow (which
+        # doesn't load a catalog the way generate_workflow's two-pass does).
+        # Without this the model falls back to PythonScriptNode because
+        # that's the only node it's aware of from the base prompt.
+        # Catalog is ~6k tokens — rebuilt each turn but never lost to
+        # history trimming since it lives in the system slot.
+        try:
+            from synapse.llm_assistant import build_condensed_catalog
+            catalog = build_condensed_catalog()
+        except Exception:
+            catalog = ""
+        parts = [BASE_SYSTEM_PROMPT, graph_summary(self.graph)]
+        if catalog:
+            parts.append(
+                "Available Synapse nodes (name : one-line description | ports):\n"
+                + catalog
+            )
+        return "\n\n".join(parts)
 
     def _append_assistant_tool_call_message(self, tool_name: str, tool_call_id: str, tool_input: dict) -> None:
         """Echo the assistant's tool_call into history so the next LLM call
