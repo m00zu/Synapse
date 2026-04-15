@@ -141,3 +141,28 @@ def test_worker_emits_workflow_preview_signal_after_generate_workflow():
     assert len(preview_payloads) == 1
     assert preview_payloads[0]["canvas_was_empty"] is True
     assert preview_payloads[0]["node_count"] == 1
+
+
+def test_dispatch_proxy_bypasses_on_same_thread():
+    """When the caller is already on the proxy's thread (as in tests or any
+    main-thread-only scenario), dispatch should run synchronously without
+    going through a BlockingQueuedConnection signal."""
+    from synapse.ai.chat_worker import _MainThreadDispatchProxy
+
+    real = MagicMock()
+    real.dispatch.return_value = {"ok": True}
+    proxy = _MainThreadDispatchProxy(real)
+    out = proxy.dispatch("explain_node", {"node_type": "X"})
+    real.dispatch.assert_called_once_with("explain_node", {"node_type": "X"})
+    assert out == {"ok": True}
+
+
+def test_dispatch_proxy_passes_through_attribute_access():
+    """Orchestrator may call dispatcher.registered_names(); the proxy must
+    forward arbitrary attribute access to the wrapped dispatcher."""
+    from synapse.ai.chat_worker import _MainThreadDispatchProxy
+
+    real = MagicMock()
+    real.registered_names.return_value = ("inspect_canvas", "explain_node")
+    proxy = _MainThreadDispatchProxy(real)
+    assert proxy.registered_names() == ("inspect_canvas", "explain_node")

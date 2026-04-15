@@ -1,10 +1,62 @@
 """Qt QThread wrapper for the ChatOrchestrator. Emits signals for each
-orchestrator event so the chat panel can update the UI on the main thread."""
+orchestrator event so the chat panel can update the UI on the main thread.
+
+Tool dispatches that mutate the NodeGraphQt canvas (modify_workflow,
+write_python_script, generate_workflow's Apply path) must run on the Qt
+main thread — creating NodeGraphQt widgets from a worker thread crashes
+on macOS with ``NSWindow should only be instantiated on the main thread!``.
+
+To handle that safely we wrap the provided ``ToolDispatcher`` in a
+``_MainThreadDispatchProxy`` that stays on the main thread and uses a
+BlockingQueuedConnection signal to marshal each dispatch call over.
+"""
 from __future__ import annotations
 
 from PySide6 import QtCore
 
 from synapse.ai.orchestrator import ChatOrchestrator
+
+
+class _MainThreadDispatchProxy(QtCore.QObject):
+    """Thin proxy around a ToolDispatcher that runs each ``dispatch`` call
+    on the main Qt thread. Mimics ToolDispatcher's public interface so the
+    orchestrator is none the wiser."""
+
+    # Internal signal for blocking-queued cross-thread dispatch.
+    # Payload: (name: str, tool_input: dict, result_box: dict)
+    _dispatch_request = QtCore.Signal(str, object, object)
+
+    def __init__(self, real_dispatcher):
+        # parent=None — this proxy lives on whatever thread constructs it
+        # (ChatStreamWorker is constructed on the main thread BEFORE the
+        # worker is moved to its QThread, so this proxy stays on main).
+        super().__init__()
+        self._real = real_dispatcher
+        self._dispatch_request.connect(
+            self._on_dispatch_request,
+            QtCore.Qt.BlockingQueuedConnection,
+        )
+
+    @QtCore.Slot(str, object, object)
+    def _on_dispatch_request(self, name: str, tool_input: dict, result_box: dict) -> None:
+        try:
+            result_box["result"] = self._real.dispatch(name, tool_input)
+        except Exception as e:
+            result_box["result"] = {"error": f"{type(e).__name__}: {e}"}
+
+    def dispatch(self, name: str, tool_input: dict):
+        """Dispatch through the main thread. If the caller already IS on
+        the main thread (tests, direct calls), bypass the signal entirely."""
+        if QtCore.QThread.currentThread() is self.thread():
+            return self._real.dispatch(name, tool_input)
+        box: dict = {}
+        self._dispatch_request.emit(name, tool_input, box)
+        return box.get("result", {"error": "dispatch returned no result"})
+
+    # Pass-through for anything else the orchestrator might need on a
+    # dispatcher (currently just ``registered_names``).
+    def __getattr__(self, item):
+        return getattr(self._real, item)
 
 
 class ChatStreamWorker(QtCore.QObject):
@@ -23,8 +75,14 @@ class ChatStreamWorker(QtCore.QObject):
 
     def __init__(self, graph, client, dispatcher, history, user_text: str, parent=None):
         super().__init__(parent)
+        # Wrap the dispatcher with a main-thread proxy. Construction happens
+        # on the main thread (ChatStreamWorker is built there; moveToThread
+        # is applied AFTERWARDS to self). The proxy's QObject thread affinity
+        # remains main, so BlockingQueuedConnection works correctly.
+        self._dispatch_proxy = _MainThreadDispatchProxy(dispatcher)
         self._orch = ChatOrchestrator(
-            graph=graph, client=client, dispatcher=dispatcher, history=history,
+            graph=graph, client=client, dispatcher=self._dispatch_proxy,
+            history=history,
         )
         self._user_text = user_text
 
