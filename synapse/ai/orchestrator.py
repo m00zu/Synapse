@@ -143,6 +143,11 @@ class ChatOrchestrator:
             self.history.append({"role": "user", "content": user_text})
         tool_calls_used = 0
         system = self._build_system()
+        # Track whether we emitted any prose this whole turn so we can force a
+        # final prose stream if the model calls tools and then stops without
+        # talking to the user. Observed with small/weak free models.
+        total_text_chars = 0
+        tools_dispatched_without_prose_after: bool = False
 
         while True:
             if self._cancelled:
@@ -155,12 +160,15 @@ class ChatOrchestrator:
                 tools=TOOLS,
             )
             had_tool_call = False
+            had_text = False
             cap_hit = False
             for ev in stream:
                 if self._cancelled:
                     yield OrchestratorEvent(kind="cancelled")
                     return
                 if ev.kind == "text":
+                    had_text = True
+                    total_text_chars += len(ev.text or "")
                     yield OrchestratorEvent(kind="text", text=ev.text)
                 elif ev.kind == "tool_call":
                     had_tool_call = True
@@ -205,5 +213,47 @@ class ChatOrchestrator:
                     pass  # natural end; outer loop exits if had_tool_call is False
 
             if not had_tool_call or cap_hit:
-                yield OrchestratorEvent(kind="turn_done")
-                return
+                # If the whole turn ended without a single prose token and we
+                # did dispatch at least one tool, poke the model once more
+                # with an explicit "reply to the user now" nudge. Small free
+                # models tend to finish a tool-heavy turn without saying
+                # anything to the user, leaving a blank assistant bubble.
+                if total_text_chars == 0 and tool_calls_used > 0:
+                    tools_dispatched_without_prose_after = True
+                else:
+                    yield OrchestratorEvent(kind="turn_done")
+                    return
+                break
+
+        # Forced-prose fallback: one extra stream call with an explicit nudge.
+        if tools_dispatched_without_prose_after:
+            self.history.append({
+                "role": "user",
+                "content": (
+                    "[system] Please reply to the user now in markdown, "
+                    "summarising what was done with the tool calls above. "
+                    "Do NOT call any more tools."
+                ),
+            })
+            try:
+                stream = self.client.chat_with_tools_stream(
+                    system=system,
+                    messages=self.history,
+                    # Omit tools entirely to physically prevent another call.
+                    tools=None,
+                )
+                for ev in stream:
+                    if self._cancelled:
+                        yield OrchestratorEvent(kind="cancelled")
+                        return
+                    if ev.kind == "text":
+                        yield OrchestratorEvent(kind="text", text=ev.text)
+                    elif ev.kind == "error":
+                        yield OrchestratorEvent(kind="error", error=ev.error)
+                        break
+                    elif ev.kind == "done":
+                        break
+            except Exception as e:
+                yield OrchestratorEvent(kind="error", error=f"{type(e).__name__}: {e}")
+
+        yield OrchestratorEvent(kind="turn_done")

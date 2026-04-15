@@ -152,3 +152,57 @@ def test_orchestrator_still_appends_when_history_ends_in_assistant():
     list(orch.run_turn("new question"))
     user_msgs = [m["content"] for m in orch.history if m.get("role") == "user"]
     assert user_msgs == ["previous question", "new question"]
+
+
+def test_orchestrator_forces_prose_fallback_when_model_only_calls_tools():
+    """Small free models sometimes call a tool and then end the turn
+    without any prose reply. The orchestrator should nudge with an extra
+    'reply now' message and stream one more time."""
+    g = FakeGraph()
+    client = _mock_client([
+        # Turn 1: model calls inspect_canvas, then just stops with no prose.
+        [
+            StreamEvent(kind="tool_call", tool_call={"id": "t1", "name": "inspect_canvas", "input": {}}),
+            StreamEvent(kind="done"),
+        ],
+        # Turn 2: empty prose stream — model still has nothing to say.
+        [StreamEvent(kind="done")],
+        # Turn 3 (forced-prose fallback): model finally replies.
+        [
+            StreamEvent(kind="text", text="Here's what I found on your canvas: nothing."),
+            StreamEvent(kind="done"),
+        ],
+    ])
+    orch = ChatOrchestrator(graph=g, client=client, dispatcher=_dispatcher(g))
+    events = list(orch.run_turn("what's on my canvas?"))
+    text_chunks = [e.text for e in events if e.kind == "text"]
+    assert any("nothing" in (t or "") for t in text_chunks)
+    assert events[-1].kind == "turn_done"
+    # Fallback nudge appended as a synthetic user message.
+    assert any(
+        m.get("role") == "user" and "reply to the user now" in m.get("content", "").lower()
+        for m in orch.history
+    )
+
+
+def test_orchestrator_skips_prose_fallback_when_turn_has_text():
+    """If the model already produced any prose, no fallback nudge."""
+    g = FakeGraph()
+    client = _mock_client([
+        [
+            StreamEvent(kind="tool_call", tool_call={"id": "t1", "name": "inspect_canvas", "input": {}}),
+            StreamEvent(kind="done"),
+        ],
+        [
+            StreamEvent(kind="text", text="All good, nothing on canvas."),
+            StreamEvent(kind="done"),
+        ],
+    ])
+    orch = ChatOrchestrator(graph=g, client=client, dispatcher=_dispatcher(g))
+    list(orch.run_turn("what's up?"))
+    # No fallback nudge because prose was emitted in turn 2.
+    fallback_notes = [
+        m for m in orch.history
+        if m.get("role") == "user" and "reply to the user now" in m.get("content", "").lower()
+    ]
+    assert fallback_notes == []
