@@ -2162,6 +2162,10 @@ class AIChatPanel(QtWidgets.QWidget):
         self._apikey_edit = QtWidgets.QLineEdit()
         self._apikey_edit.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
         self._apikey_edit.setPlaceholderText("API key")
+        # Persist the key whenever the field loses focus or Enter is pressed.
+        # Without this a freshly-typed key works only for the current session
+        # and is lost on app restart.
+        self._apikey_edit.editingFinished.connect(self._on_chat_apikey_editing_finished)
         key_row.addWidget(self._apikey_edit)
         settings_layout.addWidget(self._apikey_widget)
         self._apikey_widget.hide()
@@ -2512,6 +2516,21 @@ class AIChatPanel(QtWidgets.QWidget):
             )
         except Exception:
             pass
+
+    def _on_chat_apikey_editing_finished(self):
+        """Persist the typed key to ~/.synapse_llm_config.json + .api_keys so
+        it survives app restarts. Also push it through to the live client if
+        one exists."""
+        provider = self._provider_combo.currentText()
+        key = self._apikey_edit.text().strip()
+        if not provider:
+            return
+        try:
+            _store_api_key(provider, key)
+        except Exception:
+            pass
+        if self._client is not None and hasattr(self._client, "api_key"):
+            self._client.api_key = key
 
     def _on_orch_token(self, piece: str):
         print(f"[chat] _on_orch_token: {piece!r}")  # DEBUG
