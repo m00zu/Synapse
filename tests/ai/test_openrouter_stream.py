@@ -79,6 +79,53 @@ def test_openrouter_stream_emits_tool_call_event_when_tools_enabled():
     assert tcs[0].tool_call["input"] == {"node_ids": ["a"]}
 
 
+def test_openrouter_retries_on_429_then_succeeds():
+    """Free-tier models often 429 during back-to-back calls. Retry should
+    smooth over transient 429s with backoff."""
+    import synapse.ai.clients.openrouter as mod
+    # Patch the delay tuple so the test doesn't actually sleep.
+    with patch.object(mod, "_RETRY_DELAYS", (0.0, 0.0)):
+        client = OpenRouterClient(api_key="or-test")
+        fail = MagicMock()
+        fail.status_code = 429
+        fail.headers = {}
+        fail.close.return_value = None
+        fail.raise_for_status.side_effect = Exception("should not be called on 429")
+
+        success = _fake_sse_response(["ok"])
+        success.status_code = 200
+        success.headers = {}
+
+        with patch("synapse.ai.clients.openrouter.requests.post",
+                   side_effect=[fail, success]) as pm:
+            events = list(client.chat_with_tools_stream(system="s", messages=[]))
+
+        assert pm.call_count == 2
+        assert any(e.kind == "text" and e.text == "ok" for e in events)
+
+
+def test_openrouter_gives_up_after_final_retry():
+    """After exhausting retries, surface the 429 as an error event."""
+    import synapse.ai.clients.openrouter as mod
+    with patch.object(mod, "_RETRY_DELAYS", (0.0, 0.0)):
+        client = OpenRouterClient(api_key="or-test")
+        fail = MagicMock()
+        fail.status_code = 429
+        fail.headers = {}
+        fail.close.return_value = None
+        fail.__enter__.return_value = fail
+        fail.__exit__.return_value = False
+        fail.raise_for_status.side_effect = Exception("429 Too Many Requests")
+        fail.iter_lines.return_value = iter([])
+
+        with patch("synapse.ai.clients.openrouter.requests.post",
+                   return_value=fail):
+            events = list(client.chat_with_tools_stream(system="s", messages=[]))
+
+        assert events[-1].kind == "error"
+        assert "429" in events[-1].error
+
+
 def test_openrouter_lists_models_places_free_tier_first():
     client = OpenRouterClient()
     fake = MagicMock()

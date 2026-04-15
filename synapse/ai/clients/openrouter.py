@@ -6,10 +6,15 @@ e.g. ``meta-llama/llama-3.3-70b-instruct:free``. The wire protocol is
 effectively identical to ``OpenAIClient``, so this client mirrors that class
 with a different base URL, model list filter, and a couple of recommended
 OpenRouter-specific headers (``HTTP-Referer``, ``X-Title``) for attribution.
+
+Retries: free-tier models often hit 429 rate limits when generate_workflow
+makes 2 sequential calls back-to-back. _post_with_retry backs off and retries
+twice before surfacing the 429 so transient caps don't break a turn.
 """
 from __future__ import annotations
 
 import json
+import time
 import requests
 from typing import Iterator, Optional
 
@@ -20,6 +25,35 @@ from synapse.ai.clients.base import LLMClient, StreamEvent
 # Harmless if OpenRouter ever drops support for them.
 _REFERER = "https://github.com/m00zu/Synapse"
 _TITLE = "Synapse"
+
+# 429 retry policy — total wait at most ~10 seconds before giving up.
+_RETRY_DELAYS = (2.0, 5.0)
+
+
+def _post_with_retry(url: str, *, headers: dict, json_payload: dict,
+                     stream: bool, timeout: float):
+    """POST with retry-on-429 backoff. Returns the final Response object
+    (which may still be non-200 — caller decides whether to raise)."""
+    last = None
+    for attempt in range(len(_RETRY_DELAYS) + 1):
+        resp = requests.post(url, headers=headers, json=json_payload,
+                             stream=stream, timeout=timeout)
+        last = resp
+        if resp.status_code != 429:
+            return resp
+        if attempt >= len(_RETRY_DELAYS):
+            return resp
+        # OpenRouter may include Retry-After (in seconds).
+        delay = _RETRY_DELAYS[attempt]
+        try:
+            ra = resp.headers.get("Retry-After")
+            if ra is not None:
+                delay = max(delay, float(ra))
+        except Exception:
+            pass
+        resp.close()
+        time.sleep(delay)
+    return last
 
 
 class OpenRouterClient(LLMClient):
@@ -100,10 +134,11 @@ class OpenRouterClient(LLMClient):
             "messages": [{"role": "system", "content": system}] + messages,
             "temperature": 0.1,
         }
-        resp = requests.post(
+        resp = _post_with_retry(
             f"{self.BASE_URL}/chat/completions",
             headers=self._auth_headers(),
-            json=payload,
+            json_payload=payload,
+            stream=False,
             timeout=120,
         )
         resp.raise_for_status()
@@ -130,13 +165,14 @@ class OpenRouterClient(LLMClient):
         partial: dict[int, dict] = {}
 
         try:
-            with requests.post(
+            resp = _post_with_retry(
                 f"{self.BASE_URL}/chat/completions",
                 headers=self._auth_headers(),
-                json=payload,
+                json_payload=payload,
                 stream=True,
                 timeout=120,
-            ) as resp:
+            )
+            with resp:
                 resp.raise_for_status()
                 for raw in resp.iter_lines():
                     if not raw:
