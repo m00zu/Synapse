@@ -50,7 +50,7 @@ class ChatOrchestrator:
     revisit this if chained tool reasoning across user turns becomes important.
     """
 
-    DEFAULT_MAX_TOOL_CALLS = 4
+    DEFAULT_MAX_TOOL_CALLS = 6
 
     def __init__(
         self,
@@ -205,7 +205,7 @@ class ChatOrchestrator:
                         self.history.append({
                             "role": "user",
                             "content": (
-                                "[system] You have reached the 4 tool-call budget for this turn. "
+                                "[system] You have reached the 6 tool-call budget for this turn. "
                                 "Stop calling tools and answer the user with what you have."
                             ),
                         })

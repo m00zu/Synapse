@@ -44,7 +44,7 @@ Tool-use discipline (IMPORTANT):
   * BATCH modify_workflow ops. A single modify_workflow call accepts an
     arbitrarily long `operations` array. Put EVERY add_node, set_prop, and
     connect for a given user request into ONE call — do NOT split across
-    multiple modify_workflow turns. You have a 4-tool-call budget per user
+    multiple modify_workflow turns. You have a 6-tool-call budget per user
     turn and splitting wastes it.
   * After a single successful workflow-mutating tool call, reply to the user
     with a short summary of what was done and stop calling tools, unless the
