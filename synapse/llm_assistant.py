@@ -2469,10 +2469,6 @@ class AIChatPanel(QtWidgets.QWidget):
         self._send_btn.clicked.connect(self._on_stop_orchestrator)
         self._status.setText("Thinking…")
 
-        print(f"[chat] _run_with_orchestrator: client={type(self._client).__name__} "
-              f"model={getattr(self._client, 'model', '?')} "
-              f"dropdown_model={self._model_combo.currentText()!r}")  # DEBUG
-
         self._orch_stream_buffer = ""
         dispatcher = self._build_dispatcher()
         self._orch_worker = ChatStreamWorker(
@@ -2533,18 +2529,15 @@ class AIChatPanel(QtWidgets.QWidget):
             self._client.api_key = key
 
     def _on_orch_token(self, piece: str):
-        print(f"[chat] _on_orch_token: {piece!r}")  # DEBUG
         self._orch_stream_buffer = (self._orch_stream_buffer or "") + piece
 
     def _on_orch_tool_started(self, name: str, inp: dict):
-        print(f"[chat] _on_orch_tool_started: {name}")  # DEBUG
         preview = json.dumps(inp)
         if len(preview) > 80:
             preview = preview[:77] + "…"
         self._append_bubble("system", f"🔧 {name}({preview})")
 
     def _on_orch_tool_finished(self, name: str, result: dict):
-        print(f"[chat] _on_orch_tool_finished: {name}")  # DEBUG
         if "error" in result:
             self._append_bubble("system", f"🔧 {name} → error: {result['error']}")
         else:
@@ -2607,7 +2600,6 @@ class AIChatPanel(QtWidgets.QWidget):
         )
 
     def _on_orch_error(self, msg: str):
-        print(f"[chat] _on_orch_error: {msg!r}")  # DEBUG
         self._append_bubble("error", msg)
         # Pop the user message that was just added — otherwise it lingers in
         # history and gets re-sent on the next turn, which can compound
@@ -2616,7 +2608,6 @@ class AIChatPanel(QtWidgets.QWidget):
             self._messages.pop()
 
     def _on_orch_cancelled(self):
-        print("[chat] _on_orch_cancelled")  # DEBUG
         self._append_bubble("system", "cancelled")
         # Defensive: turn_finished will fire via ChatStreamWorker's finally:
         # block, which re-enables the Send button. Restore state here too in
@@ -2630,7 +2621,6 @@ class AIChatPanel(QtWidgets.QWidget):
         self._send_btn.clicked.connect(self._on_send)
 
     def _on_orch_turn_finished(self):
-        print(f"[chat] _on_orch_turn_finished: buffer_len={len(self._orch_stream_buffer or '')}")  # DEBUG
         self._send_btn.setEnabled(True)
         self._send_btn.setText("Send")
         try:

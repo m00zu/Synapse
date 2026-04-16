@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import platform
+import time
 import requests
 from typing import Iterator, Optional
 
@@ -17,6 +18,30 @@ _UA = (
     f"synapse-ollama/1 ({platform.machine()} {platform.system().lower()}) "
     f"Python/{platform.python_version()}"
 )
+
+# Ollama Cloud's free-tier inference nodes return transient 500s at large
+# system prompts — same request often succeeds on a retry. Back off briefly
+# and try twice before giving up.
+_RETRY_DELAYS = (1.5, 4.0)
+
+
+def _post_with_retry(url: str, *, headers: dict, json_payload: dict,
+                     stream: bool, timeout: float):
+    """POST with backoff on 5xx. Returns the final Response; caller decides
+    whether to raise_for_status."""
+    last = None
+    for attempt in range(len(_RETRY_DELAYS) + 1):
+        resp = requests.post(url, headers=headers, json=json_payload,
+                             stream=stream, timeout=timeout)
+        last = resp
+        # Retry only on server errors (500-599), never on 4xx (auth, bad input).
+        if resp.status_code < 500:
+            return resp
+        if attempt >= len(_RETRY_DELAYS):
+            return resp
+        resp.close()
+        time.sleep(_RETRY_DELAYS[attempt])
+    return last
 
 
 class OllamaClient(LLMClient):
@@ -110,13 +135,14 @@ class OllamaClient(LLMClient):
             "options": {"temperature": 0.1},
         }
         try:
-            with requests.post(
+            resp = _post_with_retry(
                 f"{self.base_url}/api/chat",
-                json=payload,
                 headers=self._headers(),
+                json_payload=payload,
                 stream=True,
                 timeout=120,
-            ) as resp:
+            )
+            with resp:
                 resp.raise_for_status()
                 for raw in resp.iter_lines():
                     if not raw:
