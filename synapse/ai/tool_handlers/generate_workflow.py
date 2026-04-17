@@ -3,9 +3,82 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 
 
 _FENCE_RE = re.compile(r"```(?:json|JSON)?\s*\n(.*?)\n```", re.DOTALL)
+
+_SCHEMA_PATH = Path(__file__).resolve().parents[2] / "llm_node_schema.json"
+
+
+def _load_schema() -> dict:
+    try:
+        return json.loads(_SCHEMA_PATH.read_text()).get("node_catalog", {})
+    except Exception:
+        return {}
+
+
+def _port_names(port_list: list) -> list[str]:
+    """Extract names from schema port lists (each entry is {name, type, ...})."""
+    out = []
+    for p in port_list or []:
+        if isinstance(p, dict) and p.get("name"):
+            out.append(p["name"])
+        elif isinstance(p, str):
+            out.append(p)
+    return out
+
+
+def _validate_port_hints(workflow: dict) -> list[str]:
+    """Return a list of human-readable warnings for edges whose port hints do
+    not match the source/target node's schema.
+
+    Only fires when the hint is non-empty — the loader auto-wires by type when
+    no hint is given, and that's fine. The warning value is to catch cases
+    like SplitRGBNode with src_port='image' (hallucinated) that the loader
+    silently auto-resolves to the first compatible output (e.g. 'red'),
+    producing a workflow that applies cleanly but connects to the wrong
+    channel.
+    """
+    schema = _load_schema()
+    if not schema:
+        return []
+    nodes = workflow.get("nodes") or []
+    id_to_type = {}
+    for n in nodes:
+        nid = n.get("id")
+        ntype = n.get("type")
+        if nid is not None and ntype:
+            id_to_type[nid] = ntype
+            id_to_type[str(nid)] = ntype
+    warnings: list[str] = []
+    for edge in workflow.get("edges") or []:
+        if not isinstance(edge, list) or len(edge) < 3:
+            continue
+        src_id = edge[0]
+        dst_id = edge[1]
+        src_hint = edge[2] if len(edge) >= 3 else ""
+        dst_hint = edge[3] if len(edge) >= 4 else ""
+        src_type = id_to_type.get(src_id) or id_to_type.get(str(src_id))
+        dst_type = id_to_type.get(dst_id) or id_to_type.get(str(dst_id))
+        if src_hint and src_type and src_type in schema:
+            outs = _port_names(schema[src_type].get("outputs"))
+            if outs and src_hint not in outs:
+                warnings.append(
+                    f"Edge {src_id}->{dst_id}: source port {src_hint!r} not found on "
+                    f"{src_type}. Valid outputs: {outs}. The loader auto-wired to "
+                    f"'{outs[0]}' — if that's wrong, call modify_workflow to "
+                    f"disconnect and reconnect with the right src_port."
+                )
+        if dst_hint and dst_type and dst_type in schema:
+            ins = _port_names(schema[dst_type].get("inputs"))
+            if ins and dst_hint not in ins:
+                warnings.append(
+                    f"Edge {src_id}->{dst_id}: target port {dst_hint!r} not found on "
+                    f"{dst_type}. Valid inputs: {ins}. Loader auto-wired by type; "
+                    f"if wrong, fix via modify_workflow."
+                )
+    return warnings
 
 
 def _coerce_json(raw: str) -> dict:
@@ -115,7 +188,8 @@ def make_generate_workflow_handler(graph, client):
         nodes = workflow.get("nodes") or []
         edges = workflow.get("edges") or []
         canvas_was_empty = len(list(graph.all_nodes())) == 0
-        return {
+        warnings = _validate_port_hints(workflow)
+        result = {
             "node_count": len(nodes),
             "edge_count": len(edges),
             "preview_types": [n.get("type", "?") for n in nodes],
@@ -135,5 +209,8 @@ def make_generate_workflow_handler(graph, client):
                 "Do NOT call modify_workflow now; wait for confirmation."
             ),
         }
+        if warnings:
+            result["warnings"] = warnings
+        return result
 
     return _handler

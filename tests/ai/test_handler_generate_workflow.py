@@ -104,3 +104,34 @@ def test_generate_workflow_rejects_fully_non_json_output():
     out = handler({"goal": "x"})
     assert "error" in out
     assert "Pass 1" in out["error"]
+
+
+def test_generate_workflow_flags_bad_source_port_hint():
+    """Hallucinated src_port on a split-channel node → warning returned."""
+    client = _mock_client_yielding(
+        pass1_json='{"nodes": ["SplitRGBNode", "ImageHistogramNode"]}',
+        pass2_json='{"nodes":['
+                   '{"id":1,"type":"SplitRGBNode"},'
+                   '{"id":2,"type":"ImageHistogramNode"}'
+                   '],"edges":[[1,2,"image","image"]]}',
+    )
+    handler = make_generate_workflow_handler(graph=FakeGraph(), client=client)
+    out = handler({"goal": "hist of a channel"})
+    assert "error" not in out
+    assert "warnings" in out
+    assert any("SplitRGBNode" in w and "'image'" in w for w in out["warnings"])
+
+
+def test_generate_workflow_no_warnings_when_port_hints_valid():
+    """Valid src_port on a split-channel node → no warnings."""
+    client = _mock_client_yielding(
+        pass1_json='{"nodes": ["SplitRGBNode", "ImageHistogramNode"]}',
+        pass2_json='{"nodes":['
+                   '{"id":1,"type":"SplitRGBNode"},'
+                   '{"id":2,"type":"ImageHistogramNode"}'
+                   '],"edges":[[1,2,"green","image"]]}',
+    )
+    handler = make_generate_workflow_handler(graph=FakeGraph(), client=client)
+    out = handler({"goal": "green histogram"})
+    assert "error" not in out
+    assert "warnings" not in out or not out["warnings"]

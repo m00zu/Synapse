@@ -222,12 +222,19 @@ class ChatOrchestrator:
                         kind="tool_call_finished",
                         tool_name=tc_name, tool_result=result, tool_call_id=tc_id,
                     )
-                    # Short-circuit: generate_workflow is terminal. Once the
-                    # workflow is applied (or queued for user approval), the
-                    # turn should end. Weaker models tend to follow up with
-                    # inspect_canvas / read_node_output / modify_workflow on
-                    # nodes that haven't even been evaluated — pure noise.
-                    if tc_name == "generate_workflow" and isinstance(result, dict) and "error" not in result:
+                    # Short-circuit: generate_workflow is normally terminal.
+                    # Once the workflow is applied (or queued for user
+                    # approval), the turn should end — weaker models tend to
+                    # follow up with inspect_canvas / read_node_output on
+                    # nodes that haven't even been evaluated, which is pure
+                    # noise. Exception: when the tool reports warnings (e.g.
+                    # port-hint mismatch that auto-wired to a wrong channel),
+                    # keep the loop alive so the model can call
+                    # modify_workflow to fix the bad edge.
+                    if (tc_name == "generate_workflow"
+                            and isinstance(result, dict)
+                            and "error" not in result
+                            and not result.get("warnings")):
                         cap_hit = True  # reuse the cap-hit exit path
                         break
                     break  # restart the loop with a fresh stream call
