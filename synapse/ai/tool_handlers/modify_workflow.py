@@ -9,6 +9,58 @@ X_PAD = 300
 Y_PAD = 120
 
 
+def _type_name(node) -> str:
+    """Human-readable node class name for error messages."""
+    return getattr(node, "type_name", None) or type(node).__name__
+
+
+def _resolve_port(ports: dict, hint: str):
+    """Fuzzy-match *hint* to a port in *ports*. Mirrors WorkflowLoader's
+    resolver: exact → prefix → case-insensitive prefix. Returns port or None.
+    """
+    if not hint:
+        return None
+    if hint in ports:
+        return ports[hint]
+    hint_lower = hint.lower()
+    for name, port in ports.items():
+        if name.startswith(hint) or name.lower().startswith(hint_lower):
+            return port
+    return None
+
+
+def _port_type(port) -> str:
+    """Best-effort port type string. Real NodeGraphQt ports carry a color
+    tuple; FakeNode ports have no type info. Returns 'any' when unknown."""
+    color = getattr(port, "color", None)
+    if color is None:
+        return "any"
+    try:
+        from synapse.nodes.base import PORT_COLORS
+        c2t = {tuple(v): k for k, v in PORT_COLORS.items()}
+        return c2t.get(tuple(color), "any")
+    except Exception:
+        return "any"
+
+
+def _auto_wire(src, dst):
+    """Pick the first (src_out, dst_in) pair of matching type. Unconnected
+    inputs preferred; falls back to first unconnected pair of any type."""
+    for sp in src.outputs().values():
+        st = _port_type(sp)
+        for dp in dst.inputs().values():
+            if dp.connected_ports():
+                continue
+            dt = _port_type(dp)
+            if st == dt or st == "any" or dt == "any":
+                return sp, dp
+    for sp in src.outputs().values():
+        for dp in dst.inputs().values():
+            if not dp.connected_ports():
+                return sp, dp
+    return None, None
+
+
 def _try_get_pos(node):
     """Best-effort position read. NodeGraphQt nodes expose ``pos()``/``set_pos()``;
     FakeNode (tests) does not. Returns (x, y) tuple or None if unsupported."""
@@ -180,12 +232,36 @@ def make_modify_workflow_handler(graph, node_factory: Callable[[str, str], objec
             src = _lookup(op.get("src") or ""); dst = _lookup(op.get("dst") or "")
             if not src or not dst:
                 return False, "connect requires existing src and dst node ids", None
-            sport = src.outputs().get(op.get("src_port") or "")
-            dport = dst.inputs().get(op.get("dst_port") or "")
-            if not sport:
-                sport = src.add_output(op.get("src_port") or "out_1")
-            if not dport:
-                dport = dst.add_input(op.get("dst_port") or "in_1")
+            src_hint = op.get("src_port") or ""
+            dst_hint = op.get("dst_port") or ""
+            sport = _resolve_port(src.outputs(), src_hint) if src_hint else None
+            dport = _resolve_port(dst.inputs(), dst_hint) if dst_hint else None
+            # If a hint was given and didn't match, refuse — do NOT create a
+            # new port on the fly. That used to silently hallucinate ports
+            # like "A" and "B" on ImageMathNode when the LLM got the name
+            # wrong. Surface the valid names so the LLM can retry.
+            if src_hint and sport is None:
+                valid = list(src.outputs().keys())
+                return False, (
+                    f"src_port {src_hint!r} not on {_type_name(src)}; "
+                    f"valid outputs: {valid}"
+                ), None
+            if dst_hint and dport is None:
+                valid = list(dst.inputs().keys())
+                return False, (
+                    f"dst_port {dst_hint!r} not on {_type_name(dst)}; "
+                    f"valid inputs: {valid}"
+                ), None
+            # No hint on one/both sides — fall back to type-based auto-wire.
+            if sport is None or dport is None:
+                auto_s, auto_d = _auto_wire(src, dst)
+                sport = sport or auto_s
+                dport = dport or auto_d
+            if sport is None or dport is None:
+                return False, (
+                    f"no compatible ports between {_type_name(src)} and "
+                    f"{_type_name(dst)}"
+                ), None
             sport.connect_to(dport)
             return True, "", {"op": "connect", "src": src.id, "dst": dst.id}
         if kind == "disconnect":

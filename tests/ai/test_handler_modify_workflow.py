@@ -5,13 +5,20 @@ from synapse.ai.tool_handlers.modify_workflow import make_modify_workflow_handle
 class _Factory:
     """Tiny stand-in for NodeGraphQt's create_node. Like NodeGraphQt, this
     factory is responsible for registering the new node in the graph —
-    modify_workflow's add_node op no longer calls graph.add_node() itself."""
+    modify_workflow's add_node op no longer calls graph.add_node() itself.
+
+    Real nodes have fixed PORT_SPECs that create their ports at construction.
+    FakeNode starts empty, so we seed a default in_1/out_1 pair here to match
+    the common case. Tests that need a specific port layout can add more
+    after construction."""
     def __init__(self, graph):
         self.graph = graph
         self.created = []
 
     def __call__(self, type_name: str, node_id: str) -> FakeNode:
         n = FakeNode(node_id, type_name)
+        n.add_input("in_1")
+        n.add_output("out_1")
         self.graph.add_node(n)
         self.created.append(n)
         return n
@@ -99,6 +106,10 @@ class _PositionableNode(FakeNode):
     def __init__(self, node_id: str, type_name: str, x: float = 0, y: float = 0):
         super().__init__(node_id, type_name)
         self._x, self._y = float(x), float(y)
+        # Seed a default in/out pair — matches the _Factory convention so
+        # auto-wire can find something to connect.
+        self.add_input("in_1")
+        self.add_output("out_1")
 
     def pos(self):
         return (self._x, self._y)
@@ -204,3 +215,66 @@ def test_auto_layout_orphan_new_node_cascades_below_canvas():
     x, y = g.get_node_by_id("orph").pos()
     assert x == 0.0
     assert y > 500.0  # below the existing node
+
+
+def test_connect_refuses_unknown_src_port_hint():
+    """Hallucinated src_port must NOT silently create a new port on the node."""
+    g, factory, handler = _setup()
+    out = handler({"operations": [
+        {"op": "add_node", "type": "ImageMathNode", "id": "m"},
+        {"op": "add_node", "type": "SplitRGBNode",  "id": "s"},
+        # Bogus src_port — 'image' is not an output of SplitRGBNode.
+        {"op": "connect", "src": "s", "src_port": "image",
+                          "dst": "m", "dst_port": "in_1"},
+    ]})
+    # The connect op should be in 'failed', not silently succeed by adding
+    # a new port called 'image' to the source node.
+    failed_reasons = [f["reason"] for f in out["failed"]]
+    assert any("src_port 'image'" in r for r in failed_reasons)
+    # The source node's outputs dict should be unchanged (no new 'image' port).
+    s = g.get_node_by_id("s")
+    assert "image" not in s.outputs()
+
+
+def test_connect_refuses_unknown_dst_port_hint():
+    g, factory, handler = _setup()
+    out = handler({"operations": [
+        {"op": "add_node", "type": "A", "id": "a"},
+        {"op": "add_node", "type": "B", "id": "b"},
+        {"op": "connect", "src": "a", "src_port": "out_1",
+                          "dst": "b", "dst_port": "A"},
+    ]})
+    assert any("dst_port 'A'" in f["reason"] for f in out["failed"])
+    b = g.get_node_by_id("b")
+    assert "A" not in b.inputs()  # no bogus 'A' port created
+
+
+def test_connect_fuzzy_matches_prefix_hint():
+    """'A' should resolve to an 'A (image/mask)' port via prefix match."""
+    g, factory, handler = _setup()
+    handler({"operations": [
+        {"op": "add_node", "type": "Src", "id": "s"},
+        {"op": "add_node", "type": "Dst", "id": "d"},
+    ]})
+    # Add a real-looking input name on dst that the LLM would abbreviate.
+    d = g.get_node_by_id("d")
+    d.add_input("A (image/mask)")
+    out = handler({"operations": [
+        {"op": "connect", "src": "s", "src_port": "out_1",
+                          "dst": "d", "dst_port": "A"},
+    ]})
+    assert out["failed"] == []
+    assert d.inputs()["A (image/mask)"].connected_ports()
+
+
+def test_connect_no_hint_falls_back_to_auto_wire():
+    g, factory, handler = _setup()
+    out = handler({"operations": [
+        {"op": "add_node", "type": "A", "id": "a"},
+        {"op": "add_node", "type": "B", "id": "b"},
+        # No src_port / dst_port — auto-wire by type (first compatible pair).
+        {"op": "connect", "src": "a", "dst": "b"},
+    ]})
+    assert out["failed"] == []
+    a = g.get_node_by_id("a"); b = g.get_node_by_id("b")
+    assert a.outputs()["out_1"].connected_ports()[0].node().id == "b"
