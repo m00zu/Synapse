@@ -2384,6 +2384,11 @@ class AIChatPanel(QtWidgets.QWidget):
         btn_row.addWidget(clear_btn)
         layout.addLayout(btn_row)
 
+        # --- Token meter ----------------------------------------------
+        self._token_meter = QtWidgets.QLabel()
+        self._token_meter.setStyleSheet("color:#8b949e; font-size:10px; padding:2px 4px;")
+        layout.addWidget(self._token_meter)
+
         # --- Status ---------------------------------------------------
         self._status = QtWidgets.QLabel("Ready")
         self._status.setStyleSheet("color: #484f58; font-size: 11px;")
@@ -2402,6 +2407,7 @@ class AIChatPanel(QtWidgets.QWidget):
         self._token_flush_timer.timeout.connect(self._flush_tokens)
 
         self._refresh_vision_badge()
+        self._refresh_token_meter()
 
     # ------------------------------------------------------------------
     def _refresh_vision_badge(self):
@@ -2413,6 +2419,33 @@ class AIChatPanel(QtWidgets.QWidget):
             if ok else
             "color:#8b949e; font-size:11px; font-style:italic;"
         )
+
+    # ------------------------------------------------------------------
+    def _refresh_token_meter(self, per_turn: "Optional[int]" = None):
+        """Update the token-budget meter label under the input."""
+        from synapse.ai.token_estimate import (
+            estimate_tokens,
+            estimate_messages_tokens,
+            model_context_window,
+        )
+        session = estimate_messages_tokens(self._messages) + estimate_tokens(
+            self._system if hasattr(self, "_system") else ""
+        )
+        try:
+            provider = self._provider_combo.currentText()
+        except Exception:
+            provider = ""
+        try:
+            model_name = self._model_combo.currentText() or ""
+        except Exception:
+            model_name = ""
+        window = model_context_window(provider, model_name)
+        parts = []
+        if per_turn is not None:
+            parts.append(f"this turn: ~{per_turn / 1000:.1f}k")
+        parts.append(f"session: ~{session / 1000:.1f}k")
+        parts.append(f"limit: {window // 1000}k")
+        self._token_meter.setText(" · ".join(parts))
 
     # ------------------------------------------------------------------
     def _load_config(self):
@@ -2543,6 +2576,7 @@ class AIChatPanel(QtWidgets.QWidget):
             self._status.setText(f"{provider} / {self._client.model}")
 
         self._refresh_vision_badge()
+        self._refresh_token_meter()
 
     # ------------------------------------------------------------------
     def _on_send(self):
@@ -2739,6 +2773,7 @@ class AIChatPanel(QtWidgets.QWidget):
         except Exception:
             pass
         self._refresh_vision_badge()
+        self._refresh_token_meter()
 
     def _on_chat_apikey_editing_finished(self):
         """Persist the typed key to ~/.synapse_llm_config.json + .api_keys so
@@ -2878,6 +2913,10 @@ class AIChatPanel(QtWidgets.QWidget):
         # failures on some providers.
         if self._messages and self._messages[-1].get("role") == "user":
             self._messages.pop()
+        self._send_btn.setEnabled(True)
+        self._stop_btn.setEnabled(False)
+        self._stop_btn.setVisible(False)
+        self._refresh_token_meter()
 
     def _on_orch_cancelled(self):
         self._bubble_log.add(_BubbleState(bubble_id="", role="system", text="cancelled"))
@@ -2903,17 +2942,21 @@ class AIChatPanel(QtWidgets.QWidget):
             self._status.setText(f"{self._provider_combo.currentText()} / {self._client.model}")
         except Exception:
             self._status.setText("Ready")
+        from synapse.ai.token_estimate import estimate_tokens as _et
+        per_turn = _et(self._orch_stream_buffer) if self._orch_stream_buffer else None
         if self._orch_stream_buffer:
             self._messages.append({"role": "assistant", "content": self._orch_stream_buffer})
         self._orch_stream_buffer = ""
         self._current_bubble_id = ""
         self._pending_token_buffer = ""
+        self._refresh_token_meter(per_turn=per_turn)
 
     # ------------------------------------------------------------------
     def _on_response(self, response: str):
         self._send_btn.setEnabled(True)
         self._send_btn.setText("Send")
         self._messages.append({"role": "assistant", "content": response})
+        self._refresh_token_meter()
 
         # Check if response is a workflow JSON
         try:
@@ -2986,6 +3029,7 @@ class AIChatPanel(QtWidgets.QWidget):
         self._load_btn.setEnabled(False)
         self._replace_btn.setEnabled(False)
         self._status.setText("Chat cleared")
+        self._refresh_token_meter()
 
     # ------------------------------------------------------------------
     def _append_bubble(self, role: str, text: str):
