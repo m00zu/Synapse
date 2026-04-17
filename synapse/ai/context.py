@@ -7,7 +7,20 @@ Phase 2a implements:
 """
 from __future__ import annotations
 
-__all__ = ["graph_summary", "estimate_tokens", "HistoryRoller"]
+# Re-export the canonical v2 estimator + context-window lookup so future callers
+# can find both helpers from either module. The in-file `estimate_tokens` below
+# is kept untouched to avoid behaviour drift in existing callers.
+from synapse.ai.token_estimate import (
+    estimate_tokens as _estimate_tokens_v2,
+    model_context_window,
+)
+
+__all__ = [
+    "graph_summary",
+    "estimate_tokens",
+    "HistoryRoller",
+    "model_context_window",
+]
 
 
 def _node_type(node) -> str:
@@ -94,7 +107,12 @@ def _count_connected_components(nodes: list) -> int:
 
 
 def estimate_tokens(text: str | None) -> int:
-    """Conservative char/4 approximation — good enough for budget checks."""
+    """Conservative char/4 approximation — good enough for budget checks.
+
+    # TODO Phase 4: consolidate with synapse.ai.token_estimate.estimate_tokens
+    # (semantics differ slightly: this one returns max(1, ...) for non-empty
+    # input, while the canonical v2 returns len//4).
+    """
     if not text:
         return 0
     return max(1, len(text) // 4)
