@@ -121,3 +121,62 @@ def test_error_bubble_uses_error_colors_and_no_tail_for_text_only_role():
     html = render_bubble_html(s, COLORS)
     assert "network down" in html
     assert COLORS["err_bg"] in html
+
+
+# ---------------------------------------------------------------------------
+# _BubbleLog tests (using a pure-Python fake browser — no Qt required)
+# ---------------------------------------------------------------------------
+
+class _FakeBrowser:
+    def __init__(self):
+        self.segments: list[str] = []
+        self._pinned = True
+
+    def append_html(self, html: str) -> None:
+        self.segments.append(html)
+
+    def clear(self) -> None:
+        self.segments.clear()
+
+    def snapshot_position(self) -> int:
+        return len(self.segments)
+
+    def rewrite_from(self, pos: int) -> None:
+        del self.segments[pos:]
+
+    def scroll_to_bottom(self) -> None:
+        pass
+
+    def is_pinned_to_bottom(self) -> bool:
+        return self._pinned
+
+
+def test_bubble_log_add_appends_one_segment_per_call():
+    from synapse.llm_assistant import _BubbleLog
+    fake = _FakeBrowser()
+    log = _BubbleLog(fake, colors_getter=lambda: COLORS)
+    log.add(_BubbleState(bubble_id="", role="user", text="hi"))
+    log.add(_BubbleState(bubble_id="", role="assistant", text="hello"))
+    assert len(fake.segments) == 2
+
+
+def test_bubble_log_update_rewrites_tail_from_bubble_position():
+    from synapse.llm_assistant import _BubbleLog
+    fake = _FakeBrowser()
+    log = _BubbleLog(fake, colors_getter=lambda: COLORS)
+    bid1 = log.add(_BubbleState(bubble_id="", role="assistant", text="first"))
+    bid2 = log.add(_BubbleState(bubble_id="", role="assistant", text="second"))
+    log.update(bid1, lambda s: setattr(s, "text", "first (edited)"))
+    # After update, segment 0 reflects the edit, segment 1 is still the second bubble (re-rendered).
+    assert "first (edited)" in fake.segments[0]
+    assert "second" in fake.segments[1]
+    assert len(fake.segments) == 2
+
+
+def test_bubble_log_clear_empties_state_and_browser():
+    from synapse.llm_assistant import _BubbleLog
+    fake = _FakeBrowser()
+    log = _BubbleLog(fake, colors_getter=lambda: COLORS)
+    log.add(_BubbleState(bubble_id="", role="user", text="x"))
+    log.clear()
+    assert fake.segments == []

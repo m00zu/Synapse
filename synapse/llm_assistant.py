@@ -21,7 +21,8 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from typing import Optional
+from collections import OrderedDict
+from typing import Callable, Optional
 
 import requests
 
@@ -145,6 +146,139 @@ _NODE_SELECTION_SCHEMA: dict = {
 # RESPONSE_SCHEMA moved to synapse/ai/schema.py; re-export for callers that
 # still import it from here.
 from synapse.ai.schema import RESPONSE_SCHEMA  # noqa: F401
+
+from synapse.ai.bubble_state import (
+    _BubbleState,
+    ToolChip,
+    WorkflowProposal,
+    render_bubble_html,
+    parse_anchor,
+)
+
+
+def _short_json(obj: dict, max_len: int = 80) -> str:
+    """Return a compact JSON string, truncated to *max_len* characters."""
+    s = json.dumps(obj)
+    return s if len(s) <= max_len else s[: max_len - 1] + "\u2026"
+
+
+# ---------------------------------------------------------------------------
+# Browser protocol + adapters for _BubbleLog
+# ---------------------------------------------------------------------------
+
+class _QtTextBrowserAdapter:
+    """Thin adapter that wraps a real QTextBrowser for _BubbleLog.
+
+    Strategy: we maintain a list of HTML segment strings that mirrors what is
+    displayed.  On *rewrite_from* we clear the browser and re-append all kept
+    segments.  This avoids fighting QTextDocument frame/cursor math and is
+    fast enough for typical chat lengths (<100 bubbles).
+    """
+
+    def __init__(self, tb):  # tb: QtWidgets.QTextBrowser
+        self._tb = tb
+        self._segments: list[str] = []
+
+    def append_html(self, html: str) -> None:
+        self._segments.append(html)
+        self._tb.append(html)
+
+    def clear(self) -> None:
+        self._segments.clear()
+        self._tb.clear()
+
+    def snapshot_position(self) -> int:
+        return len(self._segments)
+
+    def rewrite_from(self, pos: int) -> None:
+        del self._segments[pos:]
+        self._tb.clear()
+        for seg in self._segments:
+            self._tb.append(seg)
+
+    def scroll_to_bottom(self) -> None:
+        sb = self._tb.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+    def is_pinned_to_bottom(self) -> bool:
+        sb = self._tb.verticalScrollBar()
+        return sb.value() >= sb.maximum()
+
+
+# ---------------------------------------------------------------------------
+# _BubbleLog
+# ---------------------------------------------------------------------------
+
+class _BubbleLog:
+    """Manages ordered chat bubbles in a pluggable text browser.
+
+    The *browser* argument can be a :class:`_QtTextBrowserAdapter` (production)
+    or any object implementing the same interface (tests).
+
+    Parameters
+    ----------
+    browser:
+        Browser adapter implementing ``append_html``, ``clear``,
+        ``snapshot_position``, ``rewrite_from``, ``scroll_to_bottom``,
+        ``is_pinned_to_bottom``.
+    colors_getter:
+        Zero-argument callable returning the current bubble-color dict.
+    """
+
+    def __init__(self, browser, colors_getter: Callable[[], dict]):
+        self._browser = browser
+        self._colors = colors_getter
+        self._states: OrderedDict[str, _BubbleState] = OrderedDict()
+        self._positions: dict[str, int] = {}   # bubble_id → snapshot before this bubble
+        self._next = 0
+
+    def add(self, state: _BubbleState) -> str:
+        """Append a new bubble and return its assigned bubble_id."""
+        bubble_id = f"b{self._next}"
+        self._next += 1
+        state.bubble_id = bubble_id
+        pos = self._browser.snapshot_position()
+        self._positions[bubble_id] = pos
+        self._states[bubble_id] = state
+        self._browser.append_html(render_bubble_html(state, self._colors()))
+        self._browser.scroll_to_bottom()
+        return bubble_id
+
+    def update(self, bubble_id: str, mutator: Callable[[_BubbleState], None]) -> None:
+        """Apply *mutator* to the state then re-render from *bubble_id* onward.
+
+        If the mutator raises, the state may be partially mutated — we still
+        re-render afterward so the on-screen HTML matches the in-memory state,
+        then re-raise so the caller is informed.
+        """
+        if bubble_id not in self._states:
+            return
+        pinned = self._browser.is_pinned_to_bottom()
+        state = self._states[bubble_id]
+        try:
+            mutator(state)
+        finally:
+            # Always re-render — keeps on-screen consistent with in-memory
+            # state even if the mutator partially ran before raising.
+            pos = self._positions[bubble_id]
+            self._browser.rewrite_from(pos)
+            found = False
+            colors = self._colors()
+            for bid, bstate in self._states.items():
+                if bid == bubble_id:
+                    found = True
+                if found:
+                    self._browser.append_html(render_bubble_html(bstate, colors))
+            if pinned:
+                self._browser.scroll_to_bottom()
+
+    def get(self, bubble_id: str) -> _BubbleState:
+        return self._states[bubble_id]
+
+    def clear(self) -> None:
+        self._states.clear()
+        self._positions.clear()
+        self._browser.clear()
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -2192,8 +2326,16 @@ class AIChatPanel(QtWidgets.QWidget):
         # --- Chat history display -------------------------------------
         self._chat_display = QtWidgets.QTextBrowser()
         self._chat_display.setOpenExternalLinks(False)
+        self._chat_display.setOpenLinks(False)
         self._chat_display.setReadOnly(True)
+        self._chat_display.anchorClicked.connect(self._on_anchor_clicked)
         layout.addWidget(self._chat_display, stretch=1)
+
+        # Bubble log — wraps the text browser for in-place updates
+        self._bubble_log = _BubbleLog(
+            _QtTextBrowserAdapter(self._chat_display),
+            colors_getter=lambda: self._bubble_colors,
+        )
 
         # --- Input area -----------------------------------------------
         self._input_edit = QtWidgets.QPlainTextEdit()
@@ -2236,6 +2378,15 @@ class AIChatPanel(QtWidgets.QWidget):
 
         self._last_workflow: Optional[dict] = None
         self._orch_stream_buffer = ""
+
+        # Orchestrator streaming state
+        self._current_bubble_id: str = ""
+        self._pending_token_buffer: str = ""
+        self._last_chip_id: str = ""
+        self._token_flush_timer = QtCore.QTimer(self)
+        self._token_flush_timer.setSingleShot(False)
+        self._token_flush_timer.setInterval(50)
+        self._token_flush_timer.timeout.connect(self._flush_tokens)
 
     # ------------------------------------------------------------------
     def _load_config(self):
@@ -2470,6 +2621,14 @@ class AIChatPanel(QtWidgets.QWidget):
         self._status.setText("Thinking…")
 
         self._orch_stream_buffer = ""
+        self._pending_token_buffer = ""
+        self._last_chip_id = ""
+
+        # Create ONE assistant bubble up front that will accumulate tokens/chips.
+        self._current_bubble_id = self._bubble_log.add(
+            _BubbleState(bubble_id="", role="assistant", streaming=True)
+        )
+
         dispatcher = self._build_dispatcher()
         self._orch_worker = ChatStreamWorker(
             graph=self.graph,
@@ -2498,6 +2657,48 @@ class AIChatPanel(QtWidgets.QWidget):
     def _on_stop_orchestrator(self):
         if getattr(self, "_orch_worker", None):
             self._orch_worker.request_cancel()
+
+    # ------------------------------------------------------------------
+    def _on_anchor_clicked(self, url: "QtCore.QUrl"):
+        """Handle chip expand/collapse and workflow Apply/Discard links."""
+        try:
+            action, bubble_id, chip_id = parse_anchor(url.toString())
+        except ValueError:
+            return
+
+        if action == "chip":
+            def _toggle_chip(s: _BubbleState):
+                if chip_id in s.expanded_chips:
+                    s.expanded_chips.discard(chip_id)
+                else:
+                    s.expanded_chips.add(chip_id)
+            self._bubble_log.update(bubble_id, _toggle_chip)
+
+        elif action == "apply":
+            try:
+                state = self._bubble_log.get(bubble_id)
+            except KeyError:
+                return
+            if state.workflow and state.workflow.state == "pending":
+                self._apply_workflow_from_orchestrator(replace=False, silent=True)
+                self._bubble_log.update(
+                    bubble_id,
+                    lambda s: setattr(s.workflow, "state", "applied"),
+                )
+
+        elif action == "discard":
+            try:
+                state = self._bubble_log.get(bubble_id)
+            except KeyError:
+                return
+            # Symmetric with the apply branch: only act when workflow is
+            # actually pending. Guards against rapid double-click and against
+            # workflow being None if state was swapped elsewhere.
+            if state.workflow and state.workflow.state == "pending":
+                self._bubble_log.update(
+                    bubble_id,
+                    lambda s: setattr(s.workflow, "state", "discarded"),
+                )
 
     def _on_chat_model_changed(self, model_name: str):
         """Push the model dropdown change down to the active client."""
@@ -2530,47 +2731,87 @@ class AIChatPanel(QtWidgets.QWidget):
 
     def _on_orch_token(self, piece: str):
         self._orch_stream_buffer = (self._orch_stream_buffer or "") + piece
+        self._pending_token_buffer += piece
+        if not self._token_flush_timer.isActive():
+            self._token_flush_timer.start()
+
+    def _flush_tokens(self):
+        """Drain the pending token buffer into the current assistant bubble."""
+        buf, self._pending_token_buffer = self._pending_token_buffer, ""
+        if not buf or not self._current_bubble_id:
+            return
+        self._bubble_log.update(
+            self._current_bubble_id,
+            lambda s: setattr(s, "text", s.text + buf),
+        )
 
     def _on_orch_tool_started(self, name: str, inp: dict):
-        preview = json.dumps(inp)
-        if len(preview) > 80:
-            preview = preview[:77] + "…"
-        self._append_bubble("system", f"🔧 {name}({preview})")
+        # No fallback: if _current_bubble_id is unset here we have a real
+        # state-sync bug (e.g. tool events arriving after Clear). Fail loudly
+        # rather than appending a silent system bubble that hides the issue.
+        state = self._bubble_log.get(self._current_bubble_id)
+        chip_id = f"c{len(state.chips)}"
+        self._bubble_log.update(
+            self._current_bubble_id,
+            lambda s: s.chips.append(
+                ToolChip(
+                    chip_id=chip_id,
+                    name=name,
+                    input_preview=_short_json(inp),
+                    status="running",
+                    full_input=inp,
+                )
+            ),
+        )
+        self._last_chip_id = chip_id
 
     def _on_orch_tool_finished(self, name: str, result: dict):
-        if "error" in result:
-            self._append_bubble("system", f"🔧 {name} → error: {result['error']}")
-        else:
-            keys = ", ".join(list(result.keys())[:4])
-            self._append_bubble("system", f"🔧 {name} → ok ({keys})")
+        # No fallback — same rationale as _on_orch_tool_started.
+        cid = self._last_chip_id
+
+        def _finish_chip(s: _BubbleState):
+            for chip in s.chips:
+                if chip.chip_id == cid:
+                    if "error" in result:
+                        chip.status = "error"
+                        chip.result_summary = str(result["error"])[:60]
+                    else:
+                        chip.status = "ok"
+                        keys = list(result.keys())[:2]
+                        chip.result_summary = ", ".join(keys) if keys else "ok"
+                    chip.full_result = result
+                    break
+
+        self._bubble_log.update(self._current_bubble_id, _finish_chip)
 
     def _on_orch_workflow_preview(self, result: dict):
         workflow = result.get("workflow") or {}
         self._last_workflow = workflow
-        if result.get("canvas_was_empty"):
-            self._apply_workflow_from_orchestrator(replace=True)
-            self._append_bubble(
-                "system",
-                f"✅ Applied: {result.get('node_count', 0)} nodes, "
-                f"{result.get('edge_count', 0)} edges.",
+        canvas_was_empty = bool(result.get("canvas_was_empty"))
+        wf_state = "applied" if canvas_was_empty else "pending"
+        wf = WorkflowProposal(
+            node_count=result.get("node_count", 0),
+            edge_count=result.get("edge_count", 0),
+            preview_types=list(result.get("preview_types", [])),
+            state=wf_state,
+        )
+        if self._current_bubble_id:
+            self._bubble_log.update(
+                self._current_bubble_id,
+                lambda s: setattr(s, "workflow", wf),
             )
-        else:
-            types = ", ".join(result.get("preview_types", [])[:8])
-            reply = QtWidgets.QMessageBox.question(
-                self, "Apply workflow?",
-                f"Proposed workflow: {result.get('node_count')} node(s), "
-                f"{result.get('edge_count')} edge(s).\n\nTypes: {types}\n\n"
-                "Apply to canvas?",
-                QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Discard,
-            )
-            if reply == QtWidgets.QMessageBox.Apply:
-                self._apply_workflow_from_orchestrator(replace=False)
-                self._append_bubble("system", "✅ Applied.")
-            else:
-                self._append_bubble("system", "Discarded.")
+        if canvas_was_empty:
+            self._apply_workflow_from_orchestrator(replace=True, silent=True)
 
-    def _apply_workflow_from_orchestrator(self, replace: bool):
-        """Mirror the exact calls from _on_load (merge) and _on_replace (replace)."""
+    def _apply_workflow_from_orchestrator(self, replace: bool, silent: bool = False):
+        """Mirror the exact calls from _on_load (merge) and _on_replace (replace).
+
+        When *silent* is True, suppress the "workflow loaded..." system bubble.
+        The orchestrator flow uses silent=True because the assistant bubble's
+        own ``Applied`` marker already communicates success to the user; the
+        extra system bubble would land visually below the streaming assistant
+        bubble and disorient the reader.
+        """
         if not self._last_workflow:
             return
         if replace:
@@ -2579,7 +2820,8 @@ class AIChatPanel(QtWidgets.QWidget):
                 self.graph.remove_node(node)
             loader = WorkflowLoader(self.graph)
             _ok, msg = loader.build(self._last_workflow)
-            self._append_bubble("system", msg)
+            if not silent:
+                self._append_bubble("system", msg)
         else:
             # Same as _on_load: offset past existing nodes.
             all_nodes = self.graph.all_nodes()
@@ -2591,16 +2833,20 @@ class AIChatPanel(QtWidgets.QWidget):
             loader = WorkflowLoader(self.graph)
             _ok, msg = loader.build(self._last_workflow,
                                     origin_x=int(max_x), origin_y=int(min_y))
-            self._append_bubble("system", msg)
+            if not silent:
+                self._append_bubble("system", msg)
 
     def _on_orch_cap(self, tool_name: str):
-        self._append_bubble(
-            "system",
-            f"[tool budget exhausted at `{tool_name}` — answering with what I have]",
+        self._bubble_log.add(
+            _BubbleState(
+                bubble_id="",
+                role="system",
+                text=f"[tool budget exhausted at `{tool_name}` — answering with what I have]",
+            )
         )
 
     def _on_orch_error(self, msg: str):
-        self._append_bubble("error", msg)
+        self._bubble_log.add(_BubbleState(bubble_id="", role="error", text=msg))
         # Pop the user message that was just added — otherwise it lingers in
         # history and gets re-sent on the next turn, which can compound
         # failures on some providers.
@@ -2608,7 +2854,7 @@ class AIChatPanel(QtWidgets.QWidget):
             self._messages.pop()
 
     def _on_orch_cancelled(self):
-        self._append_bubble("system", "cancelled")
+        self._bubble_log.add(_BubbleState(bubble_id="", role="system", text="cancelled"))
         # Defensive: turn_finished will fire via ChatStreamWorker's finally:
         # block, which re-enables the Send button. Restore state here too in
         # case that signal is ever disconnected or delayed.
@@ -2621,6 +2867,13 @@ class AIChatPanel(QtWidgets.QWidget):
         self._send_btn.clicked.connect(self._on_send)
 
     def _on_orch_turn_finished(self):
+        self._token_flush_timer.stop()
+        self._flush_tokens()
+        if self._current_bubble_id:
+            self._bubble_log.update(
+                self._current_bubble_id,
+                lambda s: setattr(s, "streaming", False),
+            )
         self._send_btn.setEnabled(True)
         self._send_btn.setText("Send")
         try:
@@ -2633,9 +2886,10 @@ class AIChatPanel(QtWidgets.QWidget):
         except Exception:
             self._status.setText("Ready")
         if self._orch_stream_buffer:
-            self._append_bubble("assistant", self._orch_stream_buffer)
             self._messages.append({"role": "assistant", "content": self._orch_stream_buffer})
         self._orch_stream_buffer = ""
+        self._current_bubble_id = ""
+        self._pending_token_buffer = ""
 
     # ------------------------------------------------------------------
     def _on_response(self, response: str):
@@ -2700,7 +2954,16 @@ class AIChatPanel(QtWidgets.QWidget):
 
     def _on_clear(self):
         self._messages.clear()
-        self._chat_display.clear()
+        self._bubble_log.clear()
+        # Reset streaming state — otherwise clicking Clear mid-turn leaves a
+        # stale _current_bubble_id, causing subsequent tool slots to KeyError
+        # on _bubble_log.get(stale_id).
+        if self._token_flush_timer.isActive():
+            self._token_flush_timer.stop()
+        self._current_bubble_id = ""
+        self._pending_token_buffer = ""
+        self._last_chip_id = ""
+        self._orch_stream_buffer = ""
         self._last_workflow = None
         self._load_btn.setEnabled(False)
         self._replace_btn.setEnabled(False)
@@ -2708,77 +2971,19 @@ class AIChatPanel(QtWidgets.QWidget):
 
     # ------------------------------------------------------------------
     def _append_bubble(self, role: str, text: str):
-        """Append a chat-style message bubble with tail to the display."""
-        c = self._bubble_colors
-        text_escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        text_html = text_escaped.replace("\n", "<br>")
+        """Compatibility wrapper — delegates to _bubble_log.add(_BubbleState(...)).
 
-        # ◢ = bottom-right tail (U+25E2), ◣ = bottom-left tail (U+25E3)
-        # Add spacing before each message
-        self._chat_display.append("<div style='margin:0; padding:0; line-height:6px;'>&nbsp;</div>")
-
-        if role == "user":
-            html = (
-                f"<table width='100%' cellpadding='0' cellspacing='0'>"
-                f"<tr><td width='15%'></td>"
-                f"<td style='background:{c['user_bg']}; color:{c['user_fg']}; "
-                f"padding:8px 14px; border-radius:14px 14px 4px 14px;'>"
-                f"<span style='font-size:13px; line-height:1.5;'>"
-                f"{text_html}</span></td></tr>"
-                f"<tr><td></td>"
-                f"<td align='right' style='padding:0; line-height:0; font-size:0;'>"
-                f"<span style='color:{c['user_bg']}; font-size:14px; "
-                f"line-height:0;'>&#9698;</span></td></tr>"
-                f"</table>"
-            )
-        elif role == "assistant":
-            body_html = render_markdown(text)
-            if not body_html:
-                # Fallback for any edge case where markdown rendering returns empty
-                body_html = text_html
-            html = (
-                f"<table width='100%' cellpadding='0' cellspacing='0'>"
-                f"<tr><td style='background:{c['ai_bg']}; color:{c['ai_fg']}; "
-                f"padding:8px 14px; border-radius:4px 14px 14px 14px; "
-                f"border:1px solid {c['ai_border']};'>"
-                f"<span style='color:{c['ai_label']}; font-size:10px; "
-                f"font-weight:600;'>AI</span><br>"
-                f"<div style='font-size:13px; line-height:1.5;'>"
-                f"{body_html}</div></td>"
-                f"<td width='15%'></td></tr>"
-                f"<tr><td style='padding:0; line-height:0; font-size:0;'>"
-                f"<span style='color:{c['ai_bg']}; font-size:14px; "
-                f"line-height:0;'>&#9699;</span></td>"
-                f"<td></td></tr>"
-                f"</table>"
-            )
-        elif role == "error":
-            html = (
-                f"<table width='100%' cellpadding='0' cellspacing='0'>"
-                f"<tr><td style='background:{c['err_bg']}; color:{c['err_fg']}; "
-                f"padding:8px 14px; border-radius:12px;'>"
-                f"<span style='font-size:10px; font-weight:600;'>Error</span><br>"
-                f"<span style='font-size:13px;'>{text_html}</span></td>"
-                f"<td width='15%'></td></tr>"
-                f"<tr><td style='padding:0; line-height:0; font-size:0;'>"
-                f"<span style='color:{c['err_bg']}; font-size:14px; "
-                f"line-height:0;'>&#9699;</span></td>"
-                f"<td></td></tr>"
-                f"</table>"
-            )
-        else:  # system
-            html = (
-                f"<table width='100%' cellpadding='0' cellspacing='0'><tr>"
-                f"<td width='10%'></td>"
-                f"<td align='center' style='color:{c['sys_fg']}; "
-                f"font-size:11px; font-style:italic; padding:4px 0;'>"
-                f"{text_html}</td>"
-                f"<td width='10%'></td></tr></table>"
-            )
-
-        self._chat_display.append(html)
-        sb = self._chat_display.verticalScrollBar()
-        sb.setValue(sb.maximum())
+        All call sites (legacy _ChatWorker path, _on_load, _on_replace, etc.)
+        continue to work unchanged via this wrapper.
+        """
+        # Map the legacy role string to the typed Literal expected by _BubbleState.
+        # 'assistant' and 'user' pass through unchanged; anything else becomes 'system'
+        # unless it's 'error'.
+        valid_roles = {"user", "assistant", "system", "error"}
+        mapped_role = role if role in valid_roles else "system"
+        self._bubble_log.add(
+            _BubbleState(bubble_id="", role=mapped_role, text=text)
+        )
 
 
 class _ChatWorker(QtCore.QObject):
