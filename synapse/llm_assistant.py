@@ -2235,6 +2235,9 @@ class AIChatPanel(QtWidgets.QWidget):
         QPushButton#replaceBtn {{ background: #da3633; color: #fff; border: 1px solid #f85149; }}
         QPushButton#replaceBtn:hover {{ background: #f85149; }}
         QPushButton#replaceBtn:disabled {{ background: {btn_bg}; color: {dis_fg}; border-color: {dis_border}; }}
+        QPushButton#stopBtn {{ background: #da3633; color: #fff; border: 1px solid #f85149; font-weight: 600; }}
+        QPushButton#stopBtn:hover {{ background: #f85149; }}
+        QPushButton#stopBtn:disabled {{ background: {btn_bg}; color: {dis_fg}; border-color: {dis_border}; }}
         QPushButton#refreshBtn {{ padding: 4px 6px; font-size: 14px; }}
         QTextBrowser {{
             background: {bg}; color: {fg}; border: none;
@@ -2351,6 +2354,13 @@ class AIChatPanel(QtWidgets.QWidget):
         self._send_btn.setObjectName("sendBtn")
         self._send_btn.clicked.connect(self._on_send)
         btn_row.addWidget(self._send_btn)
+
+        self._stop_btn = QtWidgets.QPushButton("Stop")
+        self._stop_btn.setObjectName("stopBtn")
+        self._stop_btn.setEnabled(False)
+        self._stop_btn.setVisible(False)
+        self._stop_btn.clicked.connect(self._on_stop_orchestrator)
+        btn_row.addWidget(self._stop_btn)
 
         self._load_btn = QtWidgets.QPushButton("Load")
         self._load_btn.setObjectName("loadBtn")
@@ -2612,12 +2622,9 @@ class AIChatPanel(QtWidgets.QWidget):
         return d
 
     def _run_with_orchestrator(self, user_text: str):
-        self._send_btn.setText("⏹")
-        try:
-            self._send_btn.clicked.disconnect()
-        except Exception:
-            pass
-        self._send_btn.clicked.connect(self._on_stop_orchestrator)
+        self._send_btn.setEnabled(False)
+        self._stop_btn.setVisible(True)
+        self._stop_btn.setEnabled(True)
         self._status.setText("Thinking…")
 
         self._orch_stream_buffer = ""
@@ -2859,12 +2866,8 @@ class AIChatPanel(QtWidgets.QWidget):
         # block, which re-enables the Send button. Restore state here too in
         # case that signal is ever disconnected or delayed.
         self._send_btn.setEnabled(True)
-        self._send_btn.setText("Send")
-        try:
-            self._send_btn.clicked.disconnect()
-        except Exception:
-            pass
-        self._send_btn.clicked.connect(self._on_send)
+        self._stop_btn.setEnabled(False)
+        self._stop_btn.setVisible(False)
 
     def _on_orch_turn_finished(self):
         self._token_flush_timer.stop()
@@ -2875,12 +2878,8 @@ class AIChatPanel(QtWidgets.QWidget):
                 lambda s: setattr(s, "streaming", False),
             )
         self._send_btn.setEnabled(True)
-        self._send_btn.setText("Send")
-        try:
-            self._send_btn.clicked.disconnect()
-        except Exception:
-            pass
-        self._send_btn.clicked.connect(self._on_send)
+        self._stop_btn.setEnabled(False)
+        self._stop_btn.setVisible(False)
         try:
             self._status.setText(f"{self._provider_combo.currentText()} / {self._client.model}")
         except Exception:
