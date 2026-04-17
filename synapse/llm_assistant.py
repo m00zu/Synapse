@@ -2321,6 +2321,9 @@ class AIChatPanel(QtWidgets.QWidget):
         refresh_btn.setToolTip("Refresh model list")
         refresh_btn.clicked.connect(self._refresh_models)
         model_row.addWidget(refresh_btn)
+        self._vision_badge = QtWidgets.QLabel()
+        self._vision_badge.setObjectName("visionBadge")
+        model_row.addWidget(self._vision_badge)
         settings_layout.addLayout(model_row)
 
         layout.addWidget(settings_frame)
@@ -2397,6 +2400,19 @@ class AIChatPanel(QtWidgets.QWidget):
         self._token_flush_timer.setSingleShot(False)
         self._token_flush_timer.setInterval(50)
         self._token_flush_timer.timeout.connect(self._flush_tokens)
+
+        self._refresh_vision_badge()
+
+    # ------------------------------------------------------------------
+    def _refresh_vision_badge(self):
+        """Update the vision-capability badge next to the model dropdown."""
+        ok = bool(self._client and getattr(self._client, "supports_vision", False))
+        self._vision_badge.setText("👁 vision" if ok else "text-only")
+        self._vision_badge.setStyleSheet(
+            "color:#3fb950; font-size:11px; font-weight:600;"
+            if ok else
+            "color:#8b949e; font-size:11px; font-style:italic;"
+        )
 
     # ------------------------------------------------------------------
     def _load_config(self):
@@ -2525,6 +2541,8 @@ class AIChatPanel(QtWidgets.QWidget):
         if self._client:
             self.graph._llm_client = self._client
             self._status.setText(f"{provider} / {self._client.model}")
+
+        self._refresh_vision_badge()
 
     # ------------------------------------------------------------------
     def _on_send(self):
@@ -2720,6 +2738,7 @@ class AIChatPanel(QtWidgets.QWidget):
             )
         except Exception:
             pass
+        self._refresh_vision_badge()
 
     def _on_chat_apikey_editing_finished(self):
         """Persist the typed key to ~/.synapse_llm_config.json + .api_keys so
