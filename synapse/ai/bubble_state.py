@@ -6,10 +6,36 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
 from synapse.markdown_render import render_markdown
+
+
+_PRE_TAG = re.compile(r"<pre(\s[^>]*)?>", re.IGNORECASE)
+_CODE_TAG = re.compile(r"<code(\s[^>]*)?>", re.IGNORECASE)
+
+
+def _style_code_blocks(body_html: str, colors: dict) -> str:
+    """Inject inline styles into <pre> and <code> tags so code blocks blend
+    with the bubble theme. Pygments' default style leaves <pre> transparent,
+    which renders white on QTextBrowser — this fixes that for dark themes."""
+    code_bg = colors.get("code_bg") or colors.get("ai_bg", "#161b22")
+    code_fg = colors.get("code_fg") or colors.get("ai_fg", "#c9d1d9")
+    border = colors.get("ai_border", "#30363d")
+    pre_style = (
+        f"background:{code_bg}; color:{code_fg}; "
+        f"border:1px solid {border}; border-radius:6px; "
+        f"padding:8px 10px; margin:6px 0; white-space:pre-wrap;"
+    )
+    inline_style = (
+        f"background:{code_bg}; color:{code_fg}; "
+        f"padding:1px 4px; border-radius:3px;"
+    )
+    body_html = _PRE_TAG.sub(f'<pre style="{pre_style}">', body_html)
+    body_html = _CODE_TAG.sub(f'<code style="{inline_style}">', body_html)
+    return body_html
 
 
 # ---------------------------------------------------------------------------
@@ -185,6 +211,7 @@ def render_bubble_html(state: _BubbleState, colors: dict) -> str:
     if not body_html and state.text:
         body_html = html.escape(state.text).replace("\n", "<br>")
     if body_html:
+        body_html = _style_code_blocks(body_html, colors)
         parts.append(
             f"<div style='font-size:13px; line-height:1.5;'>{body_html}</div>"
         )

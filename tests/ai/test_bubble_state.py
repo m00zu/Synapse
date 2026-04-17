@@ -116,6 +116,30 @@ def test_parse_anchor_rejects_bare_string():
         parse_anchor("foo")
 
 
+def test_assistant_code_block_uses_dark_theme_background():
+    s = _BubbleState(
+        bubble_id="bc", role="assistant",
+        text="Here:\n```\nFoo -> Bar\n```\n",
+    )
+    colors = {**COLORS, "code_bg": "#0d1117", "code_fg": "#c9d1d9"}
+    html_out = render_bubble_html(s, colors)
+    # Pre tag carries our injected dark background, not Pygments' white.
+    assert "<pre style=" in html_out
+    assert "background:#0d1117" in html_out
+    assert "color:#c9d1d9" in html_out
+
+
+def test_assistant_inline_code_also_styled():
+    s = _BubbleState(
+        bubble_id="bi", role="assistant",
+        text="Use `render_markdown` for text.",
+    )
+    colors = {**COLORS, "code_bg": "#0d1117", "code_fg": "#c9d1d9"}
+    html_out = render_bubble_html(s, colors)
+    assert "<code style=" in html_out
+    assert "background:#0d1117" in html_out
+
+
 def test_error_bubble_uses_error_colors_and_no_tail_for_text_only_role():
     s = _BubbleState(bubble_id="b7", role="error", text="network down")
     html = render_bubble_html(s, COLORS)

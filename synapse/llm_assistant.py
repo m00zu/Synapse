@@ -2267,6 +2267,8 @@ class AIChatPanel(QtWidgets.QWidget):
             "err_bg":    "#3d1214" if dark else "#ffeef0",
             "err_fg":    "#f85149",
             "sys_fg":    "#8b949e" if dark else "#57606a",
+            "code_bg":   "#0d1117" if dark else "#f6f8fa",
+            "code_fg":   "#c9d1d9" if dark else "#24292f",
         }
         self.setStyleSheet(self._build_style())
 
