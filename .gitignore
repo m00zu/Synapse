@@ -78,8 +78,9 @@ sync_plugins.sh
 _*.py
 _*.ipynb
 !__init__.py
-test_*.py
-benchmark_*.py
+!synapse/ai/clients/_fallback_parser.py
+/test_*.py
+/benchmark_*.py
 _plot_functions/
 
 # Root plugins dir (legacy — bundled plugins are now in synapse/plugins/)

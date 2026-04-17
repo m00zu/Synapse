@@ -1,0 +1,292 @@
+"""ChatOrchestrator — per-turn agent loop that runs a streaming LLM turn,
+dispatches tool calls, and yields normalized events for the UI layer."""
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from typing import Iterator, Optional
+
+from synapse.ai.clients.base import StreamEvent
+from synapse.ai.context import graph_summary
+from synapse.ai.prompts import BASE_SYSTEM_PROMPT
+from synapse.ai.tools import TOOLS
+
+
+@dataclass
+class OrchestratorEvent:
+    """Events the orchestrator yields to the UI. Strictly superset of StreamEvent."""
+    kind: str  # text | tool_call_started | tool_call_finished | cap_exceeded |
+               # error | cancelled | turn_done
+    text: Optional[str] = None
+    tool_name: Optional[str] = None
+    tool_input: Optional[dict] = None
+    tool_result: Optional[dict] = None
+    tool_call_id: Optional[str] = None
+    error: Optional[str] = None
+
+
+class ChatOrchestrator:
+    """Drives one user turn from start to finish.
+
+    Invariants:
+      - Exactly one call to ``run_turn(user_text)`` per user message.
+      - ``run_turn`` is a generator — pull events and forward them to the UI.
+      - ``cancel()`` is safe from any thread; it sets a flag that is checked
+        between stream events and between tool-call rounds.
+
+    Tool-result messages follow provider-specific conventions, chosen by the
+    client's class name:
+      - ClaudeClient : user role with content: [{type:tool_result, ...}]
+      - OpenAIClient : tool role with tool_call_id + content JSON
+      - others       : plain user message with inline JSON (Gemini/Ollama/Groq)
+
+    History is per-turn. The caller passes in a fresh copy of the panel's
+    conversation history each turn; the orchestrator mutates its own copy
+    in-place while looping (appending tool_use + tool_result messages), but
+    those mutations are discarded when ``run_turn`` completes. Only the final
+    assistant text is persisted back to the panel's history. This is a
+    deliberate Phase 2b trade-off — the LLM sees a clean conversation of
+    user/assistant turns and does not see prior tool-use rounds. Phase 3 may
+    revisit this if chained tool reasoning across user turns becomes important.
+    """
+
+    DEFAULT_MAX_TOOL_CALLS = 6
+
+    def __init__(
+        self,
+        graph,
+        client,
+        dispatcher,
+        history: list[dict] | None = None,
+        max_tool_calls: int = DEFAULT_MAX_TOOL_CALLS,
+    ):
+        self.graph = graph
+        self.client = client
+        self.dispatcher = dispatcher
+        self.history: list[dict] = history if history is not None else []
+        self.max_tool_calls = max_tool_calls
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
+
+    # ------------------------------------------------------------------
+    def _build_system(self) -> str:
+        # Include the condensed node catalog on every turn so the LLM can
+        # see what nodes exist even when it's using modify_workflow (which
+        # doesn't load a catalog the way generate_workflow's two-pass does).
+        # Without this the model falls back to PythonScriptNode because
+        # that's the only node it's aware of from the base prompt.
+        # Catalog is ~6k tokens — rebuilt each turn but never lost to
+        # history trimming since it lives in the system slot.
+        try:
+            from synapse.llm_assistant import build_condensed_catalog
+            catalog = build_condensed_catalog()
+        except Exception:
+            catalog = ""
+        parts = [BASE_SYSTEM_PROMPT, graph_summary(self.graph)]
+        if catalog:
+            parts.append(
+                "Available Synapse nodes (name : one-line description | ports):\n"
+                + catalog
+            )
+        return "\n\n".join(parts)
+
+    def _append_assistant_tool_call_message(self, tool_name: str, tool_call_id: str, tool_input: dict) -> None:
+        """Echo the assistant's tool_call into history so the next LLM call
+        sees the prior tool-use context. Provider-specific."""
+        provider_name = type(self.client).__name__
+        if provider_name == "ClaudeClient":
+            self.history.append({
+                "role": "assistant",
+                "content": [{
+                    "type": "tool_use",
+                    "id": tool_call_id,
+                    "name": tool_name,
+                    "input": tool_input,
+                }],
+            })
+        elif provider_name == "OpenAIClient":
+            self.history.append({
+                "role": "assistant",
+                "tool_calls": [{
+                    "id": tool_call_id,
+                    "type": "function",
+                    "function": {"name": tool_name, "arguments": json.dumps(tool_input)},
+                }],
+                "content": None,
+            })
+        # Prompt-fallback / Gemini: no explicit echo needed; the subsequent
+        # user-role tool-result message is self-contained.
+
+    def _append_tool_result_message(self, tool_name: str, tool_call_id: str, result: dict) -> None:
+        """Inject the tool's result using each provider's expected shape."""
+        provider_name = type(self.client).__name__
+        content = json.dumps(result)
+        if provider_name == "ClaudeClient":
+            self.history.append({
+                "role": "user",
+                "content": [{
+                    "type": "tool_result",
+                    "tool_use_id": tool_call_id,
+                    "content": content,
+                }],
+            })
+        elif provider_name == "OpenAIClient":
+            self.history.append({
+                "role": "tool",
+                "tool_call_id": tool_call_id,
+                "content": content,
+            })
+        else:
+            # Gemini / Ollama / Groq fallback — inline as a user message.
+            self.history.append({
+                "role": "user",
+                "content": f"Tool result for `{tool_name}`:\n```json\n{content}\n```",
+            })
+
+    # ------------------------------------------------------------------
+    def run_turn(self, user_text: str) -> Iterator[OrchestratorEvent]:
+        # Defensive dedup: callers (like AIChatPanel) may already have appended
+        # the user message to their shared history before handing it in.
+        # Consecutive duplicate user messages make some providers 500
+        # (observed on Ollama Cloud / nemotron-3-super).
+        last = self.history[-1] if self.history else None
+        already_there = (
+            isinstance(last, dict)
+            and last.get("role") == "user"
+            and last.get("content") == user_text
+        )
+        if not already_there:
+            self.history.append({"role": "user", "content": user_text})
+        tool_calls_used = 0
+        system = self._build_system()
+        # Track whether we emitted any prose this whole turn so we can force a
+        # final prose stream if the model calls tools and then stops without
+        # talking to the user. Observed with small/weak free models.
+        total_text_chars = 0
+        tools_dispatched_without_prose_after: bool = False
+
+        while True:
+            if self._cancelled:
+                yield OrchestratorEvent(kind="cancelled")
+                return
+
+            stream = self.client.chat_with_tools_stream(
+                system=system,
+                messages=self.history,
+                tools=TOOLS,
+            )
+            had_tool_call = False
+            had_text = False
+            cap_hit = False
+            for ev in stream:
+                if self._cancelled:
+                    yield OrchestratorEvent(kind="cancelled")
+                    return
+                if ev.kind == "text":
+                    had_text = True
+                    total_text_chars += len(ev.text or "")
+                    yield OrchestratorEvent(kind="text", text=ev.text)
+                elif ev.kind == "tool_call":
+                    had_tool_call = True
+                    tc = ev.tool_call or {}
+                    tc_id = tc.get("id") or tc.get("name", "")
+                    tc_name = tc.get("name", "")
+                    tc_input = tc.get("input") or {}
+
+                    tool_calls_used += 1
+                    if tool_calls_used > self.max_tool_calls:
+                        cap_hit = True
+                        yield OrchestratorEvent(
+                            kind="cap_exceeded",
+                            tool_name=tc_name,
+                        )
+                        self.history.append({
+                            "role": "user",
+                            "content": (
+                                "[system] You have reached the 6 tool-call budget for this turn. "
+                                "Stop calling tools and answer the user with what you have."
+                            ),
+                        })
+                        break
+
+                    yield OrchestratorEvent(
+                        kind="tool_call_started",
+                        tool_name=tc_name, tool_input=tc_input, tool_call_id=tc_id,
+                    )
+                    self._append_assistant_tool_call_message(tc_name, tc_id, tc_input)
+                    result = self.dispatcher.dispatch(tc_name, tc_input)
+                    self._append_tool_result_message(tc_name, tc_id, result)
+                    yield OrchestratorEvent(
+                        kind="tool_call_finished",
+                        tool_name=tc_name, tool_result=result, tool_call_id=tc_id,
+                    )
+                    # Short-circuit: generate_workflow is normally terminal.
+                    # Once the workflow is applied (or queued for user
+                    # approval), the turn should end — weaker models tend to
+                    # follow up with inspect_canvas / read_node_output on
+                    # nodes that haven't even been evaluated, which is pure
+                    # noise. Exception: when the tool reports warnings (e.g.
+                    # port-hint mismatch that auto-wired to a wrong channel),
+                    # keep the loop alive so the model can call
+                    # modify_workflow to fix the bad edge.
+                    if (tc_name == "generate_workflow"
+                            and isinstance(result, dict)
+                            and "error" not in result
+                            and not result.get("warnings")):
+                        cap_hit = True  # reuse the cap-hit exit path
+                        break
+                    break  # restart the loop with a fresh stream call
+                elif ev.kind == "error":
+                    yield OrchestratorEvent(kind="error", error=ev.error)
+                    yield OrchestratorEvent(kind="turn_done")
+                    return
+                elif ev.kind == "done":
+                    pass  # natural end; outer loop exits if had_tool_call is False
+
+            if not had_tool_call or cap_hit:
+                # If the whole turn ended without a single prose token and we
+                # did dispatch at least one tool, poke the model once more
+                # with an explicit "reply to the user now" nudge. Small free
+                # models tend to finish a tool-heavy turn without saying
+                # anything to the user, leaving a blank assistant bubble.
+                if total_text_chars == 0 and tool_calls_used > 0:
+                    tools_dispatched_without_prose_after = True
+                else:
+                    yield OrchestratorEvent(kind="turn_done")
+                    return
+                break
+
+        # Forced-prose fallback: one extra stream call with an explicit nudge.
+        if tools_dispatched_without_prose_after:
+            self.history.append({
+                "role": "user",
+                "content": (
+                    "[system] Please reply to the user now in markdown, "
+                    "summarising what was done with the tool calls above. "
+                    "Do NOT call any more tools."
+                ),
+            })
+            try:
+                stream = self.client.chat_with_tools_stream(
+                    system=system,
+                    messages=self.history,
+                    # Omit tools entirely to physically prevent another call.
+                    tools=None,
+                )
+                for ev in stream:
+                    if self._cancelled:
+                        yield OrchestratorEvent(kind="cancelled")
+                        return
+                    if ev.kind == "text":
+                        yield OrchestratorEvent(kind="text", text=ev.text)
+                    elif ev.kind == "error":
+                        yield OrchestratorEvent(kind="error", error=ev.error)
+                        break
+                    elif ev.kind == "done":
+                        break
+            except Exception as e:
+                yield OrchestratorEvent(kind="error", error=f"{type(e).__name__}: {e}")
+
+        yield OrchestratorEvent(kind="turn_done")

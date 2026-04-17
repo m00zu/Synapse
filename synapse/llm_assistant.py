@@ -21,7 +21,8 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from typing import Optional
+from collections import OrderedDict
+from typing import Callable, Optional
 
 import requests
 
@@ -37,6 +38,7 @@ _ENV_VAR_MAP = {
     "Gemini":      "GEMINI_API_KEY",
     "RunPod":      "RUNPOD_API_KEY",
     "Ollama Cloud": "OLLAMA_API_KEY",
+    "OpenRouter":  "OPENROUTER_API_KEY",
 }
 
 _KEYS_PATH = Path(__file__).parent.parent / ".api_keys"
@@ -141,33 +143,142 @@ _NODE_SELECTION_SCHEMA: dict = {
     "required": ["nodes"],
 }
 
-RESPONSE_SCHEMA: dict = {
-    "type": "object",
-    "properties": {
-        "nodes": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id":    {"type": "integer"},
-                    "type":  {"type": "string"},
-                    "props": {"type": "object"},
-                },
-                "required": ["id", "type"],
-            },
-        },
-        "edges": {
-            "type": "array",
-            "description": "Connections as [src, dst] or [src, dst, \"out_port\"] or [src, dst, \"out_port\", \"in_port\"] for multi-output/input nodes.",
-            "items": {
-                "type": "array",
-                "minItems": 2,
-                "maxItems": 4,
-            },
-        },
-    },
-    "required": ["nodes", "edges"],
-}
+# RESPONSE_SCHEMA moved to synapse/ai/schema.py; re-export for callers that
+# still import it from here.
+from synapse.ai.schema import RESPONSE_SCHEMA  # noqa: F401
+
+from synapse.ai.bubble_state import (
+    _BubbleState,
+    ToolChip,
+    WorkflowProposal,
+    render_bubble_html,
+    parse_anchor,
+)
+
+
+def _short_json(obj: dict, max_len: int = 80) -> str:
+    """Return a compact JSON string, truncated to *max_len* characters."""
+    s = json.dumps(obj)
+    return s if len(s) <= max_len else s[: max_len - 1] + "\u2026"
+
+
+# ---------------------------------------------------------------------------
+# Browser protocol + adapters for _BubbleLog
+# ---------------------------------------------------------------------------
+
+class _QtTextBrowserAdapter:
+    """Thin adapter that wraps a real QTextBrowser for _BubbleLog.
+
+    Strategy: we maintain a list of HTML segment strings that mirrors what is
+    displayed.  On *rewrite_from* we clear the browser and re-append all kept
+    segments.  This avoids fighting QTextDocument frame/cursor math and is
+    fast enough for typical chat lengths (<100 bubbles).
+    """
+
+    def __init__(self, tb):  # tb: QtWidgets.QTextBrowser
+        self._tb = tb
+        self._segments: list[str] = []
+
+    def append_html(self, html: str) -> None:
+        self._segments.append(html)
+        self._tb.append(html)
+
+    def clear(self) -> None:
+        self._segments.clear()
+        self._tb.clear()
+
+    def snapshot_position(self) -> int:
+        return len(self._segments)
+
+    def rewrite_from(self, pos: int) -> None:
+        del self._segments[pos:]
+        self._tb.clear()
+        for seg in self._segments:
+            self._tb.append(seg)
+
+    def scroll_to_bottom(self) -> None:
+        sb = self._tb.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+    def is_pinned_to_bottom(self) -> bool:
+        sb = self._tb.verticalScrollBar()
+        return sb.value() >= sb.maximum()
+
+
+# ---------------------------------------------------------------------------
+# _BubbleLog
+# ---------------------------------------------------------------------------
+
+class _BubbleLog:
+    """Manages ordered chat bubbles in a pluggable text browser.
+
+    The *browser* argument can be a :class:`_QtTextBrowserAdapter` (production)
+    or any object implementing the same interface (tests).
+
+    Parameters
+    ----------
+    browser:
+        Browser adapter implementing ``append_html``, ``clear``,
+        ``snapshot_position``, ``rewrite_from``, ``scroll_to_bottom``,
+        ``is_pinned_to_bottom``.
+    colors_getter:
+        Zero-argument callable returning the current bubble-color dict.
+    """
+
+    def __init__(self, browser, colors_getter: Callable[[], dict]):
+        self._browser = browser
+        self._colors = colors_getter
+        self._states: OrderedDict[str, _BubbleState] = OrderedDict()
+        self._positions: dict[str, int] = {}   # bubble_id → snapshot before this bubble
+        self._next = 0
+
+    def add(self, state: _BubbleState) -> str:
+        """Append a new bubble and return its assigned bubble_id."""
+        bubble_id = f"b{self._next}"
+        self._next += 1
+        state.bubble_id = bubble_id
+        pos = self._browser.snapshot_position()
+        self._positions[bubble_id] = pos
+        self._states[bubble_id] = state
+        self._browser.append_html(render_bubble_html(state, self._colors()))
+        self._browser.scroll_to_bottom()
+        return bubble_id
+
+    def update(self, bubble_id: str, mutator: Callable[[_BubbleState], None]) -> None:
+        """Apply *mutator* to the state then re-render from *bubble_id* onward.
+
+        If the mutator raises, the state may be partially mutated — we still
+        re-render afterward so the on-screen HTML matches the in-memory state,
+        then re-raise so the caller is informed.
+        """
+        if bubble_id not in self._states:
+            return
+        pinned = self._browser.is_pinned_to_bottom()
+        state = self._states[bubble_id]
+        try:
+            mutator(state)
+        finally:
+            # Always re-render — keeps on-screen consistent with in-memory
+            # state even if the mutator partially ran before raising.
+            pos = self._positions[bubble_id]
+            self._browser.rewrite_from(pos)
+            found = False
+            colors = self._colors()
+            for bid, bstate in self._states.items():
+                if bid == bubble_id:
+                    found = True
+                if found:
+                    self._browser.append_html(render_bubble_html(bstate, colors))
+            if pinned:
+                self._browser.scroll_to_bottom()
+
+    def get(self, bubble_id: str) -> _BubbleState:
+        return self._states[bubble_id]
+
+    def clear(self) -> None:
+        self._states.clear()
+        self._positions.clear()
+        self._browser.clear()
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -473,7 +584,12 @@ def build_system_prompt(catalog_text: str) -> str:
         "Use for: custom formulas (2**(-ddCt)), regex parsing, scipy functions not available as nodes, conditional multi-output splits.\n"
         "11. For multi-input nodes, add input port hint as 4th element: [src, dst, \"out_port\", \"in_port\"]. "
         "Use \"\" for output hint if only input needs disambiguation: [src, dst, \"\", \"in_port\"].\n"
-        "12. JSON only: true/false/null. No markdown fences.\n\n"
+        "12. Port-hint names must exist on the source/target node. For SplitRGBNode the source ports are "
+        "\"red\", \"green\", \"blue\" — never \"image\". When a channel-splitting node fans out to multiple "
+        "downstream nodes, use the SAME channel on every branch unless the user explicitly asked for "
+        "different channels per branch (e.g. colocalization). If analyzing the green channel, every edge "
+        "out of SplitRGBNode should be \"green\".\n"
+        "13. JSON only: true/false/null. No markdown fences.\n\n"
         f"Example 1 — CSV → stats → bar plot (fan-out: node 2→3 and 2→4):\n{example_stats}\n\n"
         f"Example 2 — mask pipeline with fan-out (node 1→2 and 1→6):\n{example_mask}\n\n"
         f"Example 3 — nucleus segmentation (fan-out: node 7→8 and 7→9):\n{example_nuclei}\n\n"
@@ -597,578 +713,63 @@ def build_detailed_cards(
 
 
 # ---------------------------------------------------------------------------
-# Ollama HTTP client
+# Ollama HTTP client — moved to synapse/ai/clients/ollama.py
 # ---------------------------------------------------------------------------
 
-class OllamaClient:
-    DEFAULT_MODEL    = "gemma3:12b"
-    DEFAULT_BASE_URL = "http://localhost:11434"
-    CLOUD_BASE_URL   = "https://ollama.com"
+from synapse.ai.clients.ollama import OllamaClient  # re-export
 
-    def __init__(self, base_url: str = DEFAULT_BASE_URL, model: str = DEFAULT_MODEL,
-                 api_key: str = ""):
-        self.base_url = base_url.rstrip("/")
-        self.model    = model
-        self.api_key  = api_key
+# ---------------------------------------------------------------------------
+# OpenAI client — moved to synapse/ai/clients/openai.py
+# ---------------------------------------------------------------------------
 
-    def _headers(self) -> dict:
-        h = {}
-        if self.api_key:
-            h["Authorization"] = f"Bearer {self.api_key}"
-        return h
+from synapse.ai.clients.openai import OpenAIClient  # re-export
 
-    # ------------------------------------------------------------------
-    def list_models(self) -> list[str]:
-        """Returns available model names, or [] if Ollama is not reachable."""
-        try:
-            resp = requests.get(f"{self.base_url}/api/tags", timeout=5,
-                                headers=self._headers())
-            resp.raise_for_status()
-            return [m["name"] for m in resp.json().get("models", [])]
-        except Exception:
-            return []
+# ---------------------------------------------------------------------------
+# LlamaCpp client — moved to synapse/ai/clients/llamacpp.py
+# ---------------------------------------------------------------------------
 
-    # ------------------------------------------------------------------
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        """
-        Sends a chat request to Ollama and returns the raw JSON string
-        from the model's message content.
-        *images*: optional list of base64-encoded PNG strings for vision models.
-        Raises requests.RequestException on network/HTTP errors.
-        """
-        user_msg: dict = {"role": "user", "content": user}
-        if images:
-            user_msg["images"] = images  # Ollama accepts base64 directly
-        payload = {
-            "model":   self.model,
-            "messages": [
-                {"role": "system",  "content": system},
-                user_msg,
-            ],
-            "stream":  False,
-            "options": {"temperature": 0.1},
-        }
-        # Structured output (format) is only supported by locally-run models.
-        # Cloud-hosted models ignore it, so we only send it for local Ollama.
-        if not self.api_key:
-            payload["format"] = RESPONSE_SCHEMA
-        resp = requests.post(
-            f"{self.base_url}/api/chat",
-            json=payload,
-            headers=self._headers(),
-            timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["message"]["content"]
-
-    def chat_multi(self, system: str, messages: list[dict]) -> str:
-        """Multi-turn chat. *messages* is a list of {role, content} dicts."""
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "system", "content": system}] + messages,
-            "stream": False,
-            "options": {"temperature": 0.1},
-        }
-        resp = requests.post(
-            f"{self.base_url}/api/chat", json=payload,
-            headers=self._headers(), timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["message"]["content"]
+from synapse.ai.clients.llamacpp import LlamaCppClient  # re-export
 
 
 # ---------------------------------------------------------------------------
-# OpenAI client (cloud)
+# Groq client — moved to synapse/ai/clients/groq.py
 # ---------------------------------------------------------------------------
 
-class OpenAIClient:
-    DEFAULT_MODEL = "gpt-4o-mini"
-    BASE_URL      = "https://api.openai.com/v1"
-
-    def __init__(self, api_key: str = "", model: str = DEFAULT_MODEL):
-        self.api_key = api_key
-        self.model   = model
-
-    def list_models(self) -> list[str]:
-        if not self.api_key:
-            return []
-        try:
-            resp = requests.get(
-                f"{self.BASE_URL}/models",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                timeout=5,
-            )
-            resp.raise_for_status()
-            # Keep only GPT chat-completion models; exclude fine-tune / embedding / tts / whisper / dall-e
-            return sorted(
-                m["id"] for m in resp.json().get("data", [])
-                if m["id"].startswith("gpt-") or m["id"].startswith("o1") or m["id"].startswith("o3")
-            )
-        except Exception:
-            return []
-
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        # Build user content — text-only or multimodal
-        if images:
-            user_content: list | str = [{"type": "text", "text": user}]
-            for b64 in images:
-                user_content.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/png;base64,{b64}"},
-                })
-        else:
-            user_content = user
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user",   "content": user_content},
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.1,
-        }
-        resp = requests.post(
-            f"{self.BASE_URL}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json=payload,
-            timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-
-    def chat_multi(self, system: str, messages: list[dict]) -> str:
-        """Multi-turn chat."""
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "system", "content": system}] + messages,
-            "temperature": 0.1,
-        }
-        resp = requests.post(
-            f"{self.BASE_URL}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json=payload, timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-
+from synapse.ai.clients.groq import GroqClient  # re-export
 
 # ---------------------------------------------------------------------------
-# LlamaCpp client  (local GGUF model — no Ollama, no Torch, CPU-friendly)
-# ---------------------------------------------------------------------------
-#
-# Install:  pip install llama-cpp-python
-#   Mac/Linux prebuilt wheels (CPU):
-#       pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
-#   Windows prebuilt:
-#       pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
-#
-# Usage:
-#   client = LlamaCppClient("path/to/synapse-qwen.gguf")
-#   workflow_json = client.chat(system_prompt, user_prompt)
-#
-# Shipping with Nuitka:
-#   --include-package=llama_cpp
-#   --include-data-files=synapse-qwen.gguf=synapse-qwen.gguf
-#
-
-class LlamaCppClient:
-    """
-    Drop-in replacement for OllamaClient that loads a GGUF model directly
-    via llama-cpp-python.  No server, no Torch, no Ollama required.
-
-    The model is loaded once on first use and cached for subsequent calls.
-    """
-
-    def __init__(self, model_path: str, n_ctx: int = 4096,
-                 n_threads: int = 0, n_gpu_layers: int = 0):
-        """
-        model_path   : path to the .gguf file
-        n_ctx        : context window in tokens (must cover system + user + JSON reply)
-        n_threads    : CPU threads (0 = auto-detect)
-        n_gpu_layers : layers to offload to GPU (0 = CPU-only, the default)
-        """
-        self.model_path   = model_path
-        self.n_ctx        = n_ctx
-        self.n_threads    = n_threads
-        self.n_gpu_layers = n_gpu_layers
-        self._llm         = None   # lazy-loaded on first chat() call
-
-    # ------------------------------------------------------------------
-    def _load(self):
-        if self._llm is not None:
-            return
-        try:
-            from llama_cpp import Llama
-        except ImportError as e:
-            raise ImportError(
-                "llama-cpp-python is not installed. "
-                "Run: pip install llama-cpp-python"
-            ) from e
-
-        import os
-        if not os.path.isfile(self.model_path):
-            raise FileNotFoundError(
-                f"GGUF model not found: {self.model_path}\n"
-                "Fine-tune and export the model first (see finetune/train.py)."
-            )
-
-        self._llm = Llama(
-            model_path=self.model_path,
-            n_ctx=self.n_ctx,
-            n_threads=self.n_threads or None,   # None → llama.cpp auto-selects
-            n_gpu_layers=self.n_gpu_layers,      # 0 = CPU-only
-            verbose=False,
-        )
-
-    # ------------------------------------------------------------------
-    def list_models(self) -> list[str]:
-        """Returns the model filename so the UI can display it."""
-        import os
-        name = os.path.basename(self.model_path)
-        return [name] if os.path.isfile(self.model_path) else []
-
-    # ------------------------------------------------------------------
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        """
-        Runs inference and returns the raw JSON string.
-        Raises FileNotFoundError if the GGUF file is missing.
-        Note: images are ignored — GGUF models don't support vision.
-        """
-        self._load()
-        response = self._llm.create_chat_completion(
-            messages=[
-                {"role": "system",  "content": system},
-                {"role": "user",    "content": user},
-            ],
-            temperature=0.1,
-            max_tokens=2048,
-            response_format={"type": "json_object"},   # constrained JSON output
-        )
-        return response["choices"][0]["message"]["content"]
-
-
-# ---------------------------------------------------------------------------
-# Groq client (OpenAI-compatible, cloud)
+# Gemini client — moved to synapse/ai/clients/gemini.py
 # ---------------------------------------------------------------------------
 
-class GroqClient:
-    DEFAULT_MODEL = "llama-3.3-70b-versatile"
-    BASE_URL      = "https://api.groq.com/openai/v1"
-
-    def __init__(self, api_key: str = "", model: str = DEFAULT_MODEL):
-        self.api_key = api_key
-        self.model   = model
-
-    def list_models(self) -> list[str]:
-        if not self.api_key:
-            return []
-        try:
-            resp = requests.get(
-                f"{self.BASE_URL}/models",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                timeout=5,
-            )
-            resp.raise_for_status()
-            return sorted(m["id"] for m in resp.json().get("data", []))
-        except Exception:
-            return []
-
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        if images:
-            user_content: list | str = [{"type": "text", "text": user}]
-            for b64 in images:
-                user_content.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/png;base64,{b64}"},
-                })
-        else:
-            user_content = user
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user",   "content": user_content},
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.1,
-        }
-        resp = requests.post(
-            f"{self.BASE_URL}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json=payload,
-            timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-
-    def chat_multi(self, system: str, messages: list[dict]) -> str:
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "system", "content": system}] + messages,
-            "temperature": 0.1,
-        }
-        resp = requests.post(
-            f"{self.BASE_URL}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json=payload, timeout=120,
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-
+from synapse.ai.clients.gemini import GeminiClient  # re-export
 
 # ---------------------------------------------------------------------------
-# Gemini client (Google, cloud)
+# Claude client — moved to synapse/ai/clients/claude.py
 # ---------------------------------------------------------------------------
 
-class GeminiClient:
-    DEFAULT_MODEL = "gemini-2.5-flash-lite"   # fallback; real list populated via Refresh
-    BASE_URL      = "https://generativelanguage.googleapis.com/v1beta"
-
-    def __init__(self, api_key: str = "", model: str = DEFAULT_MODEL):
-        self.api_key = api_key
-        self.model   = model
-
-    def list_models(self) -> list[str]:
-        if not self.api_key:
-            return []
-        try:
-            resp = requests.get(
-                f"{self.BASE_URL}/models",
-                params={"key": self.api_key},
-                timeout=5,
-            )
-            resp.raise_for_status()
-            return sorted(
-                m["name"].replace("models/", "")
-                for m in resp.json().get("models", [])
-                if "generateContent" in m.get("supportedGenerationMethods", [])
-            )
-        except Exception:
-            return []
-
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        url = f"{self.BASE_URL}/models/{self.model}:generateContent"
-        parts = [{"text": user}]
-        if images:
-            for b64 in images:
-                parts.append({
-                    "inline_data": {
-                        "mime_type": "image/png",
-                        "data": b64,
-                    }
-                })
-        payload = {
-            "system_instruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": parts}],
-            "generationConfig": {
-                "temperature": 0.1,
-                "response_mime_type": "application/json",
-            },
-        }
-        resp = requests.post(
-            url,
-            params={"key": self.api_key},
-            json=payload,
-            timeout=120,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        candidates = data.get("candidates", [])
-        if not candidates:
-            # Gemini blocks responses via safety filters without raising an HTTP error
-            prompt_feedback = data.get("promptFeedback", {})
-            block_reason = prompt_feedback.get("blockReason", "unknown")
-            raise ValueError(f"Gemini returned no candidates (blockReason: {block_reason})")
-        candidate = candidates[0]
-        if "content" not in candidate:
-            finish = candidate.get("finishReason", "unknown")
-            raise ValueError(f"Gemini candidate has no content (finishReason: {finish})")
-        return candidate["content"]["parts"][0]["text"]
-
-    def chat_multi(self, system: str, messages: list[dict]) -> str:
-        """Multi-turn chat for Gemini."""
-        url = f"{self.BASE_URL}/models/{self.model}:generateContent"
-        # Convert messages to Gemini format
-        contents = []
-        for m in messages:
-            role = "model" if m["role"] == "assistant" else "user"
-            contents.append({"role": role, "parts": [{"text": m["content"]}]})
-        payload = {
-            "system_instruction": {"parts": [{"text": system}]},
-            "contents": contents,
-            "generationConfig": {"temperature": 0.1},
-        }
-        resp = requests.post(url, params={"key": self.api_key},
-                             json=payload, timeout=120)
-        resp.raise_for_status()
-        data = resp.json()
-        candidates = data.get("candidates", [])
-        if not candidates:
-            raise ValueError(f"Gemini returned no candidates")
-        candidate = candidates[0]
-        if "content" not in candidate:
-            raise ValueError(f"Gemini candidate has no content")
-        return candidate["content"]["parts"][0]["text"]
-
+from synapse.ai.clients.claude import ClaudeClient  # re-export
 
 # ---------------------------------------------------------------------------
-# Claude / Anthropic client (cloud)
+# RunPod client — moved to synapse/ai/clients/runpod.py
 # ---------------------------------------------------------------------------
 
-class ClaudeClient:
-    DEFAULT_MODEL = "claude-sonnet-4-20250514"
-    BASE_URL      = "https://api.anthropic.com/v1"
-
-    def __init__(self, api_key: str = "", model: str = DEFAULT_MODEL):
-        self.api_key = api_key
-        self.model   = model
-
-    def list_models(self) -> list[str]:
-        """Return a curated list of Claude models (Anthropic has no list endpoint)."""
-        if not self.api_key:
-            return []
-        return [
-            "claude-opus-4-20250514",
-            "claude-sonnet-4-20250514",
-            "claude-haiku-4-20250506",
-        ]
-
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        if images:
-            user_content = [{"type": "text", "text": user}]
-            for b64 in images:
-                user_content.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "image/png",
-                        "data": b64,
-                    },
-                })
-        else:
-            user_content = user
-        payload = {
-            "model": self.model,
-            "max_tokens": 4096,
-            "system": system,
-            "messages": [
-                {"role": "user", "content": user_content},
-            ],
-            "temperature": 0.1,
-        }
-        resp = requests.post(
-            f"{self.BASE_URL}/messages",
-            headers={
-                "x-api-key": self.api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json=payload,
-            timeout=120,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        # Extract text from the first content block
-        content = data.get("content", [])
-        if not content:
-            raise ValueError(f"Claude returned no content (stop_reason: {data.get('stop_reason', 'unknown')})")
-        return content[0].get("text", "")
-
-    def chat_multi(self, system: str, messages: list[dict]) -> str:
-        """Multi-turn chat for Claude."""
-        payload = {
-            "model": self.model,
-            "max_tokens": 4096,
-            "system": system,
-            "messages": messages,
-            "temperature": 0.1,
-        }
-        resp = requests.post(
-            f"{self.BASE_URL}/messages",
-            headers={
-                "x-api-key": self.api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json=payload, timeout=120,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        content = data.get("content", [])
-        if not content:
-            raise ValueError(f"Claude returned no content")
-        return content[0].get("text", "")
-
+from synapse.ai.clients.runpod import RunPodClient  # re-export
 
 # ---------------------------------------------------------------------------
-# RunPod serverless client (async polling)
+# OpenRouter client — OpenAI-compatible gateway (free-tier models)
 # ---------------------------------------------------------------------------
 
-class RunPodClient:
-    """
-    Client for RunPod serverless vLLM endpoints using the synchronous runsync API.
+from synapse.ai.clients.openrouter import OpenRouterClient  # re-export
 
-    Uses raw prompt completion (not OpenAI chat format) — the actual output format is:
-      {"output": [{"choices": [{"tokens": ["..."]}], "usage": {...}}], "status": "COMPLETED"}
-
-    System + user message are combined using the ChatML template (Qwen2.5 / instruct models).
-    No model field is needed — the model is fixed by the RunPod deployment.
-    """
-    BASE_URL = "https://api.runpod.ai/v2"
-    # Sentinel attributes so _on_model_changed doesn't crash; not used in requests
-    model         = ""
-    DEFAULT_MODEL = ""
-
-    def __init__(self, api_key: str = "", endpoint_id: str = ""):
-        self.api_key     = api_key
-        self.endpoint_id = endpoint_id
-
-    def _headers(self) -> dict:
-        return {
-            "Content-Type":  "application/json",
-            "Authorization": f"{self.api_key}",
-        }
-
-    def list_models(self) -> list[str]:
-        """No model list for RunPod — model is fixed at deployment."""
-        return []
-
-    def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        if not self.endpoint_id:
-            raise ValueError("RunPod endpoint ID is not configured.")
-
-        # ChatML / Qwen2.5 instruct template
-        prompt = (
-            f"<|im_start|>system\n{system}<|im_end|>\n"
-            f"<|im_start|>user\n{user}<|im_end|>\n"
-            f"<|im_start|>assistant\n"
-        )
-        payload = {
-            "input": {
-                "prompt": prompt,
-                "sampling_params": {
-                    "temperature": 0.1,
-                    "max_tokens":  4096,
-                    "stop":        ["<|im_end|>"],
-                },
-            }
-        }
-        url  = f"{self.BASE_URL}/{self.endpoint_id}/runsync"
-        resp = requests.post(url, headers=self._headers(), json=payload, timeout=120)
-        resp.raise_for_status()
-        data   = resp.json()
-        status = data.get("status", "")
-        if status in ("FAILED", "CANCELLED", "TIMED_OUT"):
-            raise ValueError(f"RunPod job {status}: {data.get('error', 'no detail')}")
-
-        # Output is a list: [{"choices": [{"tokens": ["..."]}]}]
-        output = data.get("output", [])
-        if isinstance(output, list) and output:
-            choices = output[0].get("choices", [])
-            if choices:
-                tokens = choices[0].get("tokens", [])
-                return "".join(tokens)
-        raise ValueError(f"Unexpected RunPod output format: {output}")
+from synapse.markdown_render import render_markdown
+from synapse.ai import get_use_orchestrator, ToolDispatcher
+from synapse.ai.chat_worker import ChatStreamWorker
+from synapse.ai.tool_handlers.inspect_canvas import make_inspect_canvas_handler
+from synapse.ai.tool_handlers.explain_node import explain_node_handler
+from synapse.ai.tool_handlers.read_node_output import make_read_node_output_handler
+from synapse.ai.tool_handlers.generate_workflow import make_generate_workflow_handler
+from synapse.ai.tool_handlers.modify_workflow import make_modify_workflow_handler
+from synapse.ai.tool_handlers.write_python_script import make_write_python_script_handler
 
 
 # Properties that are framework-internal and should not be sent to the LLM
@@ -1788,7 +1389,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
     Accepts a NodeGraph instance so it can call WorkflowLoader after generation.
     """
 
-    _PROVIDERS   = ("Ollama", "Ollama Cloud", "OpenAI", "Claude", "Groq", "Gemini", "RunPod", "Synapse Fine-tune")
+    _PROVIDERS   = ("Ollama", "Ollama Cloud", "OpenRouter", "OpenAI", "Claude", "Groq", "Gemini", "RunPod", "Synapse Fine-tune")
     _GGUF_DIR    = Path(__file__).parent.parent / "finetune" / "output"
     _CONFIG_PATH = Path.home() / ".synapse_llm_config.json"
 
@@ -2118,6 +1719,13 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             no_model_msg  = (
                 "No models returned — check your Anthropic API key and click ⟳.\n"
                 "Get a key at console.anthropic.com"
+            )
+        elif provider == "OpenRouter":
+            self._client = OpenRouterClient(api_key=api_key)
+            default_model = OpenRouterClient.DEFAULT_MODEL
+            no_model_msg  = (
+                "No models returned — check your OpenRouter key and click ⟳.\n"
+                "Free-tier models (tagged ':free') listed first. Get a key at openrouter.ai"
             )
         elif provider == "RunPod":
             endpoint_id   = self._endpoint_edit.text().strip() if hasattr(self, "_endpoint_edit") else ""
@@ -2550,7 +2158,7 @@ class AIChatPanel(QtWidgets.QWidget):
 
     _CONFIG_PATH = Path.home() / ".synapse_llm_config.json"
 
-    _PROVIDERS = ("Ollama", "Ollama Cloud", "OpenAI", "Claude", "Groq", "Gemini")
+    _PROVIDERS = ("Ollama", "Ollama Cloud", "OpenRouter", "OpenAI", "Claude", "Groq", "Gemini")
 
     def __init__(self, graph, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
@@ -2632,6 +2240,9 @@ class AIChatPanel(QtWidgets.QWidget):
         QPushButton#replaceBtn {{ background: #da3633; color: #fff; border: 1px solid #f85149; }}
         QPushButton#replaceBtn:hover {{ background: #f85149; }}
         QPushButton#replaceBtn:disabled {{ background: {btn_bg}; color: {dis_fg}; border-color: {dis_border}; }}
+        QPushButton#stopBtn {{ background: #da3633; color: #fff; border: 1px solid #f85149; font-weight: 600; }}
+        QPushButton#stopBtn:hover {{ background: #f85149; }}
+        QPushButton#stopBtn:disabled {{ background: {btn_bg}; color: {dis_fg}; border-color: {dis_border}; }}
         QPushButton#refreshBtn {{ padding: 4px 6px; font-size: 14px; }}
         QTextBrowser {{
             background: {bg}; color: {fg}; border: none;
@@ -2661,6 +2272,8 @@ class AIChatPanel(QtWidgets.QWidget):
             "err_bg":    "#3d1214" if dark else "#ffeef0",
             "err_fg":    "#f85149",
             "sys_fg":    "#8b949e" if dark else "#57606a",
+            "code_bg":   "#0d1117" if dark else "#f6f8fa",
+            "code_fg":   "#c9d1d9" if dark else "#24292f",
         }
         self.setStyleSheet(self._build_style())
 
@@ -2693,6 +2306,10 @@ class AIChatPanel(QtWidgets.QWidget):
         self._apikey_edit = QtWidgets.QLineEdit()
         self._apikey_edit.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
         self._apikey_edit.setPlaceholderText("API key")
+        # Persist the key whenever the field loses focus or Enter is pressed.
+        # Without this a freshly-typed key works only for the current session
+        # and is lost on app restart.
+        self._apikey_edit.editingFinished.connect(self._on_chat_apikey_editing_finished)
         key_row.addWidget(self._apikey_edit)
         settings_layout.addWidget(self._apikey_widget)
         self._apikey_widget.hide()
@@ -2703,6 +2320,7 @@ class AIChatPanel(QtWidgets.QWidget):
         self._model_combo = QtWidgets.QComboBox()
         self._model_combo.setEditable(True)
         self._model_combo.setMinimumWidth(120)
+        self._model_combo.currentTextChanged.connect(self._on_chat_model_changed)
         model_row.addWidget(self._model_combo, stretch=1)
         refresh_btn = QtWidgets.QPushButton("⟳")
         refresh_btn.setObjectName("refreshBtn")
@@ -2710,6 +2328,9 @@ class AIChatPanel(QtWidgets.QWidget):
         refresh_btn.setToolTip("Refresh model list")
         refresh_btn.clicked.connect(self._refresh_models)
         model_row.addWidget(refresh_btn)
+        self._vision_badge = QtWidgets.QLabel()
+        self._vision_badge.setObjectName("visionBadge")
+        model_row.addWidget(self._vision_badge)
         settings_layout.addLayout(model_row)
 
         layout.addWidget(settings_frame)
@@ -2718,8 +2339,16 @@ class AIChatPanel(QtWidgets.QWidget):
         # --- Chat history display -------------------------------------
         self._chat_display = QtWidgets.QTextBrowser()
         self._chat_display.setOpenExternalLinks(False)
+        self._chat_display.setOpenLinks(False)
         self._chat_display.setReadOnly(True)
+        self._chat_display.anchorClicked.connect(self._on_anchor_clicked)
         layout.addWidget(self._chat_display, stretch=1)
+
+        # Bubble log — wraps the text browser for in-place updates
+        self._bubble_log = _BubbleLog(
+            _QtTextBrowserAdapter(self._chat_display),
+            colors_getter=lambda: self._bubble_colors,
+        )
 
         # --- Input area -----------------------------------------------
         self._input_edit = QtWidgets.QPlainTextEdit()
@@ -2735,6 +2364,13 @@ class AIChatPanel(QtWidgets.QWidget):
         self._send_btn.setObjectName("sendBtn")
         self._send_btn.clicked.connect(self._on_send)
         btn_row.addWidget(self._send_btn)
+
+        self._stop_btn = QtWidgets.QPushButton("Stop")
+        self._stop_btn.setObjectName("stopBtn")
+        self._stop_btn.setEnabled(False)
+        self._stop_btn.setVisible(False)
+        self._stop_btn.clicked.connect(self._on_stop_orchestrator)
+        btn_row.addWidget(self._stop_btn)
 
         self._load_btn = QtWidgets.QPushButton("Load")
         self._load_btn.setObjectName("loadBtn")
@@ -2755,12 +2391,68 @@ class AIChatPanel(QtWidgets.QWidget):
         btn_row.addWidget(clear_btn)
         layout.addLayout(btn_row)
 
+        # --- Token meter ----------------------------------------------
+        self._token_meter = QtWidgets.QLabel()
+        self._token_meter.setStyleSheet("color:#8b949e; font-size:10px; padding:2px 4px;")
+        layout.addWidget(self._token_meter)
+
         # --- Status ---------------------------------------------------
         self._status = QtWidgets.QLabel("Ready")
         self._status.setStyleSheet("color: #484f58; font-size: 11px;")
         layout.addWidget(self._status)
 
         self._last_workflow: Optional[dict] = None
+        self._orch_stream_buffer = ""
+
+        # Orchestrator streaming state
+        self._current_bubble_id: str = ""
+        self._pending_token_buffer: str = ""
+        self._last_chip_id: str = ""
+        self._token_flush_timer = QtCore.QTimer(self)
+        self._token_flush_timer.setSingleShot(False)
+        self._token_flush_timer.setInterval(50)
+        self._token_flush_timer.timeout.connect(self._flush_tokens)
+
+        self._refresh_vision_badge()
+        self._refresh_token_meter()
+
+    # ------------------------------------------------------------------
+    def _refresh_vision_badge(self):
+        """Update the vision-capability badge next to the model dropdown."""
+        ok = bool(self._client and getattr(self._client, "supports_vision", False))
+        self._vision_badge.setText("👁 vision" if ok else "text-only")
+        self._vision_badge.setStyleSheet(
+            "color:#3fb950; font-size:11px; font-weight:600;"
+            if ok else
+            "color:#8b949e; font-size:11px; font-style:italic;"
+        )
+
+    # ------------------------------------------------------------------
+    def _refresh_token_meter(self, per_turn: "Optional[int]" = None):
+        """Update the token-budget meter label under the input."""
+        from synapse.ai.token_estimate import (
+            estimate_tokens,
+            estimate_messages_tokens,
+            model_context_window,
+        )
+        session = estimate_messages_tokens(self._messages) + estimate_tokens(
+            self._system if hasattr(self, "_system") else ""
+        )
+        try:
+            provider = self._provider_combo.currentText()
+        except Exception:
+            provider = ""
+        try:
+            model_name = self._model_combo.currentText() or ""
+        except Exception:
+            model_name = ""
+        window = model_context_window(provider, model_name)
+        parts = []
+        if per_turn is not None:
+            parts.append(f"this turn: ~{per_turn / 1000:.1f}k")
+        parts.append(f"session: ~{session / 1000:.1f}k")
+        parts.append(f"limit: {window // 1000}k")
+        self._token_meter.setText(" · ".join(parts))
 
     # ------------------------------------------------------------------
     def _load_config(self):
@@ -2794,9 +2486,31 @@ class AIChatPanel(QtWidgets.QWidget):
 
     # ------------------------------------------------------------------
     def _on_provider_changed(self, provider: str):
-        """Show/hide API key field and refresh models."""
+        """Show/hide API key field, save old provider's key, load new one, refresh models."""
+        # Save the key currently in the field to the provider we're leaving,
+        # then load the saved key for the new provider. Without this the field
+        # keeps the old provider's key and chat requests get 401'd.
+        old = getattr(self, "_current_provider", None)
+        if old and old != provider:
+            old_key = self._apikey_edit.text().strip()
+            _store_api_key(old, old_key)
+        self._current_provider = provider
+
         is_local = provider == "Ollama"
         self._apikey_widget.setVisible(not is_local)
+        self._apikey_edit.setPlaceholderText(
+            "ollama signin → copy key" if provider == "Ollama Cloud"
+            else "Paste your API key here"
+        )
+
+        # Load the saved key for the new provider (file → env var → empty).
+        try:
+            cfg = json.loads(self._CONFIG_PATH.read_text())
+        except Exception:
+            cfg = {}
+        json_key = cfg.get("api_keys", {}).get(provider, "")
+        self._apikey_edit.setText(_retrieve_api_key(provider, json_key))
+
         self._refresh_models()
 
     # ------------------------------------------------------------------
@@ -2818,6 +2532,8 @@ class AIChatPanel(QtWidgets.QWidget):
             tmp = GroqClient(api_key=api_key)
         elif provider == "Gemini":
             tmp = GeminiClient(api_key=api_key)
+        elif provider == "OpenRouter":
+            tmp = OpenRouterClient(api_key=api_key)
         else:
             return
 
@@ -2855,12 +2571,19 @@ class AIChatPanel(QtWidgets.QWidget):
             self._client = GroqClient(api_key=api_key, model=model or GroqClient.DEFAULT_MODEL)
         elif provider == "Gemini":
             self._client = GeminiClient(api_key=api_key, model=model or GeminiClient.DEFAULT_MODEL)
+        elif provider == "OpenRouter":
+            self._client = OpenRouterClient(
+                api_key=api_key, model=model or OpenRouterClient.DEFAULT_MODEL,
+            )
         else:
             self._client = None
 
         if self._client:
             self.graph._llm_client = self._client
             self._status.setText(f"{provider} / {self._client.model}")
+
+        self._refresh_vision_badge()
+        self._refresh_token_meter()
 
     # ------------------------------------------------------------------
     def _on_send(self):
@@ -2877,6 +2600,12 @@ class AIChatPanel(QtWidgets.QWidget):
         self._append_bubble("user", text)
         self._input_edit.clear()
 
+        if get_use_orchestrator():
+            self._run_with_orchestrator(text)
+        else:
+            self._run_with_legacy_worker(text)
+
+    def _run_with_legacy_worker(self, text: str):
         # Build messages for LLM: inject fresh canvas context before the
         # conversation history so the LLM always sees the current state
         canvas_ctx = ""
@@ -2889,19 +2618,16 @@ class AIChatPanel(QtWidgets.QWidget):
                 "When answering a question, respond with text."
             )
 
-        # Prepend canvas context as a system-injected user message at the start
         llm_messages = []
         if canvas_ctx:
             llm_messages.append({"role": "user", "content": canvas_ctx})
             llm_messages.append({"role": "assistant", "content": "Understood. I can see your current workflow. What would you like to change?"})
         llm_messages.extend(self._messages)
 
-        # Disable send while processing
         self._send_btn.setEnabled(False)
         self._send_btn.setText("…")
         self._status.setText("Thinking…")
 
-        # Background thread for LLM call
         self._worker = _ChatWorker(self._client, self._system, llm_messages)
         self._thread = QtCore.QThread()
         self._worker.moveToThread(self._thread)
@@ -2915,10 +2641,340 @@ class AIChatPanel(QtWidgets.QWidget):
         self._thread.start()
 
     # ------------------------------------------------------------------
+    # Phase 2b: orchestrator path
+    # ------------------------------------------------------------------
+    def _build_dispatcher(self) -> ToolDispatcher:
+        """Fresh ToolDispatcher wired to the current graph + client."""
+        d = ToolDispatcher()
+        d.register("inspect_canvas", make_inspect_canvas_handler(self.graph))
+        d.register("explain_node", explain_node_handler)
+        d.register("read_node_output", make_read_node_output_handler(
+            self.graph,
+            supports_vision=lambda: getattr(self._client, "supports_vision", False),
+        ))
+        d.register("generate_workflow",
+                   make_generate_workflow_handler(self.graph, self._client))
+
+        def _factory(type_name: str, node_id: str):
+            try:
+                node = self.graph.create_node(type_name, push_undo=False)
+            except Exception:
+                # Fallback: find a registered identifier ending in the class name.
+                try:
+                    registered = self.graph.registered_nodes()
+                except Exception:
+                    registered = []
+                match = next(
+                    (n for n in registered if n.endswith("." + type_name) or n == type_name),
+                    None,
+                )
+                if match is None:
+                    raise ValueError(f"Unknown node class: {type_name}")
+                node = self.graph.create_node(match, push_undo=False)
+            node._llm_id = node_id
+            return node
+
+        d.register("modify_workflow",
+                   make_modify_workflow_handler(self.graph, node_factory=_factory))
+        d.register("write_python_script",
+                   make_write_python_script_handler(self.graph, self._client))
+        return d
+
+    def _run_with_orchestrator(self, user_text: str):
+        self._send_btn.setEnabled(False)
+        self._stop_btn.setVisible(True)
+        self._stop_btn.setEnabled(True)
+        self._status.setText("Thinking…")
+
+        self._orch_stream_buffer = ""
+        self._pending_token_buffer = ""
+        self._last_chip_id = ""
+
+        # Create ONE assistant bubble up front that will accumulate tokens/chips.
+        self._current_bubble_id = self._bubble_log.add(
+            _BubbleState(bubble_id="", role="assistant", streaming=True)
+        )
+
+        dispatcher = self._build_dispatcher()
+        self._orch_worker = ChatStreamWorker(
+            graph=self.graph,
+            client=self._client,
+            dispatcher=dispatcher,
+            history=list(self._messages),
+            user_text=user_text,
+        )
+        self._orch_thread = QtCore.QThread()
+        self._orch_worker.moveToThread(self._orch_thread)
+        self._orch_thread.started.connect(self._orch_worker.run)
+
+        self._orch_worker.token_received.connect(self._on_orch_token)
+        self._orch_worker.tool_call_started.connect(self._on_orch_tool_started)
+        self._orch_worker.tool_call_finished.connect(self._on_orch_tool_finished)
+        self._orch_worker.workflow_preview.connect(self._on_orch_workflow_preview)
+        self._orch_worker.cap_exceeded.connect(self._on_orch_cap)
+        self._orch_worker.error.connect(self._on_orch_error)
+        self._orch_worker.cancelled.connect(self._on_orch_cancelled)
+        self._orch_worker.turn_finished.connect(self._on_orch_turn_finished)
+        self._orch_worker.turn_finished.connect(self._orch_thread.quit)
+        self._orch_thread.finished.connect(self._orch_worker.deleteLater)
+        self._orch_thread.finished.connect(self._orch_thread.deleteLater)
+        self._orch_thread.start()
+
+    def _on_stop_orchestrator(self):
+        if getattr(self, "_orch_worker", None):
+            self._orch_worker.request_cancel()
+
+    # ------------------------------------------------------------------
+    def _on_anchor_clicked(self, url: "QtCore.QUrl"):
+        """Handle chip expand/collapse and workflow Apply/Discard links."""
+        try:
+            action, bubble_id, chip_id = parse_anchor(url.toString())
+        except ValueError:
+            return
+
+        if action == "chip":
+            def _toggle_chip(s: _BubbleState):
+                if chip_id in s.expanded_chips:
+                    s.expanded_chips.discard(chip_id)
+                else:
+                    s.expanded_chips.add(chip_id)
+            self._bubble_log.update(bubble_id, _toggle_chip)
+
+        elif action == "apply":
+            try:
+                state = self._bubble_log.get(bubble_id)
+            except KeyError:
+                return
+            if state.workflow and state.workflow.state == "pending":
+                self._apply_workflow_from_orchestrator(replace=False, silent=True)
+                self._bubble_log.update(
+                    bubble_id,
+                    lambda s: setattr(s.workflow, "state", "applied"),
+                )
+
+        elif action == "discard":
+            try:
+                state = self._bubble_log.get(bubble_id)
+            except KeyError:
+                return
+            # Symmetric with the apply branch: only act when workflow is
+            # actually pending. Guards against rapid double-click and against
+            # workflow being None if state was swapped elsewhere.
+            if state.workflow and state.workflow.state == "pending":
+                self._bubble_log.update(
+                    bubble_id,
+                    lambda s: setattr(s.workflow, "state", "discarded"),
+                )
+
+    def _on_chat_model_changed(self, model_name: str):
+        """Push the model dropdown change down to the active client."""
+        if not model_name:
+            return
+        if self._client is not None and hasattr(self._client, "model"):
+            self._client.model = model_name
+        # Update status label so the user sees the change immediately.
+        try:
+            self._status.setText(
+                f"{self._provider_combo.currentText()} / {model_name}"
+            )
+        except Exception:
+            pass
+        self._refresh_vision_badge()
+        self._refresh_token_meter()
+
+    def _on_chat_apikey_editing_finished(self):
+        """Persist the typed key to ~/.synapse_llm_config.json + .api_keys so
+        it survives app restarts. Also push it through to the live client if
+        one exists."""
+        provider = self._provider_combo.currentText()
+        key = self._apikey_edit.text().strip()
+        if not provider:
+            return
+        try:
+            _store_api_key(provider, key)
+        except Exception:
+            pass
+        if self._client is not None and hasattr(self._client, "api_key"):
+            self._client.api_key = key
+
+    def _on_orch_token(self, piece: str):
+        self._orch_stream_buffer = (self._orch_stream_buffer or "") + piece
+        self._pending_token_buffer += piece
+        if not self._token_flush_timer.isActive():
+            self._token_flush_timer.start()
+
+    def _flush_tokens(self):
+        """Drain the pending token buffer into the current assistant bubble."""
+        buf, self._pending_token_buffer = self._pending_token_buffer, ""
+        if not buf or not self._current_bubble_id:
+            return
+        self._bubble_log.update(
+            self._current_bubble_id,
+            lambda s: setattr(s, "text", s.text + buf),
+        )
+
+    def _on_orch_tool_started(self, name: str, inp: dict):
+        # Defensive guard: Clear-mid-turn is a user-reachable path, not a dev
+        # bug. If the current bubble was cleared out from under us, silently
+        # drop the event — the orchestrator is being cancelled anyway.
+        if not self._current_bubble_id:
+            return
+        try:
+            state = self._bubble_log.get(self._current_bubble_id)
+        except KeyError:
+            return
+        chip_id = f"c{len(state.chips)}"
+        self._bubble_log.update(
+            self._current_bubble_id,
+            lambda s: s.chips.append(
+                ToolChip(
+                    chip_id=chip_id,
+                    name=name,
+                    input_preview=_short_json(inp),
+                    status="running",
+                    full_input=inp,
+                )
+            ),
+        )
+        self._last_chip_id = chip_id
+
+    def _on_orch_tool_finished(self, name: str, result: dict):
+        # Defensive guard — same rationale as _on_orch_tool_started.
+        if not self._current_bubble_id:
+            return
+        try:
+            self._bubble_log.get(self._current_bubble_id)
+        except KeyError:
+            return
+        cid = self._last_chip_id
+
+        def _finish_chip(s: _BubbleState):
+            for chip in s.chips:
+                if chip.chip_id == cid:
+                    if "error" in result:
+                        chip.status = "error"
+                        chip.result_summary = str(result["error"])[:60]
+                    else:
+                        chip.status = "ok"
+                        keys = list(result.keys())[:2]
+                        chip.result_summary = ", ".join(keys) if keys else "ok"
+                    chip.full_result = result
+                    break
+
+        self._bubble_log.update(self._current_bubble_id, _finish_chip)
+
+    def _on_orch_workflow_preview(self, result: dict):
+        workflow = result.get("workflow") or {}
+        self._last_workflow = workflow
+        canvas_was_empty = bool(result.get("canvas_was_empty"))
+        wf_state = "applied" if canvas_was_empty else "pending"
+        wf = WorkflowProposal(
+            node_count=result.get("node_count", 0),
+            edge_count=result.get("edge_count", 0),
+            preview_types=list(result.get("preview_types", [])),
+            state=wf_state,
+        )
+        if self._current_bubble_id:
+            self._bubble_log.update(
+                self._current_bubble_id,
+                lambda s: setattr(s, "workflow", wf),
+            )
+        if canvas_was_empty:
+            self._apply_workflow_from_orchestrator(replace=True, silent=True)
+
+    def _apply_workflow_from_orchestrator(self, replace: bool, silent: bool = False):
+        """Mirror the exact calls from _on_load (merge) and _on_replace (replace).
+
+        When *silent* is True, suppress the "workflow loaded..." system bubble.
+        The orchestrator flow uses silent=True because the assistant bubble's
+        own ``Applied`` marker already communicates success to the user; the
+        extra system bubble would land visually below the streaming assistant
+        bubble and disorient the reader.
+        """
+        if not self._last_workflow:
+            return
+        if replace:
+            # Same as _on_replace: clear existing nodes then build at default origin.
+            for node in list(self.graph.all_nodes()):
+                self.graph.remove_node(node)
+            loader = WorkflowLoader(self.graph)
+            _ok, msg = loader.build(self._last_workflow)
+            if not silent:
+                self._append_bubble("system", msg)
+        else:
+            # Same as _on_load: offset past existing nodes.
+            all_nodes = self.graph.all_nodes()
+            if all_nodes:
+                max_x = max(n.pos()[0] for n in all_nodes) + 300
+                min_y = min(n.pos()[1] for n in all_nodes)
+            else:
+                max_x, min_y = 100, 100
+            loader = WorkflowLoader(self.graph)
+            _ok, msg = loader.build(self._last_workflow,
+                                    origin_x=int(max_x), origin_y=int(min_y))
+            if not silent:
+                self._append_bubble("system", msg)
+
+    def _on_orch_cap(self, tool_name: str):
+        self._bubble_log.add(
+            _BubbleState(
+                bubble_id="",
+                role="system",
+                text=f"[tool budget exhausted at `{tool_name}` — answering with what I have]",
+            )
+        )
+
+    def _on_orch_error(self, msg: str):
+        self._bubble_log.add(_BubbleState(bubble_id="", role="error", text=msg))
+        # Pop the user message that was just added — otherwise it lingers in
+        # history and gets re-sent on the next turn, which can compound
+        # failures on some providers.
+        if self._messages and self._messages[-1].get("role") == "user":
+            self._messages.pop()
+        self._send_btn.setEnabled(True)
+        self._stop_btn.setEnabled(False)
+        self._stop_btn.setVisible(False)
+        self._refresh_token_meter()
+
+    def _on_orch_cancelled(self):
+        self._bubble_log.add(_BubbleState(bubble_id="", role="system", text="cancelled"))
+        # Defensive: turn_finished will fire via ChatStreamWorker's finally:
+        # block, which re-enables the Send button. Restore state here too in
+        # case that signal is ever disconnected or delayed.
+        self._send_btn.setEnabled(True)
+        self._stop_btn.setEnabled(False)
+        self._stop_btn.setVisible(False)
+
+    def _on_orch_turn_finished(self):
+        self._token_flush_timer.stop()
+        self._flush_tokens()
+        if self._current_bubble_id:
+            self._bubble_log.update(
+                self._current_bubble_id,
+                lambda s: setattr(s, "streaming", False),
+            )
+        self._send_btn.setEnabled(True)
+        self._stop_btn.setEnabled(False)
+        self._stop_btn.setVisible(False)
+        try:
+            self._status.setText(f"{self._provider_combo.currentText()} / {self._client.model}")
+        except Exception:
+            self._status.setText("Ready")
+        from synapse.ai.token_estimate import estimate_tokens as _et
+        per_turn = _et(self._orch_stream_buffer) if self._orch_stream_buffer else None
+        if self._orch_stream_buffer:
+            self._messages.append({"role": "assistant", "content": self._orch_stream_buffer})
+        self._orch_stream_buffer = ""
+        self._current_bubble_id = ""
+        self._pending_token_buffer = ""
+        self._refresh_token_meter(per_turn=per_turn)
+
+    # ------------------------------------------------------------------
     def _on_response(self, response: str):
         self._send_btn.setEnabled(True)
         self._send_btn.setText("Send")
         self._messages.append({"role": "assistant", "content": response})
+        self._refresh_token_meter()
 
         # Check if response is a workflow JSON
         try:
@@ -2977,81 +3033,49 @@ class AIChatPanel(QtWidgets.QWidget):
 
     def _on_clear(self):
         self._messages.clear()
-        self._chat_display.clear()
+        # Cancel any in-flight orchestrator before wiping the bubble log —
+        # otherwise tool-call signals arriving after Clear will reference a
+        # bubble-id that no longer exists in the log. The worker will still
+        # emit `cancelled` + `turn_finished`, which restore the buttons.
+        if getattr(self, "_orch_worker", None):
+            try:
+                self._orch_worker.request_cancel()
+            except Exception:
+                pass
+        # Belt-and-braces: hide Stop immediately; turn_finished will confirm.
+        self._stop_btn.setVisible(False)
+        self._stop_btn.setEnabled(False)
+        self._bubble_log.clear()
+        # Reset streaming state — otherwise clicking Clear mid-turn leaves a
+        # stale _current_bubble_id, causing subsequent tool slots to KeyError
+        # on _bubble_log.get(stale_id).
+        if self._token_flush_timer.isActive():
+            self._token_flush_timer.stop()
+        self._current_bubble_id = ""
+        self._pending_token_buffer = ""
+        self._last_chip_id = ""
+        self._orch_stream_buffer = ""
         self._last_workflow = None
         self._load_btn.setEnabled(False)
         self._replace_btn.setEnabled(False)
         self._status.setText("Chat cleared")
+        self._refresh_token_meter()
 
     # ------------------------------------------------------------------
     def _append_bubble(self, role: str, text: str):
-        """Append a chat-style message bubble with tail to the display."""
-        c = self._bubble_colors
-        text_escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        text_html = text_escaped.replace("\n", "<br>")
+        """Compatibility wrapper — delegates to _bubble_log.add(_BubbleState(...)).
 
-        # ◢ = bottom-right tail (U+25E2), ◣ = bottom-left tail (U+25E3)
-        # Add spacing before each message
-        self._chat_display.append("<div style='margin:0; padding:0; line-height:6px;'>&nbsp;</div>")
-
-        if role == "user":
-            html = (
-                f"<table width='100%' cellpadding='0' cellspacing='0'>"
-                f"<tr><td width='15%'></td>"
-                f"<td style='background:{c['user_bg']}; color:{c['user_fg']}; "
-                f"padding:8px 14px; border-radius:14px 14px 4px 14px;'>"
-                f"<span style='font-size:13px; line-height:1.5;'>"
-                f"{text_html}</span></td></tr>"
-                f"<tr><td></td>"
-                f"<td align='right' style='padding:0; line-height:0; font-size:0;'>"
-                f"<span style='color:{c['user_bg']}; font-size:14px; "
-                f"line-height:0;'>&#9698;</span></td></tr>"
-                f"</table>"
-            )
-        elif role == "assistant":
-            html = (
-                f"<table width='100%' cellpadding='0' cellspacing='0'>"
-                f"<tr><td style='background:{c['ai_bg']}; color:{c['ai_fg']}; "
-                f"padding:8px 14px; border-radius:4px 14px 14px 14px; "
-                f"border:1px solid {c['ai_border']};'>"
-                f"<span style='color:{c['ai_label']}; font-size:10px; "
-                f"font-weight:600;'>AI</span><br>"
-                f"<span style='font-size:13px; line-height:1.5;'>"
-                f"{text_html}</span></td>"
-                f"<td width='15%'></td></tr>"
-                f"<tr><td style='padding:0; line-height:0; font-size:0;'>"
-                f"<span style='color:{c['ai_bg']}; font-size:14px; "
-                f"line-height:0;'>&#9699;</span></td>"
-                f"<td></td></tr>"
-                f"</table>"
-            )
-        elif role == "error":
-            html = (
-                f"<table width='100%' cellpadding='0' cellspacing='0'>"
-                f"<tr><td style='background:{c['err_bg']}; color:{c['err_fg']}; "
-                f"padding:8px 14px; border-radius:12px;'>"
-                f"<span style='font-size:10px; font-weight:600;'>Error</span><br>"
-                f"<span style='font-size:13px;'>{text_html}</span></td>"
-                f"<td width='15%'></td></tr>"
-                f"<tr><td style='padding:0; line-height:0; font-size:0;'>"
-                f"<span style='color:{c['err_bg']}; font-size:14px; "
-                f"line-height:0;'>&#9699;</span></td>"
-                f"<td></td></tr>"
-                f"</table>"
-            )
-        else:  # system
-            html = (
-                f"<table width='100%' cellpadding='0' cellspacing='0'><tr>"
-                f"<td width='10%'></td>"
-                f"<td align='center' style='color:{c['sys_fg']}; "
-                f"font-size:11px; font-style:italic; padding:4px 0;'>"
-                f"{text_html}</td>"
-                f"<td width='10%'></td></tr></table>"
-            )
-
-        self._chat_display.append(html)
-        sb = self._chat_display.verticalScrollBar()
-        sb.setValue(sb.maximum())
+        All call sites (legacy _ChatWorker path, _on_load, _on_replace, etc.)
+        continue to work unchanged via this wrapper.
+        """
+        # Map the legacy role string to the typed Literal expected by _BubbleState.
+        # 'assistant' and 'user' pass through unchanged; anything else becomes 'system'
+        # unless it's 'error'.
+        valid_roles = {"user", "assistant", "system", "error"}
+        mapped_role = role if role in valid_roles else "system"
+        self._bubble_log.add(
+            _BubbleState(bubble_id="", role=mapped_role, text=text)
+        )
 
 
 class _ChatWorker(QtCore.QObject):
