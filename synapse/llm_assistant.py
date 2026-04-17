@@ -2807,10 +2807,15 @@ class AIChatPanel(QtWidgets.QWidget):
         )
 
     def _on_orch_tool_started(self, name: str, inp: dict):
-        # No fallback: if _current_bubble_id is unset here we have a real
-        # state-sync bug (e.g. tool events arriving after Clear). Fail loudly
-        # rather than appending a silent system bubble that hides the issue.
-        state = self._bubble_log.get(self._current_bubble_id)
+        # Defensive guard: Clear-mid-turn is a user-reachable path, not a dev
+        # bug. If the current bubble was cleared out from under us, silently
+        # drop the event — the orchestrator is being cancelled anyway.
+        if not self._current_bubble_id:
+            return
+        try:
+            state = self._bubble_log.get(self._current_bubble_id)
+        except KeyError:
+            return
         chip_id = f"c{len(state.chips)}"
         self._bubble_log.update(
             self._current_bubble_id,
@@ -2827,7 +2832,13 @@ class AIChatPanel(QtWidgets.QWidget):
         self._last_chip_id = chip_id
 
     def _on_orch_tool_finished(self, name: str, result: dict):
-        # No fallback — same rationale as _on_orch_tool_started.
+        # Defensive guard — same rationale as _on_orch_tool_started.
+        if not self._current_bubble_id:
+            return
+        try:
+            self._bubble_log.get(self._current_bubble_id)
+        except KeyError:
+            return
         cid = self._last_chip_id
 
         def _finish_chip(s: _BubbleState):
@@ -3015,6 +3026,18 @@ class AIChatPanel(QtWidgets.QWidget):
 
     def _on_clear(self):
         self._messages.clear()
+        # Cancel any in-flight orchestrator before wiping the bubble log —
+        # otherwise tool-call signals arriving after Clear will reference a
+        # bubble-id that no longer exists in the log. The worker will still
+        # emit `cancelled` + `turn_finished`, which restore the buttons.
+        if getattr(self, "_orch_worker", None):
+            try:
+                self._orch_worker.request_cancel()
+            except Exception:
+                pass
+        # Belt-and-braces: hide Stop immediately; turn_finished will confirm.
+        self._stop_btn.setVisible(False)
+        self._stop_btn.setEnabled(False)
         self._bubble_log.clear()
         # Reset streaming state — otherwise clicking Clear mid-turn leaves a
         # stale _current_bubble_id, causing subsequent tool slots to KeyError
