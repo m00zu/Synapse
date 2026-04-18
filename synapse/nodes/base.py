@@ -17,6 +17,9 @@ from pathlib import Path
 from ..data_models import TableData, ImageData, FigureData, ConfocalDatasetData
 import traceback
 from ..i18n import tr
+from ..widgets.spec import (
+    WidgetSpec, NumberField, CheckBox, ComboBox, TextField, HorizontalLayout, Custom,
+)
 
 # ── Port type color scheme ──────────────────────────────────────────────────
 # All colors are (R, G, B) tuples, accepted by add_input/add_output color arg.
@@ -1039,12 +1042,15 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
 
     def __init__(self, use_progress=True):
         super(BaseExecutionNode, self).__init__()
+        # Widget-spec capture — every _add_* / add_* helper appends here so the
+        # web UI can serve a declarative description of this node's widgets.
+        self._spec_builder: list[WidgetSpec] = []
         if use_progress:
             self._progress_widget = NodeProgressBar(self.view)
             self.add_custom_widget(self._progress_widget)
         else:
             self._progress_widget = None
-        
+
         self.is_dirty = True
         self.is_disabled = False
         self.output_values = {}
@@ -1071,6 +1077,10 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         w = NodeIntSpinBoxWidget(self.view, name=name, label=label,
                                  value=value, min_val=min_val, max_val=max_val, step=step)
         self.add_custom_widget(w, tab=tab)
+        self._spec_builder.append(NumberField(
+            prop=name, label=label, min=float(min_val), max=float(max_val),
+            step=float(step), decimals=0, default=float(value),
+        ))
 
     def _add_float_spinbox(self, name, label, value=0.0, min_val=0.0, max_val=99999.0,
                            step=0.1, decimals=3, tab=None):
@@ -1079,6 +1089,10 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
                                    value=value, min_val=min_val, max_val=max_val,
                                    step=step, decimals=decimals)
         self.add_custom_widget(w, tab=tab)
+        self._spec_builder.append(NumberField(
+            prop=name, label=label, min=float(min_val), max=float(max_val),
+            step=float(step), decimals=int(decimals), default=float(value),
+        ))
 
     def _add_row(self, row_name, label, fields, tab=None):
         """Add a compact horizontal row of labeled spinboxes.
@@ -1097,6 +1111,19 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         w._node = self
         self.view.add_widget(w)
         self.view.draw_node()
+        # Emit one HorizontalLayout carrying one NumberField per field.
+        children: list[WidgetSpec] = []
+        for f in fields:
+            children.append(NumberField(
+                prop=f['name'],
+                label=f.get('label', f['name']),
+                min=float(f.get('min_val', 0)),
+                max=float(f.get('max_val', 99999)),
+                step=float(f.get('step', 1)),
+                decimals=0 if f.get('type') == 'int' else int(f.get('decimals', 3)),
+                default=float(f.get('value', 0)),
+            ))
+        self._spec_builder.append(HorizontalLayout(children=children))
 
     _column_selector_names = None  # lazily initialized set of property names
 
@@ -1116,6 +1143,10 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         if self._column_selector_names is None:
             self._column_selector_names = set()
         self._column_selector_names.add(name)
+        self._spec_builder.append(Custom(
+            component_id="column_selector",
+            props={"prop": name, "label": label, "default": text, "mode": mode},
+        ))
         return w
 
     def _refresh_column_selectors(self, df, *prop_names):
@@ -1131,6 +1162,45 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
             widget = self.get_widget(prop_name)
             if widget and hasattr(widget, 'set_columns'):
                 widget.set_columns(columns)
+
+    # ── NodeGraphQt helper overrides (spec-capturing wrappers) ─────────────
+    # Signatures mirror the vendored NodeGraphQt BaseNode (see
+    # NodeGraph-PySide6/NodeGraphQt/nodes/base_node.py:202-300). Keep in
+    # sync if NodeGraphQt adds new kwargs.
+    def add_checkbox(self, name, label='', text='', state=False, tooltip=None, tab=None):
+        """Wrap NodeGraphQt's add_checkbox to emit a CheckBox spec entry."""
+        result = super().add_checkbox(name, label=label, text=text, state=state,
+                                       tooltip=tooltip, tab=tab)
+        self._spec_builder.append(CheckBox(
+            prop=name, label=text or label, default=bool(state),
+        ))
+        return result
+
+    def add_combo_menu(self, name, label='', items=None, tooltip=None, tab=None):
+        result = super().add_combo_menu(name, label=label, items=items,
+                                         tooltip=tooltip, tab=tab)
+        opts = list(items or [])
+        self._spec_builder.append(ComboBox(
+            prop=name, label=label, options=opts,
+            default=opts[0] if opts else None,
+        ))
+        return result
+
+    def add_text_input(self, name, label='', text='', placeholder_text='',
+                        tooltip=None, tab=None):
+        result = super().add_text_input(
+            name, label=label, text=text, placeholder_text=placeholder_text,
+            tooltip=tooltip, tab=tab,
+        )
+        self._spec_builder.append(TextField(
+            prop=name, label=label, default=text, placeholder=placeholder_text,
+        ))
+        return result
+
+    # ── Public accessor ────────────────────────────────────────────────────
+    def get_widget_spec(self) -> list[WidgetSpec]:
+        """Return a copy of the node's captured WidgetSpec list."""
+        return list(self._spec_builder)
 
     # ── Collection auto-loop ────────────────────────────────────────────────
     _handles_collection = False  # True for nodes that natively handle CollectionData (Collect, Select)
