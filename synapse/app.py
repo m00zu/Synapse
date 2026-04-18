@@ -554,8 +554,8 @@ class ThemeManager(QtCore.QObject):
     theme_changed = QtCore.Signal(bool)   # emits True=dark, False=light
     step_progress = QtCore.Signal(float) # emits 0.0→1.0 during animation
 
-    _DURATION_MS = 120
-    _FPS         = 60
+    _DURATION_MS = 60
+    _FPS         = 30
 
     def __init__(self, app: QtWidgets.QApplication):
         super().__init__(app)

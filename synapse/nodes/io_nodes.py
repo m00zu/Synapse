@@ -1690,9 +1690,17 @@ class BatchGateNode(BaseExecutionNode):
 
     def _refresh_upstream(self):
         """Re-evaluate all upstream nodes so their previews update,
-        then re-read the input value."""
+        then re-read the input value.
+
+        Skip other BatchGateNode instances — they've already passed through
+        earlier in the topological evaluation order, so re-entering their
+        evaluate() would just pause them again, blocking this refresh until
+        the user clicks Next on the upstream gate too.
+        """
         upstream = self._collect_upstream_sorted()
         for node in upstream:
+            if isinstance(node, BatchGateNode):
+                continue
             if hasattr(node, 'evaluate'):
                 try:
                     node.evaluate()

@@ -52,6 +52,9 @@ test_batch/
 test_data/
 test_files/
 claude-scientific-skills/
+image-stitching/
+specs/
+plans/
 
 # External repos / submodules (install separately)
 rxdock/
@@ -75,13 +78,14 @@ finetune/
 sync_plugins.sh
 
 # Legacy / scratch scripts
-_*.py
+/_*.py
 _*.ipynb
 !__init__.py
 !synapse/ai/clients/_fallback_parser.py
 /test_*.py
 /benchmark_*.py
 _plot_functions/
+z_ims_analysis/
 
 # Root plugins dir (legacy — bundled plugins are now in synapse/plugins/)
 /plugins/
@@ -138,3 +142,4 @@ rdkit-*.whl
 /util/
 /icons/
 ims_reader_rs/hdf5-pure-fork/
+.worktrees/

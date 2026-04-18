@@ -931,23 +931,31 @@ class PluginManagerDialog(QtWidgets.QDialog):
         self._browse_status.setStyleSheet("color:#f0c040; padding:4px;")
         QtWidgets.QApplication.processEvents()
 
-        import urllib.request
+        import requests
 
-        # Fetch plugin metadata (descriptions, display names)
+        # Fetch plugin metadata (descriptions, display names). Use `requests`
+        # instead of urllib: on Windows, urllib's default SSL context can't
+        # always locate the cert bundle (especially in Nuitka-frozen builds),
+        # which causes CERTIFICATE_VERIFY_FAILED on otherwise-healthy systems.
+        # `requests` ships with certifi and handles Windows proxy config.
         self._plugin_metadata = {}
         try:
-            req = urllib.request.Request(self._METADATA_URL)
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                self._plugin_metadata = json.loads(resp.read().decode())
+            resp = requests.get(self._METADATA_URL, timeout=10)
+            resp.raise_for_status()
+            self._plugin_metadata = resp.json()
         except Exception:
             pass  # descriptions are optional, continue without them
 
         # Fetch latest release assets
         url = f'https://api.github.com/repos/{self._REPO}/releases/latest'
         try:
-            req = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json'})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read().decode())
+            resp = requests.get(
+                url,
+                headers={'Accept': 'application/vnd.github+json'},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
         except Exception as exc:
             self._browse_status.setText(f"Failed to fetch: {exc}")
             self._browse_status.setStyleSheet("color:#e74c3c; padding:4px;")
@@ -1036,7 +1044,7 @@ class PluginManagerDialog(QtWidgets.QDialog):
             sender.setEnabled(False)
             sender.setText("Downloading...")
 
-        import urllib.request
+        import requests
         import tempfile
         try:
             tmp_dir = tempfile.mkdtemp()
@@ -1045,7 +1053,12 @@ class PluginManagerDialog(QtWidgets.QDialog):
             self._browse_status.setStyleSheet("color:#f0c040; padding:4px;")
             QtWidgets.QApplication.processEvents()
 
-            urllib.request.urlretrieve(url, str(tmp_path))
+            with requests.get(url, stream=True, timeout=60) as resp:
+                resp.raise_for_status()
+                with open(tmp_path, 'wb') as fh:
+                    for chunk in resp.iter_content(chunk_size=65536):
+                        if chunk:
+                            fh.write(chunk)
 
             ok, msg = install_synpkg(tmp_path, self._plugin_dir, overwrite=True)
             if not ok:
