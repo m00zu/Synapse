@@ -86,6 +86,8 @@ _*.ipynb
 /benchmark_*.py
 _plot_functions/
 z_ims_analysis/
+specs/
+plans/
 
 # Root plugins dir (legacy — bundled plugins are now in synapse/plugins/)
 /plugins/
