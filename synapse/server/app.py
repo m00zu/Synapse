@@ -48,7 +48,10 @@ def create_app() -> FastAPI:
     async def root() -> str:
         return _PLACEHOLDER_INDEX
 
-    # Route modules are registered by later tasks.
+    from synapse.server.routes_nodes import router as nodes_router
+    from synapse.server.routes_graph import router as graph_router
+    app.include_router(nodes_router)
+    app.include_router(graph_router)
 
     return app
 
