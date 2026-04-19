@@ -64,9 +64,10 @@ export const api = {
 
   // WebSocket
   openWs: (onEvent: (ev: WsEvent) => void) => {
-    const ws = new WebSocket(
-      `ws://${window.location.host}/api/ws`
-    );
+    // Mirror the page's protocol so HTTPS deployments don't hit
+    // mixed-content blocks on the WS upgrade.
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(`${proto}//${window.location.host}/api/ws`);
     ws.onmessage = (m) => onEvent(JSON.parse(m.data) as WsEvent);
     return ws;
   },
