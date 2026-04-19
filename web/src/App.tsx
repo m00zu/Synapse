@@ -1,12 +1,21 @@
-// App.tsx — placeholder until Task 5 wires in real canvas
+import { useEffect } from "react";
+import { useGraph } from "./store/graph";
+import NodePalette from "./components/palette/NodePalette";
+import GraphCanvas from "./components/canvas/GraphCanvas";
+import PropertiesPanel from "./components/properties/PropertiesPanel";
+import Toolbar from "./components/toolbar/Toolbar";
+
 export default function App() {
+  const loadCatalog = useGraph((s) => s.loadCatalog);
+  useEffect(() => { loadCatalog(); }, [loadCatalog]);
+
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold text-accent">Synapse Web</h1>
-        <p className="mt-2 text-sm text-fg/70">
-          Phase 1c scaffold — real UI comes in later tasks.
-        </p>
+    <div className="flex flex-col h-screen">
+      <Toolbar />
+      <div className="flex flex-1 overflow-hidden">
+        <NodePalette />
+        <GraphCanvas />
+        <PropertiesPanel />
       </div>
     </div>
   );
