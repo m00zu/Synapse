@@ -17,8 +17,10 @@ async def test_root_returns_200(client):
 
 
 @pytest.mark.asyncio
-async def test_app_has_catalog_attached(client):
-    from synapse.server.app import app
-    assert hasattr(app.state, "catalog")
-    assert isinstance(app.state.catalog, dict)
-    assert "GaussianBlurNode" in app.state.catalog
+async def test_catalog_available_via_api_nodes(client):
+    """Catalog is built lazily on first /api/nodes call."""
+    resp = await client.get("/api/nodes")
+    assert resp.status_code == 200
+    catalog = resp.json()
+    assert isinstance(catalog, dict)
+    assert "GaussianBlurNode" in catalog

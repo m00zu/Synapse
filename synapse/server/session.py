@@ -103,6 +103,15 @@ class NodeGraphHeadless:
     def import_(self, workflow: dict) -> None:
         self._g.deserialize_session(workflow)
 
+    def clear(self) -> None:
+        """Remove every node from the graph. Used by test fixtures to reset
+        state between tests without tearing down the whole NodeGraph (which
+        would re-walk every registered node class and Qt-instantiate them)."""
+        try:
+            self._g.clear_session()
+        except Exception:
+            pass
+
 
 class SessionState:
     def __init__(self, allow_path: Optional[str] = None) -> None:
@@ -118,5 +127,13 @@ class SessionState:
         if self._closed:
             return
         self._closed = True
+        # Clear the NodeGraph BEFORE tempdir removal. Otherwise each session
+        # leaks its NodeGraph + all Qt widgets to interpreter shutdown, where
+        # nondeterministic GC ordering crashes Qt with "Fatal Python error:
+        # Aborted" on some platforms (observed on macOS + PySide6 6.10).
+        try:
+            self.graph.clear()
+        except Exception:
+            pass
         import shutil
         shutil.rmtree(self.preview_dir, ignore_errors=True)
