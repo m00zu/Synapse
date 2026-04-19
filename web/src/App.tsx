@@ -5,6 +5,8 @@ import NodePalette from "./components/palette/NodePalette";
 import GraphCanvas from "./components/canvas/GraphCanvas";
 import PropertiesPanel from "./components/properties/PropertiesPanel";
 import Toolbar from "./components/toolbar/Toolbar";
+import Toasts from "./components/toasts/Toasts";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 export default function App() {
   const loadCatalog = useGraph((s) => s.loadCatalog);
@@ -12,13 +14,16 @@ export default function App() {
   useWsEvents();
 
   return (
-    <div className="flex flex-col h-screen">
-      <Toolbar />
-      <div className="flex flex-1 overflow-hidden">
-        <NodePalette />
-        <GraphCanvas />
-        <PropertiesPanel />
+    <ErrorBoundary>
+      <div className="flex flex-col h-screen">
+        <Toolbar />
+        <div className="flex flex-1 overflow-hidden">
+          <NodePalette />
+          <GraphCanvas />
+          <PropertiesPanel />
+        </div>
+        <Toasts />
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
