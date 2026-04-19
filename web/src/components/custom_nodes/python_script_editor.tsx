@@ -1,6 +1,11 @@
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
 import type { CustomSpec } from "../../api/types";
 import type { WidgetContext } from "../widgets/Renderer";
+
+// Point Monaco at the locally-vendored vs/ copy (copied into dist/ by
+// vite.config.ts's copyMonacoPlugin). This lets `synapse serve` work
+// offline — the CDN default would hang forever on a laptop without net.
+loader.config({ paths: { vs: "/monaco/vs" } });
 
 export default function PythonScriptEditor(
   { spec, ctx }: { spec: CustomSpec; ctx: WidgetContext }

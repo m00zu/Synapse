@@ -75,15 +75,38 @@ export const api = {
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let closed = false;
+    // Track whether we've ever been connected + are currently connected.
+    // Use these to emit one disconnect toast (not a spam per reconnect
+    // attempt) and one reconnect toast when we actually recover.
+    let hasBeenOpen = false;
+    let isOpen = false;
 
     const connect = () => {
       if (closed) return;
       ws = new WebSocket(url);
+      ws.onopen = () => {
+        const wasReconnect = hasBeenOpen && !isOpen;
+        hasBeenOpen = true;
+        isOpen = true;
+        if (wasReconnect) {
+          void import("../store/toasts").then(({ useToasts }) => {
+            useToasts.getState().push({ kind: "info", text: "Reconnected to server" });
+          });
+        }
+      };
       ws.onmessage = (m) => onEvent(JSON.parse(m.data) as WsEvent);
       ws.onclose = () => {
         if (closed) return;
-        // Reconnect after 0.5–1.5 s jitter. The toast-layer will inform
-        // the user on the first reconnect attempt; subsequent ones stay quiet.
+        const wasOpen = isOpen;
+        isOpen = false;
+        if (wasOpen && hasBeenOpen) {
+          void import("../store/toasts").then(({ useToasts }) => {
+            useToasts.getState().push({
+              kind: "error",
+              text: "Disconnected from server, reconnecting…",
+            });
+          });
+        }
         const jitter = 500 + Math.random() * 1000;
         reconnectTimer = setTimeout(connect, jitter);
       };
