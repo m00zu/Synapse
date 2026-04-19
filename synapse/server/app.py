@@ -9,9 +9,13 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+
+_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
 
 
 _PLACEHOLDER_INDEX = """<!doctype html>
@@ -54,10 +58,6 @@ def _get_catalog(app: FastAPI) -> dict:
 def create_app() -> FastAPI:
     app = FastAPI(title="Synapse serve", lifespan=lifespan)
 
-    @app.get("/", response_class=HTMLResponse)
-    async def root() -> str:
-        return _PLACEHOLDER_INDEX
-
     from synapse.server.routes_nodes import router as nodes_router
     from synapse.server.routes_graph import router as graph_router
     from synapse.server.routes_exec import router as exec_router
@@ -68,6 +68,14 @@ def create_app() -> FastAPI:
     app.include_router(exec_router)
     app.include_router(ws_router)
     app.include_router(files_router)
+
+    # SPA: built React bundle if present, else Phase 1b placeholder.
+    if _DIST.is_dir():
+        app.mount("/", StaticFiles(directory=str(_DIST), html=True), name="spa")
+    else:
+        @app.get("/", response_class=HTMLResponse)
+        async def root() -> str:
+            return _PLACEHOLDER_INDEX
 
     return app
 
