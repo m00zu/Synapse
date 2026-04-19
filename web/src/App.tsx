@@ -4,7 +4,7 @@ import { useGraph } from "./store/graph";
 import { useWsEvents } from "./hooks/useWsEvents";
 import NodePalette from "./components/palette/NodePalette";
 import GraphCanvas from "./components/canvas/GraphCanvas";
-import PropertiesPanel from "./components/properties/PropertiesPanel";
+import RightPanel from "./components/properties/RightPanel";
 import Toolbar from "./components/toolbar/Toolbar";
 import Toasts from "./components/toasts/Toasts";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -25,7 +25,7 @@ export default function App() {
           <div className="flex flex-1 overflow-hidden">
             <NodePalette />
             <GraphCanvas />
-            <PropertiesPanel />
+            <RightPanel />
           </div>
           <Toasts />
         </div>
