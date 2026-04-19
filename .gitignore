@@ -119,6 +119,9 @@ rdkit-*.whl
 !llm_node_schema.json
 !pyproject.toml
 !mkdocs.yml
+!web/package.json
+!web/tsconfig.json
+!web/tsconfig.node.json
 
 # Original flat files (now in synapse/ — keep main.py as thin wrapper)
 /data_models.py
@@ -143,3 +146,8 @@ rdkit-*.whl
 /icons/
 ims_reader_rs/hdf5-pure-fork/
 .worktrees/
+
+# --- Web frontend (Phase 1c) ---
+/web/node_modules/
+/web/dist/
+/synapse/web/dist/
