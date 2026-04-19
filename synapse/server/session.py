@@ -16,6 +16,8 @@ from typing import Optional
 
 from NodeGraphQt import NodeGraph
 
+from synapse.server.event_bus import EventBus
+
 
 class NodeGraphHeadless:
     """Thin façade over NodeGraphQt.NodeGraph exposing only server operations."""
@@ -108,6 +110,8 @@ class SessionState:
         self.allow_path = allow_path
         self.preview_dir = Path(tempfile.mkdtemp(prefix="synapse-serve-"))
         self.lock = asyncio.Lock()
+        self.bus = EventBus()
+        self.executor = None
         self._closed = False
 
     async def aclose(self) -> None:
