@@ -16,12 +16,6 @@ import pytest
 pytest.importorskip("PySide6")
 
 
-@pytest.fixture(autouse=True, scope="module")
-def qapp():
-    from PySide6 import QtWidgets
-    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    yield app
-
 
 class _AsyncWSClient:
     """Lightweight ASGI WebSocket client (no background threads)."""

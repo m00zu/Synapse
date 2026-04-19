@@ -2,12 +2,6 @@ import pytest
 pytest.importorskip("PySide6")
 
 
-@pytest.fixture(autouse=True, scope="module")
-def qapp():
-    from PySide6 import QtWidgets
-    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    yield app
-
 
 def test_session_starts_empty():
     from synapse.server.session import SessionState

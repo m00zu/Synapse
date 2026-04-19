@@ -9,12 +9,6 @@ import pytest
 pytest.importorskip("PySide6")
 
 
-@pytest.fixture(autouse=True, scope="module")
-def qapp():
-    from PySide6 import QtWidgets
-    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    yield app
-
 
 @pytest.mark.asyncio
 async def test_three_node_pipeline_runs_end_to_end(client):
@@ -51,17 +45,22 @@ async def test_three_node_pipeline_runs_end_to_end(client):
 
 @pytest.mark.asyncio
 async def test_patch_props_then_export_preserves_value(client):
-    """Property changes survive the export round trip."""
+    """Property changes survive the export round trip.
+
+    Uses sigma=2.5 (not 3.14) because GaussianBlurNode's sigma spinbox is
+    configured with 1-decimal precision — anything finer gets rounded at
+    the model level. Intent is "non-default value round-trips", not that
+    arbitrary float precision survives.
+    """
     add = await client.post("/api/graph/nodes", json={"type": "GaussianBlurNode"})
     nid = add.json()["id"]
     patch = await client.patch(f"/api/graph/nodes/{nid}/props",
-                               json={"sigma": 3.14})
+                               json={"sigma": 2.5})
     assert patch.status_code == 200
     exp = await client.get("/api/graph")
-    # Look for 3.14 anywhere in the serialized graph body.
     import json as _json
     blob = _json.dumps(exp.json())
-    assert "3.14" in blob, "sigma=3.14 didn't round-trip through /api/graph export"
+    assert "2.5" in blob, "sigma=2.5 didn't round-trip through /api/graph export"
 
 
 @pytest.mark.asyncio
