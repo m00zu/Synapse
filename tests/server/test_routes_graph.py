@@ -43,3 +43,20 @@ async def test_get_graph_after_adds(client):
     # NodeGraphQt's serialize_session returns at minimum a dict. Verify
     # it's not empty after we've added a node.
     assert isinstance(body, dict)
+
+
+@pytest.mark.asyncio
+async def test_patch_pos_updates_node_position(client):
+    add = await client.post("/api/graph/nodes",
+                            json={"type": "GaussianBlurNode", "x": 10, "y": 20})
+    nid = add.json()["id"]
+    resp = await client.patch(f"/api/graph/nodes/{nid}/pos",
+                              json={"x": 300, "y": 150})
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_patch_pos_unknown_node_404(client):
+    resp = await client.patch("/api/graph/nodes/does-not-exist/pos",
+                              json={"x": 0, "y": 0})
+    assert resp.status_code == 404

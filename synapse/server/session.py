@@ -71,6 +71,10 @@ class NodeGraphHeadless:
     def set_prop(self, node_id: str, prop: str, value) -> None:
         self.get_node(node_id).set_property(prop, value, push_undo=False)
 
+    def set_pos(self, node_id: str, x: float, y: float) -> None:
+        """Update a node's canvas position."""
+        self.get_node(node_id).set_pos(float(x), float(y))
+
     def connect(self, src_id: str, dst_id: str,
                 src_port: Optional[str] = None, dst_port: Optional[str] = None) -> None:
         src = self.get_node(src_id)

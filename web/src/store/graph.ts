@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { api } from "../api/client";
-import type { WidgetCatalog, WsEvent } from "../api/types";
+import type { NodeCategories, WidgetCatalog, WsEvent } from "../api/types";
 
 export interface Node {
   id: string;
@@ -19,6 +19,7 @@ export interface Edge {
 
 interface GraphState {
   catalog: WidgetCatalog | null;
+  categories: NodeCategories | null;
   nodes: Node[];
   edges: Edge[];
   selectedId: string | null;
@@ -33,6 +34,12 @@ interface GraphState {
   addNode: (type: string, x?: number, y?: number) => Promise<string>;
   removeNode: (id: string) => Promise<void>;
   patchProp: (id: string, prop: string, value: unknown) => Promise<void>;
+  /** Update local position immediately (for smooth dragging). Server PATCH
+   * is debounced separately — see commitNodePos. */
+  setNodePos: (id: string, x: number, y: number) => void;
+  /** Persist a node's current position to the server. Call from a debounced
+   * drag-stop handler so we don't PATCH on every pixel of movement. */
+  commitNodePos: (id: string) => Promise<void>;
   addEdge: (e: Edge) => Promise<void>;
   removeEdge: (e: Edge) => Promise<void>;
   select: (id: string | null) => void;
@@ -41,6 +48,7 @@ interface GraphState {
 
 export const useGraph = create<GraphState>((set, get) => ({
   catalog: null,
+  categories: null,
   nodes: [],
   edges: [],
   selectedId: null,
@@ -52,8 +60,11 @@ export const useGraph = create<GraphState>((set, get) => ({
   loadCatalog: async () => {
     set({ loading: true, error: null });
     try {
-      const catalog = await api.getCatalog();
-      set({ catalog, loading: false });
+      const [catalog, categories] = await Promise.all([
+        api.getCatalog(),
+        api.getCategories(),
+      ]);
+      set({ catalog, categories, loading: false });
     } catch (e) {
       set({ error: String(e), loading: false });
     }
@@ -98,6 +109,22 @@ export const useGraph = create<GraphState>((set, get) => ({
         n.id === id ? { ...n, props: { ...n.props, [prop]: value } } : n
       ),
     });
+  },
+
+  setNodePos: (id, x, y) => {
+    set({
+      nodes: get().nodes.map((n) => (n.id === id ? { ...n, x, y } : n)),
+    });
+  },
+
+  commitNodePos: async (id) => {
+    const n = get().nodes.find((x) => x.id === id);
+    if (!n) return;
+    try {
+      await api.patchPos(id, n.x, n.y);
+    } catch (e) {
+      console.error(`patchPos(${id}) failed:`, e);
+    }
   },
 
   addEdge: async (e) => {

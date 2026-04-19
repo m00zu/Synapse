@@ -19,6 +19,11 @@ class ConnectReq(BaseModel):
     dst_port: Optional[str] = None
 
 
+class PosReq(BaseModel):
+    x: float
+    y: float
+
+
 @router.get("")
 async def get_graph(request: Request) -> dict:
     return request.app.state.session.graph.export()
@@ -52,6 +57,18 @@ async def patch_props(request: Request, node_id: str, props: dict[str, Any]) -> 
         try:
             for prop, value in props.items():
                 session.graph.set_prop(node_id, prop, value)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"no such node: {node_id}")
+    return {"ok": True}
+
+
+@router.patch("/nodes/{node_id}/pos")
+async def patch_pos(request: Request, node_id: str, body: PosReq) -> dict:
+    """Update a node's canvas position (debounced PATCH from the frontend on drag)."""
+    session = request.app.state.session
+    async with session.lock:
+        try:
+            session.graph.set_pos(node_id, body.x, body.y)
         except KeyError:
             raise HTTPException(status_code=404, detail=f"no such node: {node_id}")
     return {"ok": True}

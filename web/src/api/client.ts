@@ -1,4 +1,4 @@
-import type { WidgetCatalog, WsEvent } from "./types";
+import type { NodeCategories, WidgetCatalog, WsEvent } from "./types";
 
 const API = ""; // same-origin; Vite proxies /api/* in dev
 
@@ -16,6 +16,7 @@ async function jfetch<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   // Catalog
   getCatalog: () => jfetch<WidgetCatalog>("/api/nodes"),
+  getCategories: () => jfetch<NodeCategories>("/api/nodes/categories"),
 
   // Graph CRUD
   getGraph: () => jfetch<Record<string, unknown>>("/api/graph"),
@@ -31,6 +32,11 @@ export const api = {
     jfetch<{ ok: true }>(`/api/graph/nodes/${encodeURIComponent(id)}/props`, {
       method: "PATCH",
       body: JSON.stringify(props),
+    }),
+  patchPos: (id: string, x: number, y: number) =>
+    jfetch<{ ok: true }>(`/api/graph/nodes/${encodeURIComponent(id)}/pos`, {
+      method: "PATCH",
+      body: JSON.stringify({ x, y }),
     }),
   connect: (body: { src: string; dst: string; src_port?: string; dst_port?: string }) =>
     jfetch<{ ok: true }>("/api/graph/edges", {

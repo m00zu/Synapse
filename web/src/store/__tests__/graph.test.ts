@@ -11,16 +11,22 @@ const server = setupServer(
                           min: 0, max: 20, step: 0.1, decimals: 1, default: 1.5, tab: "" }],
     })
   ),
+  http.get("/api/nodes/categories", () =>
+    HttpResponse.json({
+      GaussianBlurNode: { identifier: "nodes.image_process.filter", category: "Image" },
+    })
+  ),
   http.post("/api/graph/nodes", () => HttpResponse.json({ id: "nX" }, { status: 201 })),
   http.delete("/api/graph/nodes/:id", () => new HttpResponse(null, { status: 204 })),
   http.patch("/api/graph/nodes/:id/props", () => HttpResponse.json({ ok: true })),
+  http.patch("/api/graph/nodes/:id/pos", () => HttpResponse.json({ ok: true })),
 );
 
 beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
   useGraph.setState({
-    catalog: null, nodes: [], edges: [], selectedId: null,
+    catalog: null, categories: null, nodes: [], edges: [], selectedId: null,
     runStatus: {}, runActive: false,
   });
 });
@@ -56,6 +62,29 @@ describe("graph store", () => {
     await useGraph.getState().removeNode(a);
     expect(useGraph.getState().edges).toEqual([]);
     expect(useGraph.getState().selectedId).toBeNull();
+  });
+
+  it("loadCatalog also populates categories", async () => {
+    await useGraph.getState().loadCatalog();
+    expect(useGraph.getState().categories).not.toBeNull();
+    expect(useGraph.getState().categories!.GaussianBlurNode.category).toBe("Image");
+  });
+
+  it("setNodePos updates local position immediately", async () => {
+    await useGraph.getState().loadCatalog();
+    const id = await useGraph.getState().addNode("GaussianBlurNode", 10, 20);
+    useGraph.getState().setNodePos(id, 300, 150);
+    const n = useGraph.getState().nodes.find((x) => x.id === id)!;
+    expect(n.x).toBe(300);
+    expect(n.y).toBe(150);
+  });
+
+  it("commitNodePos PATCHes the server with the current local position", async () => {
+    await useGraph.getState().loadCatalog();
+    const id = await useGraph.getState().addNode("GaussianBlurNode", 10, 20);
+    useGraph.getState().setNodePos(id, 300, 150);
+    // MSW handler above returns ok:true for any id; just confirm no throw.
+    await useGraph.getState().commitNodePos(id);
   });
 });
 

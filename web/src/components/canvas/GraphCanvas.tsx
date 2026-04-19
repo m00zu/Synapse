@@ -1,6 +1,6 @@
 import {
   ReactFlow, Background, Controls,
-  type Connection, type NodeMouseHandler,
+  type Connection, type NodeChange, type NodeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback } from "react";
@@ -16,6 +16,8 @@ export default function GraphCanvas() {
   const addEdge = useGraph((s) => s.addEdge);
   const select = useGraph((s) => s.select);
   const selectedId = useGraph((s) => s.selectedId);
+  const setNodePos = useGraph((s) => s.setNodePos);
+  const commitNodePos = useGraph((s) => s.commitNodePos);
 
   const rfNodes = nodes.map((n) => ({
     id: n.id,
@@ -51,6 +53,23 @@ export default function GraphCanvas() {
     select(node.id);
   }, [select]);
 
+  // Apply only position changes to the local store while dragging. Selection
+  // and deletion are driven by onNodeClick / the properties panel's Delete
+  // button today — we don't let xyflow delete nodes directly because that
+  // would bypass the server.
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    for (const c of changes) {
+      if (c.type === "position" && c.position) {
+        setNodePos(c.id, c.position.x, c.position.y);
+      }
+    }
+  }, [setNodePos]);
+
+  // When a drag finishes, persist the final position to the server.
+  const onNodeDragStop: NodeMouseHandler = useCallback((_, node) => {
+    commitNodePos(node.id);
+  }, [commitNodePos]);
+
   return (
     <div
       className="flex-1 h-full"
@@ -61,7 +80,9 @@ export default function GraphCanvas() {
         nodes={rfNodes}
         edges={rfEdges}
         nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
+        onNodeDragStop={onNodeDragStop}
         onPaneClick={() => select(null)}
         onConnect={onConnect}
         fitView

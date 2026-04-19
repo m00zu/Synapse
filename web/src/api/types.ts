@@ -105,3 +105,10 @@ export type WsEvent =
 
 // /api/nodes response shape.
 export type WidgetCatalog = Record<string, WidgetSpec[]>;
+
+// /api/nodes/categories response shape.
+export interface NodeCategoryInfo {
+  identifier: string;
+  category: string;
+}
+export type NodeCategories = Record<string, NodeCategoryInfo>;
