@@ -27,6 +27,7 @@ interface GraphState {
   error: string | null;
   runStatus: Record<string, "running" | "ok" | "error">;
   runActive: boolean;
+  previewVersions: Record<string, number>; // key = `${nodeId}:${port}`
 
   // Actions
   loadCatalog: () => Promise<void>;
@@ -56,6 +57,7 @@ export const useGraph = create<GraphState>((set, get) => ({
   error: null,
   runStatus: {},
   runActive: false,
+  previewVersions: {},
 
   loadCatalog: async () => {
     set({ loading: true, error: null });
@@ -159,7 +161,14 @@ export const useGraph = create<GraphState>((set, get) => ({
       });
     } else if (ev.kind === "run_finished") {
       set({ runActive: false });
+    } else if (ev.kind === "preview_available") {
+      const key = `${ev.node_id}:${ev.port}`;
+      set({
+        previewVersions: {
+          ...get().previewVersions,
+          [key]: (get().previewVersions[key] ?? 0) + 1,
+        },
+      });
     }
-    // node_progress + preview_available: ignored in Phase 1c
   },
 }));

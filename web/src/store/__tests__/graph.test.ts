@@ -31,7 +31,7 @@ afterEach(() => {
   server.resetHandlers();
   useGraph.setState({
     catalog: null, categories: null, nodes: [], edges: [], selectedId: null,
-    runStatus: {}, runActive: false,
+    runStatus: {}, runActive: false, previewVersions: {},
   });
 });
 afterAll(() => server.close());
@@ -110,5 +110,16 @@ describe("WS events", () => {
     useGraph.getState().applyWsEvent({ kind: "node_started", node_id: "a" });
     useGraph.getState().applyWsEvent({ kind: "run_finished", run_id: "x1" });
     expect(useGraph.getState().runActive).toBe(false);
+  });
+
+  it("preview_available bumps previewVersions for the node/port", () => {
+    useGraph.getState().applyWsEvent({
+      kind: "preview_available", node_id: "n1", port: "out", preview_kind: "image",
+    });
+    expect(useGraph.getState().previewVersions["n1:out"]).toBe(1);
+    useGraph.getState().applyWsEvent({
+      kind: "preview_available", node_id: "n1", port: "out", preview_kind: "image",
+    });
+    expect(useGraph.getState().previewVersions["n1:out"]).toBe(2);
   });
 });
