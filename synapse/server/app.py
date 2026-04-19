@@ -52,10 +52,12 @@ def create_app() -> FastAPI:
     from synapse.server.routes_graph import router as graph_router
     from synapse.server.routes_exec import router as exec_router
     from synapse.server.ws import router as ws_router
+    from synapse.server.routes_files import router as files_router
     app.include_router(nodes_router)
     app.include_router(graph_router)
     app.include_router(exec_router)
     app.include_router(ws_router)
+    app.include_router(files_router)
 
     return app
 
