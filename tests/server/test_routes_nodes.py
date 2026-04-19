@@ -23,7 +23,10 @@ async def test_get_node_categories_returns_identifier_and_category(client):
     assert gb is not None
     assert gb["identifier"].startswith("nodes.image_process")
     assert gb["category"] == "Image"
+    assert gb["display_name"]  # non-empty human-readable name
     # Spot-check other categories
     assert body["FileReadNode"]["category"] in ("Table", "I/O")  # file read
     assert body["ImageReadNode"]["category"] == "I/O"
     assert body["BarPlotNode"]["category"] == "Plot"
+    # FileReadNode's NODE_NAME is "Table Reader" on desktop.
+    assert body["FileReadNode"]["display_name"] == "Table Reader"

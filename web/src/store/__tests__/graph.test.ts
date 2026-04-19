@@ -13,7 +13,11 @@ const server = setupServer(
   ),
   http.get("/api/nodes/categories", () =>
     HttpResponse.json({
-      GaussianBlurNode: { identifier: "nodes.image_process.filter", category: "Image" },
+      GaussianBlurNode: {
+        identifier: "nodes.image_process.filter",
+        category: "Image",
+        display_name: "Gaussian Blur",
+      },
     })
   ),
   http.post("/api/graph/nodes", () => HttpResponse.json({ id: "nX" }, { status: 201 })),

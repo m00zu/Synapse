@@ -110,5 +110,8 @@ export type WidgetCatalog = Record<string, WidgetSpec[]>;
 export interface NodeCategoryInfo {
   identifier: string;
   category: string;
+  /** Human-readable name from the node class's NODE_NAME attribute.
+   * Falls back to the class name if not set. */
+  display_name: string;
 }
 export type NodeCategories = Record<string, NodeCategoryInfo>;

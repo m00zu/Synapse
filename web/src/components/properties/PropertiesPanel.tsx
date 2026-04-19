@@ -5,6 +5,7 @@ export default function PropertiesPanel() {
   const selectedId = useGraph((s) => s.selectedId);
   const nodes = useGraph((s) => s.nodes);
   const catalog = useGraph((s) => s.catalog);
+  const categories = useGraph((s) => s.categories);
   const patchProp = useGraph((s) => s.patchProp);
   const removeNode = useGraph((s) => s.removeNode);
 
@@ -18,6 +19,7 @@ export default function PropertiesPanel() {
   }
 
   const specs = catalog[node.type] ?? [];
+  const display = categories?.[node.type]?.display_name ?? node.type;
   const ctx: WidgetContext = {
     nodeId: node.id,
     propValue: (p) => node.props[p],
@@ -31,7 +33,10 @@ export default function PropertiesPanel() {
   return (
     <aside className="w-80 border-l border-border overflow-y-auto shrink-0">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border sticky top-0 bg-bg">
-        <div className="text-xs uppercase tracking-wide text-fg/60">{node.type}</div>
+        <div className="flex flex-col">
+          <div className="text-xs uppercase tracking-wide text-fg/60">{display}</div>
+          <div className="text-[10px] text-fg/40 font-mono">{node.type}</div>
+        </div>
         <button
           onClick={() => {
             removeNode(node.id).catch((err) => console.error("removeNode failed:", err));

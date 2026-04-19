@@ -20,7 +20,12 @@ export default function NodePalette() {
       const cat = categories?.[type]?.category ?? "Other";
       (groups[cat] ??= []).push(type);
     }
-    for (const key of Object.keys(groups)) groups[key].sort();
+    // Sort each group by the display name (not the class name) so the
+    // user-visible order matches what's rendered.
+    const dn = (t: string) => categories?.[t]?.display_name ?? t;
+    for (const key of Object.keys(groups)) {
+      groups[key].sort((a, b) => dn(a).localeCompare(dn(b)));
+    }
     return groups;
   }, [catalog, categories]);
 
@@ -29,8 +34,17 @@ export default function NodePalette() {
   }
 
   const normalizedFilter = filter.trim().toLowerCase();
-  const matches = (t: string) =>
-    !normalizedFilter || t.toLowerCase().includes(normalizedFilter);
+  const displayName = (t: string) => categories?.[t]?.display_name ?? t;
+  const matches = (t: string) => {
+    if (!normalizedFilter) return true;
+    // Match against both the display name and the underlying class name
+    // so power users who know "BarPlotNode" and users who only know
+    // "Bar Plot" both find it.
+    return (
+      displayName(t).toLowerCase().includes(normalizedFilter) ||
+      t.toLowerCase().includes(normalizedFilter)
+    );
+  };
 
   const sortedCategories = Object.keys(grouped).sort((a, b) => {
     const ia = CATEGORY_ORDER.indexOf(a);
@@ -81,8 +95,9 @@ export default function NodePalette() {
                         e.dataTransfer.setData("application/x-synapse-node", t)
                       }
                       className="px-4 py-1 text-sm hover:bg-bg2 cursor-grab select-none text-fg/90"
+                      title={t}
                     >
-                      {t}
+                      {displayName(t)}
                     </li>
                   ))}
                 </ul>

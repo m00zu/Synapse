@@ -18,7 +18,8 @@ from ..data_models import TableData, ImageData, FigureData, ConfocalDatasetData
 import traceback
 from ..i18n import tr
 from ..widgets.spec import (
-    WidgetSpec, NumberField, CheckBox, ComboBox, TextField, HorizontalLayout, Custom,
+    WidgetSpec, NumberField, CheckBox, ComboBox, TextField, HorizontalLayout,
+    Custom, FilePath,
 )
 
 # ── Port type color scheme ──────────────────────────────────────────────────
@@ -1195,6 +1196,46 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         self._spec_builder.append(TextField(
             prop=name, label=label, default=text, placeholder=placeholder_text,
         ))
+        return result
+
+    def add_custom_widget(self, widget, widget_type=None, tab=None):
+        """Wrap NodeGraphQt.add_custom_widget to emit a WidgetSpec entry for
+        the small set of custom widget classes we know about. Unknown
+        custom widgets fall through to NodeGraphQt unchanged — so the
+        desktop UI is untouched. The _add_* / _tb_* helpers create their
+        widgets BEFORE calling this (emitting specs themselves), so we
+        skip re-emitting for helper-created widgets by checking class name.
+        """
+        result = super().add_custom_widget(widget, widget_type=widget_type, tab=tab)
+        cls_name = type(widget).__name__
+        # NodeFileSelector → FilePath spec
+        if cls_name == "NodeFileSelector":
+            try:
+                prop = widget.get_name()
+                label = widget.get_label() or prop
+            except Exception:
+                prop = getattr(widget, "_name", "file_path")
+                label = prop
+            self._spec_builder.append(FilePath(
+                prop=prop, label=label, mode="either", default="",
+            ))
+        # NodeChannelSelectorWidget → Custom(component_id="channel_selector")
+        elif cls_name == "NodeChannelSelectorWidget":
+            try:
+                prop = widget.get_name()
+                label = widget.get_label() or prop
+                default = widget.get_value() or ""
+            except Exception:
+                prop = getattr(widget, "_name", "channels")
+                label = prop
+                default = ""
+            self._spec_builder.append(Custom(
+                component_id="channel_selector",
+                props={"prop": prop, "label": label, "default": default},
+            ))
+        # Helpers (NodeIntSpinBoxWidget, NodeFloatSpinBoxWidget, NodeRowWidget,
+        # NodeColumnSelectorWidget, NodeToolBoxWidget, NodeListWidget) already
+        # emit their own specs from the _add_*/_tb_* helpers — skip here.
         return result
 
     # ── Public accessor ────────────────────────────────────────────────────

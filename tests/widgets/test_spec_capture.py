@@ -111,3 +111,46 @@ def test_get_widget_spec_returns_builder_list_order():
 def test_spec_builder_initialized_empty():
     n = _make_node()
     assert n.get_widget_spec() == []
+
+
+def test_add_custom_widget_captures_nodefileselector_as_filepath():
+    """NodeFileSelector (FileReadNode's path picker) is now a FilePath spec."""
+    from synapse.nodes.base import NodeFileSelector
+    from synapse.widgets.spec import FilePath
+    n = _make_node()
+    # Use the class the real FileReadNode uses.
+    sel = NodeFileSelector(n.view, name="file_path", label="Input file")
+    n.add_custom_widget(sel, tab="Properties")
+    spec = n.get_widget_spec()
+    fp = [s for s in spec if isinstance(s, FilePath)]
+    assert len(fp) == 1
+    assert fp[0].prop == "file_path"
+    assert fp[0].label == "Input file"
+    assert fp[0].mode == "either"
+
+
+def test_add_custom_widget_captures_channel_selector_as_custom():
+    from synapse.nodes.base import NodeChannelSelectorWidget
+    n = _make_node()
+    ch = NodeChannelSelectorWidget(n.view, name="channels", label="Channels",
+                                   text="1,2,3")
+    n.add_custom_widget(ch, tab="Properties")
+    spec = n.get_widget_spec()
+    cu = [s for s in spec if isinstance(s, Custom)
+          and s.component_id == "channel_selector"]
+    assert len(cu) == 1
+    assert cu[0].props["prop"] == "channels"
+
+
+def test_filereadnode_captures_filepath_and_separator():
+    """Integration: a real FileReadNode's spec should include BOTH the path
+    FilePath and the separator TextField."""
+    from synapse.nodes.io_nodes import FileReadNode
+    from synapse.widgets.spec import FilePath
+    n = FileReadNode()
+    spec = n.get_widget_spec()
+    props = {s.prop: s for s in spec if hasattr(s, "prop")}
+    assert "file_path" in props
+    assert isinstance(props["file_path"], FilePath)
+    assert "separator" in props
+    assert isinstance(props["separator"], TextField)

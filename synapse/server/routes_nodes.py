@@ -52,8 +52,10 @@ async def get_nodes(request: Request) -> dict:
 
 @router.get("/nodes/categories")
 async def get_node_categories(request: Request) -> dict:
-    """Return {class_name: {'identifier': '...', 'category': '...'}} for
-    every registered node. Frontend uses this to group the palette."""
+    """Return ``{class_name: {identifier, category, display_name}}`` for every
+    registered node. Frontend uses this to group the palette and label nodes
+    with their human-readable names (from ``NODE_NAME``) instead of raw
+    Python class names."""
     # Reuse the same subclass walk that catalog uses.
     from synapse.widgets.catalog import (
         _iter_subclasses, _install_legacy_shims, _import_all_plugins,
@@ -64,8 +66,10 @@ async def get_node_categories(request: Request) -> dict:
     out: dict[str, dict] = {}
     for cls in _iter_subclasses(BaseExecutionNode):
         ident = getattr(cls, "__identifier__", "") or ""
+        display = getattr(cls, "NODE_NAME", "") or cls.__name__
         out[cls.__name__] = {
             "identifier": ident,
             "category": _category_for(ident),
+            "display_name": display,
         }
     return out
