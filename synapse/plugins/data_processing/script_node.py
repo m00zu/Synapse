@@ -227,6 +227,14 @@ class PythonScriptNode(BaseExecutionNode):
         code_w = _CodePreviewWidget(self.view, name='script_code', label='')
         code_w.set_value('# Write your code here\nout_1 = in_1')
         self.add_custom_widget(code_w, widget_type=H, tab='Code')
+        # Emit a web-side Custom spec so the Monaco editor renders in the
+        # browser panel (replaces the desktop _CodePreviewWidget).
+        from synapse.widgets.spec import Custom as _Custom
+        self._spec_builder.append(_Custom(
+            component_id="python_script_editor",
+            props={"prop": "script_code"},
+            tab="Code",
+        ))
 
         self._current_n_in = 1
         self._current_n_out = 1

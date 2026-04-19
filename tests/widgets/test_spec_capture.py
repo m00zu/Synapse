@@ -142,6 +142,60 @@ def test_add_custom_widget_captures_channel_selector_as_custom():
     assert cu[0].props["prop"] == "channels"
 
 
+def test_python_script_node_emits_custom_editor_spec():
+    import sys, pathlib, types
+    _root = pathlib.Path(__file__).parents[2]
+    # script_node.py uses legacy bare imports (`from data_models import …`,
+    # `from nodes.base import …`).  We bridge these to the real synapse.*
+    # counterparts via sys.modules aliases so nothing actually re-executes.
+    # Pull in the real synapse.nodes.base first (it's already importable).
+    from synapse.nodes import base as _real_base
+    from synapse.data_models import (
+        TableData, ImageData, MaskData, FigureData, StatData,
+    )
+    # Alias `nodes` → `synapse.nodes` and `data_models` → synapse.data_models
+    _aliases: dict[str, str] = {
+        "nodes": "synapse.nodes",
+        "nodes.base": "synapse.nodes.base",
+        "data_models": "synapse.data_models",
+    }
+    _to_restore: dict[str, object] = {}
+    for _alias, _real in _aliases.items():
+        _to_restore[_alias] = sys.modules.get(_alias)
+        sys.modules[_alias] = sys.modules[_real]
+    # Also inject a stub for data_processing package to skip __init__.py.
+    _pkg = "synapse.plugins.data_processing"
+    _to_restore[_pkg] = sys.modules.get(_pkg)
+    if _pkg not in sys.modules:
+        stub = types.ModuleType(_pkg)
+        stub.__path__ = [str(_root / "synapse" / "plugins" / "data_processing")]  # type: ignore[attr-defined]
+        stub.__package__ = _pkg
+        sys.modules[_pkg] = stub
+    try:
+        import importlib.util as _ilu
+        _sp = _ilu.spec_from_file_location(
+            "synapse.plugins.data_processing.script_node",
+            _root / "synapse" / "plugins" / "data_processing" / "script_node.py",
+        )
+        _mod = _ilu.module_from_spec(_sp)  # type: ignore[arg-type]
+        sys.modules["synapse.plugins.data_processing.script_node"] = _mod
+        _sp.loader.exec_module(_mod)  # type: ignore[union-attr]
+        PythonScriptNode = _mod.PythonScriptNode
+
+        from synapse.widgets.spec import Custom
+        n = PythonScriptNode()
+        widget_spec = n.get_widget_spec()
+        customs = [s for s in widget_spec if isinstance(s, Custom)
+                   and s.component_id == "python_script_editor"]
+        assert len(customs) == 1
+    finally:
+        for _alias, _orig in _to_restore.items():
+            if _orig is None:
+                sys.modules.pop(_alias, None)
+            else:
+                sys.modules[_alias] = _orig  # type: ignore[assignment]
+
+
 def test_filereadnode_captures_filepath_and_separator():
     """Integration: a real FileReadNode's spec should include BOTH the path
     FilePath and the separator TextField."""
