@@ -38,6 +38,33 @@ def _category_for(identifier: str) -> str:
     return "Other"
 
 
+def _subcategory_for(identifier: str) -> str:
+    """Return everything in the identifier after the category-mapping prefix.
+
+    Examples:
+      nodes.image_process.filter      → 'filter'
+      nodes.dataframe.Combine         → 'Combine'
+      nodes.io                        → ''           (no sub-category)
+      plugins.Plugins.Report          → 'Report'     (strip redundant 'Plugins')
+      nodes.image_process.sub.nested  → 'sub.nested' (preserves deeper nesting)
+    """
+    if not identifier:
+        return ""
+    parts = identifier.split(".")
+    # Match the longest category prefix first.
+    for n in (2, 1):
+        key = ".".join(parts[:n])
+        if key in _CATEGORY_MAP:
+            remainder = parts[n:]
+            # 'plugins.Plugins.Report' — the 'Plugins' segment after the
+            # 'plugins' namespace is redundant noise; strip it so the sub-
+            # category is just 'Report'.
+            if remainder and remainder[0] == "Plugins":
+                remainder = remainder[1:]
+            return ".".join(remainder)
+    return ""
+
+
 @router.get("/nodes")
 async def get_nodes(request: Request) -> dict:
     """Return the widget catalog — {class_name: [spec_dict, ...]}.
@@ -117,6 +144,7 @@ async def get_node_categories(request: Request) -> dict:
         out[cls.__name__] = {
             "identifier": ident,
             "category": _category_for(ident),
+            "subcategory": _subcategory_for(ident),
             "display_name": display,
             "inputs": _port_list(cls, instance, "inputs"),
             "outputs": _port_list(cls, instance, "outputs"),

@@ -43,3 +43,22 @@ async def test_get_node_categories_exposes_per_port_info(client):
     out_names = [p["name"] for p in split["outputs"]]
     assert out_names == ["red", "green", "blue"]
     assert all(p["type"] == "image" for p in split["outputs"])
+
+
+@pytest.mark.asyncio
+async def test_get_node_categories_exposes_subcategory(client):
+    """Sub-category is the remainder of __identifier__ after the category-
+    mapping prefix, so the palette can render two-level trees like
+    Image → filter → GaussianBlur."""
+    resp = await client.get("/api/nodes/categories")
+    body = resp.json()
+    # nodes.image_process.filter → subcategory='filter'
+    assert body["GaussianBlurNode"]["subcategory"] == "filter"
+    # nodes.image_process.color → subcategory='color'
+    assert body["SplitRGBNode"]["subcategory"] == "color"
+    # nodes.dataframe.Combine → subcategory='Combine'
+    assert body["JoinTablesNode"]["subcategory"] == "Combine"
+    # nodes.io (no further segments) → empty subcategory
+    assert body["ImageReadNode"]["subcategory"] == ""
+    # plugins.Plugins.Report → 'Plugins' stripped, subcategory='Report'
+    assert body["ReportNode"]["subcategory"] == "Report"

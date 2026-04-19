@@ -115,6 +115,10 @@ export interface PortInfo {
 export interface NodeCategoryInfo {
   identifier: string;
   category: string;
+  /** Remainder of the identifier after the category prefix, e.g.
+   * 'nodes.image_process.filter' → 'filter'. Empty when the identifier
+   * maps directly to a category with no sub-namespace. */
+  subcategory: string;
   /** Human-readable name from the node class's NODE_NAME attribute.
    * Falls back to the class name if not set. */
   display_name: string;

@@ -16,6 +16,7 @@ const server = setupServer(
       GaussianBlurNode: {
         identifier: "nodes.image_process.filter",
         category: "Image",
+        subcategory: "filter",
         display_name: "Gaussian Blur",
         inputs: [{ name: "image", type: "image" }],
         outputs: [{ name: "out", type: "image" }],
