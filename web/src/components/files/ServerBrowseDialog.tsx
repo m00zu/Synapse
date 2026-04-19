@@ -3,6 +3,8 @@ import { api } from "../../api/client";
 
 interface BrowseEntry { name: string; is_dir: boolean; path: string }
 
+const LAST_DIR_KEY = "synapse-web.lastBrowseDir";
+
 export default function ServerBrowseDialog({
   initialPath, onSelect, onClose,
 }: {
@@ -10,10 +12,21 @@ export default function ServerBrowseDialog({
   onSelect: (path: string) => void;
   onClose: () => void;
 }) {
-  // Empty string tells the server: "start at the allowed root". The server
-  // returns the real resolved path in r.root and the allowed root in
-  // r.allowed_root so we can clamp "go up" navigation.
-  const [root, setRoot] = useState(initialPath);
+  // Resolve the starting directory in priority order:
+  //   1. initialPath passed in (usually the parent of the current field value)
+  //   2. last-browsed dir remembered in localStorage
+  //   3. empty string → server resolves to $HOME / --allow-path
+  // The server validates and 403s anything outside the allowed root, so a
+  // stale localStorage entry from a previous `synapse serve --allow-path`
+  // session can't escape the current root.
+  const [root, setRoot] = useState(() => {
+    if (initialPath) return initialPath;
+    try {
+      return localStorage.getItem(LAST_DIR_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [allowedRoot, setAllowedRoot] = useState<string>("");
   const [entries, setEntries] = useState<BrowseEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +38,17 @@ export default function ServerBrowseDialog({
         setAllowedRoot(r.allowed_root);
         setEntries(r.entries);
         setError(null);
+        // Persist the actual resolved path — not the user's input — so the
+        // next Browse opens right where they left off.
+        try { localStorage.setItem(LAST_DIR_KEY, r.root); } catch { /* ignore */ }
       })
-      .catch((e) => { setError(String(e)); setEntries([]); });
+      .catch((e) => {
+        setError(String(e));
+        setEntries([]);
+        // If the saved dir no longer exists or is outside the allowed root,
+        // wipe it so the next open starts from $HOME instead of failing.
+        try { localStorage.removeItem(LAST_DIR_KEY); } catch { /* ignore */ }
+      });
   }, [root]);
 
   const goUp = () => {

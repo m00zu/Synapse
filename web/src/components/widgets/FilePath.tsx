@@ -4,6 +4,16 @@ import type { WidgetContext } from "./Renderer";
 import { api } from "../../api/client";
 import ServerBrowseDialog from "../files/ServerBrowseDialog";
 
+/** Return the parent dir of *path* (POSIX-style). Empty input → empty out,
+ * which lets ServerBrowseDialog fall back to its last-remembered dir. */
+function parentDirOf(path: string): string {
+  if (!path) return "";
+  const trimmed = path.replace(/\/+$/, "");
+  const idx = trimmed.lastIndexOf("/");
+  if (idx <= 0) return "";
+  return trimmed.slice(0, idx);
+}
+
 export default function FilePath(
   { spec, ctx }: { spec: FilePathSpec; ctx: WidgetContext }
 ) {
@@ -48,8 +58,12 @@ export default function FilePath(
       </div>
       {browsing && (
         <ServerBrowseDialog
-          // Empty string → server resolves to $HOME (or --allow-path).
-          initialPath={value as string}
+          // If the field has a value, open to its containing directory
+          // (not the file itself — the server rejects file paths to
+          // /browse with 400 "path is not a directory"). Empty string
+          // falls through to the dialog's last-remembered dir, then
+          // $HOME on first run.
+          initialPath={parentDirOf(value as string)}
           onSelect={(p) => ctx.onChange(spec.prop, p)}
           onClose={() => setBrowsing(false)}
         />
