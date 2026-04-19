@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { api } from "../api/client";
 import type { NodeCategories, WidgetCatalog, WsEvent } from "../api/types";
 import { pushError } from "./toasts";
+import type { BubbleState } from "../ai/bubbleState";
+import { applyChatEvent } from "../ai/chatApi";
 
 export interface Node {
   id: string;
@@ -29,6 +31,7 @@ interface GraphState {
   runStatus: Record<string, "running" | "ok" | "error">;
   runActive: boolean;
   previewVersions: Record<string, number>; // key = `${nodeId}:${port}`
+  chatBubbles: BubbleState[];
 
   // Actions
   loadCatalog: () => Promise<void>;
@@ -46,6 +49,12 @@ interface GraphState {
   removeEdge: (e: Edge) => Promise<void>;
   select: (id: string | null) => void;
   applyWsEvent: (ev: WsEvent) => void;
+  toggleChipExpanded: (bubble_id: string, chip_id: string) => void;
+  clearChat: () => void;
+  applyChatWorkflow: (bubble_id: string) => Promise<void>;
+  discardChatWorkflow: (bubble_id: string) => void;
+  setChatProvider: (provider: string) => void;
+  setChatModel: (model: string) => void;
 }
 
 export const useGraph = create<GraphState>((set, get) => ({
@@ -59,6 +68,7 @@ export const useGraph = create<GraphState>((set, get) => ({
   runStatus: {},
   runActive: false,
   previewVersions: {},
+  chatBubbles: [],
 
   loadCatalog: async () => {
     set({ loading: true, error: null });
@@ -175,6 +185,10 @@ export const useGraph = create<GraphState>((set, get) => ({
   select: (id) => set({ selectedId: id }),
 
   applyWsEvent: (ev) => {
+    if (ev.kind.startsWith("chat_")) {
+      set({ chatBubbles: applyChatEvent(get().chatBubbles, ev) });
+      return;
+    }
     if (ev.kind === "node_started") {
       set({
         runStatus: { ...get().runStatus, [ev.node_id]: "running" },
@@ -199,4 +213,50 @@ export const useGraph = create<GraphState>((set, get) => ({
       });
     }
   },
+
+  toggleChipExpanded: (bubble_id, chip_id) => {
+    set({
+      chatBubbles: get().chatBubbles.map((b) => {
+        if (b.bubble_id !== bubble_id) return b;
+        const expanded = new Set(b.expanded_chips);
+        if (expanded.has(chip_id)) expanded.delete(chip_id);
+        else expanded.add(chip_id);
+        return { ...b, expanded_chips: expanded };
+      }),
+    });
+  },
+
+  clearChat: () => set({ chatBubbles: [] }),
+
+  applyChatWorkflow: async (bubble_id) => {
+    const b = get().chatBubbles.find((x) => x.bubble_id === bubble_id);
+    if (!b?.workflow) return;
+    // Replay the workflow JSON via direct /api/graph/* calls since we don't
+    // yet have /api/workflow/import wired on the frontend.
+    // Phase 1e scope: mark applied; a follow-up can do the real replay.
+    set({
+      chatBubbles: get().chatBubbles.map((x) =>
+        x.bubble_id === bubble_id && x.workflow
+          ? { ...x, workflow: { ...x.workflow, state: "applied" as const } }
+          : x
+      ),
+    });
+    // TODO Phase 2+: call a real /api/workflow/import-style endpoint.
+  },
+
+  discardChatWorkflow: (bubble_id) => {
+    set({
+      chatBubbles: get().chatBubbles.map((x) =>
+        x.bubble_id === bubble_id && x.workflow
+          ? { ...x, workflow: { ...x.workflow, state: "discarded" as const } }
+          : x
+      ),
+    });
+  },
+
+  // In-memory provider/model selection (default Ollama / gemma3:12b).
+  // These are managed as local React state in ChatPanel; these store actions
+  // are provided for completeness / future cross-component sync.
+  setChatProvider: (_provider) => { /* noop — ChatPanel owns this state */ },
+  setChatModel: (_model) => { /* noop — ChatPanel owns this state */ },
 }));
