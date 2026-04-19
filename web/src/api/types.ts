@@ -107,11 +107,18 @@ export type WsEvent =
 export type WidgetCatalog = Record<string, WidgetSpec[]>;
 
 // /api/nodes/categories response shape.
+export interface PortInfo {
+  name: string;
+  type: string; // e.g. "image", "table", "mask", "any"
+}
+
 export interface NodeCategoryInfo {
   identifier: string;
   category: string;
   /** Human-readable name from the node class's NODE_NAME attribute.
    * Falls back to the class name if not set. */
   display_name: string;
+  inputs: PortInfo[];
+  outputs: PortInfo[];
 }
 export type NodeCategories = Record<string, NodeCategoryInfo>;

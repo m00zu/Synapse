@@ -27,9 +27,11 @@ export default function GraphCanvas() {
     selected: n.id === selectedId,
   }));
   const rfEdges = edges.map((e, i) => ({
-    id: `e${i}:${e.src}-${e.dst}`,
+    id: `e${i}:${e.src}:${e.src_port ?? ""}-${e.dst}:${e.dst_port ?? ""}`,
     source: e.src,
     target: e.dst,
+    sourceHandle: e.src_port ?? null,
+    targetHandle: e.dst_port ?? null,
   }));
 
   const onDrop = useCallback((event: React.DragEvent) => {
@@ -44,9 +46,15 @@ export default function GraphCanvas() {
 
   const onConnect = useCallback((p: Connection) => {
     if (!p.source || !p.target) return;
-    addEdge({ src: p.source, dst: p.target }).catch((err) =>
-      console.error("addEdge failed:", err)
-    );
+    // sourceHandle / targetHandle are the port `id` values on SynapseNode's
+    // <Handle> components (= the port names). Server edge route accepts
+    // src_port / dst_port optional fields.
+    addEdge({
+      src: p.source,
+      dst: p.target,
+      src_port: p.sourceHandle ?? undefined,
+      dst_port: p.targetHandle ?? undefined,
+    }).catch((err) => console.error("addEdge failed:", err));
   }, [addEdge]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {

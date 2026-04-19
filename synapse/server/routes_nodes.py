@@ -50,12 +50,52 @@ async def get_nodes(request: Request) -> dict:
     return _get_catalog(request.app)
 
 
+def _port_list(cls, instance, side: str) -> list[dict]:
+    """Return ``[{name, type}]`` for the given side's ports.
+
+    Prefers the runtime port names from *instance* (what ``add_input`` /
+    ``add_output`` actually created), then resolves each port's type by
+    positionally matching against ``PORT_SPEC[side]``. Falls back to PORT_SPEC
+    alone if the instance isn't available. Mirrors the logic in
+    ``synapse.widgets.catalog._auto_preview_for``.
+    """
+    spec_side = (getattr(cls, "PORT_SPEC", None) or {}).get(side) or []
+    # Flatten PORT_SPEC entries to a name→type dict + positional order.
+    named: dict[str, str] = {}
+    types_in_order: list[str] = []
+    for p in spec_side:
+        if isinstance(p, dict):
+            n = p.get("name") or p.get("type") or ""
+            t = p.get("type") or ""
+        else:
+            n = p
+            t = p
+        types_in_order.append(t)
+        if n:
+            named[n] = t
+    if instance is not None:
+        try:
+            port_fn = instance.inputs if side == "inputs" else instance.outputs
+            runtime_names = list(port_fn().keys())
+        except Exception:
+            runtime_names = []
+        result: list[dict] = []
+        for i, name in enumerate(runtime_names):
+            t = named.get(name)
+            if t is None and i < len(types_in_order):
+                t = types_in_order[i]
+            result.append({"name": name, "type": t or "any"})
+        return result
+    # No instance — just emit what PORT_SPEC declared.
+    return [{"name": n, "type": t or "any"} for n, t in named.items()]
+
+
 @router.get("/nodes/categories")
 async def get_node_categories(request: Request) -> dict:
-    """Return ``{class_name: {identifier, category, display_name}}`` for every
-    registered node. Frontend uses this to group the palette and label nodes
-    with their human-readable names (from ``NODE_NAME``) instead of raw
-    Python class names."""
+    """Return ``{class_name: {identifier, category, display_name, inputs, outputs}}``
+    for every registered node. Frontend uses this to group the palette, label
+    nodes by ``NODE_NAME``, and render the correct number of handles per
+    side (one per port) with type-based colors."""
     # Reuse the same subclass walk that catalog uses.
     from synapse.widgets.catalog import (
         _iter_subclasses, _install_legacy_shims, _import_all_plugins,
@@ -67,9 +107,18 @@ async def get_node_categories(request: Request) -> dict:
     for cls in _iter_subclasses(BaseExecutionNode):
         ident = getattr(cls, "__identifier__", "") or ""
         display = getattr(cls, "NODE_NAME", "") or cls.__name__
+        # Try to instantiate so we see real runtime port names (e.g.
+        # SplitRGBNode's red/green/blue instead of PORT_SPEC's "image/image/image").
+        instance = None
+        try:
+            instance = cls()
+        except Exception:
+            pass
         out[cls.__name__] = {
             "identifier": ident,
             "category": _category_for(ident),
             "display_name": display,
+            "inputs": _port_list(cls, instance, "inputs"),
+            "outputs": _port_list(cls, instance, "outputs"),
         }
     return out

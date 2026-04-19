@@ -30,3 +30,16 @@ async def test_get_node_categories_returns_identifier_and_category(client):
     assert body["BarPlotNode"]["category"] == "Plot"
     # FileReadNode's NODE_NAME is "Table Reader" on desktop.
     assert body["FileReadNode"]["display_name"] == "Table Reader"
+
+
+@pytest.mark.asyncio
+async def test_get_node_categories_exposes_per_port_info(client):
+    resp = await client.get("/api/nodes/categories")
+    body = resp.json()
+    # SplitRGBNode has one image input and three image outputs
+    # (red, green, blue) — all should appear in the response.
+    split = body["SplitRGBNode"]
+    assert split["inputs"] == [{"name": "image", "type": "image"}]
+    out_names = [p["name"] for p in split["outputs"]]
+    assert out_names == ["red", "green", "blue"]
+    assert all(p["type"] == "image" for p in split["outputs"])
