@@ -77,6 +77,11 @@ def _write_image(value: Any, out: Path) -> None:
     # Normalize [0,1] floats to uint8 for Pillow.
     if a.dtype.kind == "f":
         a = (np.clip(a, 0.0, 1.0) * 255.0).astype("uint8")
+    # Booleans (mask outputs) → 0/255 grayscale.
+    elif a.dtype.kind == "b":
+        a = (a.astype("uint8") * 255)
+    # Integer label arrays (LabelData) → pass through; PIL maps int16/int32
+    # to mode "I" which still writes valid PNG.
     # Collapse multi-channel w/ only one to grayscale; trim RGBA alpha.
     if a.ndim == 3 and a.shape[2] == 1:
         a = a[..., 0]

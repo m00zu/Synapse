@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { ReactFlowProvider } from "@xyflow/react";
 import { useGraph } from "./store/graph";
 import { useWsEvents } from "./hooks/useWsEvents";
 import NodePalette from "./components/palette/NodePalette";
@@ -15,15 +16,20 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen">
-        <Toolbar />
-        <div className="flex flex-1 overflow-hidden">
-          <NodePalette />
-          <GraphCanvas />
-          <PropertiesPanel />
+      {/* ReactFlowProvider here (not just around GraphCanvas) lets useReactFlow
+          work inside GraphCanvas — which we need for screenToFlowPosition
+          so palette-drops land in flow coordinates (not viewport pixels). */}
+      <ReactFlowProvider>
+        <div className="flex flex-col h-screen">
+          <Toolbar />
+          <div className="flex flex-1 overflow-hidden">
+            <NodePalette />
+            <GraphCanvas />
+            <PropertiesPanel />
+          </div>
+          <Toasts />
         </div>
-        <Toasts />
-      </div>
+      </ReactFlowProvider>
     </ErrorBoundary>
   );
 }

@@ -17,11 +17,29 @@ from synapse.widgets.spec import spec_to_json, Preview
 
 logger = logging.getLogger(__name__)
 
-_PREVIEW_KINDS = {"image", "table", "figure"}
+# Map backend port types → Preview.preview_kind. Mask/skeleton/label_image
+# are image-like (2D arrays the _write_image serializer handles fine), so
+# they render via the ImagePreview React component.
+_TYPE_TO_PREVIEW_KIND = {
+    "image":       "image",
+    "mask":        "image",
+    "skeleton":    "image",
+    "label":       "image",
+    "label_image": "image",
+    "table":       "table",
+    "stat":        "table",
+    "figure":      "figure",
+}
+
+
+def _preview_kind_for(ptype: str) -> str | None:
+    """Return the Preview.preview_kind for a port type, or None if the type
+    isn't previewable (e.g. 'path', 'model', 'any')."""
+    return _TYPE_TO_PREVIEW_KIND.get(ptype)
 
 
 def _auto_preview_for(cls, instance=None) -> list:
-    """Emit one Preview spec per image/table/figure output port.
+    """Emit one Preview spec per previewable output port.
 
     Prefers the runtime port names from the instance (actual ports registered
     via add_output) over the PORT_SPEC type hints when available.  This handles
@@ -64,14 +82,17 @@ def _auto_preview_for(cls, instance=None) -> list:
                 ptype = type_by_spec_name.get(port_name)
                 if ptype is None and idx < len(spec_types_in_order):
                     ptype = spec_types_in_order[idx]
-                if ptype in _PREVIEW_KINDS:
-                    out.append(Preview(preview_kind=ptype, source=f"output:{port_name}"))
+                preview_kind = _preview_kind_for(ptype or "")
+                if preview_kind:
+                    out.append(Preview(preview_kind=preview_kind,
+                                        source=f"output:{port_name}"))
             return out
 
     # No instance (or no real ports found) — fall back to PORT_SPEC alone.
     for name, ptype in type_by_spec_name.items():
-        if ptype in _PREVIEW_KINDS:
-            out.append(Preview(preview_kind=ptype, source=f"output:{name}"))
+        preview_kind = _preview_kind_for(ptype)
+        if preview_kind:
+            out.append(Preview(preview_kind=preview_kind, source=f"output:{name}"))
     return out
 
 

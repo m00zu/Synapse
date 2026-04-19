@@ -1,5 +1,5 @@
 import {
-  ReactFlow, Background, Controls,
+  ReactFlow, Background, Controls, useReactFlow,
   type Connection, type NodeChange, type NodeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -18,6 +18,7 @@ export default function GraphCanvas() {
   const selectedId = useGraph((s) => s.selectedId);
   const setNodePos = useGraph((s) => s.setNodePos);
   const commitNodePos = useGraph((s) => s.commitNodePos);
+  const { screenToFlowPosition } = useReactFlow();
 
   const rfNodes = nodes.map((n) => ({
     id: n.id,
@@ -38,11 +39,14 @@ export default function GraphCanvas() {
     event.preventDefault();
     const type = event.dataTransfer.getData("application/x-synapse-node");
     if (!type) return;
-    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = event.clientX - bounds.left;
-    const y = event.clientY - bounds.top;
-    addNode(type, x, y).catch((err) => console.error("addNode failed:", err));
-  }, [addNode]);
+    // Convert viewport pixel coordinates to flow coordinates so the drop
+    // lands where the cursor actually is — regardless of current pan/zoom.
+    // Without this, every drop after an auto-fitView stacked up near origin.
+    const flow = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    addNode(type, flow.x, flow.y).catch((err) =>
+      console.error("addNode failed:", err)
+    );
+  }, [addNode, screenToFlowPosition]);
 
   const onConnect = useCallback((p: Connection) => {
     if (!p.source || !p.target) return;

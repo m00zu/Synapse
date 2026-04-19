@@ -72,7 +72,24 @@ def test_filereadnode_has_table_preview(catalog):
 
 
 # ---------------------------------------------------------------------------
-# Test 3: At least one node in the catalog has no Preview spec
+# Test 3: Mask-typed output ports get a preview (rendered as image on web)
+# ---------------------------------------------------------------------------
+
+def test_mask_output_gets_image_preview(catalog):
+    """Nodes whose output port type is 'mask' (BinaryThresholdNode,
+    ThresholdLocalNode, FillHolesNode, …) should emit a Preview spec with
+    preview_kind='image' because MaskData is an ImageData subclass and
+    serializes as a 0/255 grayscale PNG."""
+    thresh = catalog["BinaryThresholdNode"]
+    previews = [s for s in thresh if s["kind"] == "Preview"]
+    assert any(p["preview_kind"] == "image" for p in previews), (
+        f"BinaryThresholdNode should have an image Preview for its mask "
+        f"output; got: {previews}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test 4: At least one node in the catalog has no Preview spec
 # ---------------------------------------------------------------------------
 
 def test_non_preview_node_has_no_preview(catalog):
