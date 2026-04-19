@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from NodeGraphQt import NodeGraph
 
@@ -126,6 +126,10 @@ class SessionState:
         self.bus = EventBus()
         self.executor = None
         self._closed = False
+        # Chat slot — lazily attached by routes_chat.start_turn. History persists
+        # for the session's lifetime (not across server restarts — Phase 2+).
+        self.chat_session = None  # type: Optional[Any]
+        self.chat_history: list[dict] = []
 
     async def aclose(self) -> None:
         if self._closed:
