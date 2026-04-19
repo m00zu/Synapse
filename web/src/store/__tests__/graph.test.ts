@@ -19,7 +19,10 @@ const server = setupServer(
 beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
-  useGraph.setState({ catalog: null, nodes: [], edges: [], selectedId: null });
+  useGraph.setState({
+    catalog: null, nodes: [], edges: [], selectedId: null,
+    runStatus: {}, runActive: false,
+  });
 });
 afterAll(() => server.close());
 
@@ -53,5 +56,26 @@ describe("graph store", () => {
     await useGraph.getState().removeNode(a);
     expect(useGraph.getState().edges).toEqual([]);
     expect(useGraph.getState().selectedId).toBeNull();
+  });
+});
+
+describe("WS events", () => {
+  it("node_started sets runStatus=running", () => {
+    useGraph.getState().applyWsEvent({ kind: "node_started", node_id: "a" });
+    expect(useGraph.getState().runStatus.a).toBe("running");
+    expect(useGraph.getState().runActive).toBe(true);
+  });
+
+  it("node_finished sets runStatus to ok or error", () => {
+    useGraph.getState().applyWsEvent({ kind: "node_finished", node_id: "a", success: true });
+    expect(useGraph.getState().runStatus.a).toBe("ok");
+    useGraph.getState().applyWsEvent({ kind: "node_finished", node_id: "b", success: false, error: "boom" });
+    expect(useGraph.getState().runStatus.b).toBe("error");
+  });
+
+  it("run_finished clears runActive", () => {
+    useGraph.getState().applyWsEvent({ kind: "node_started", node_id: "a" });
+    useGraph.getState().applyWsEvent({ kind: "run_finished", run_id: "x1" });
+    expect(useGraph.getState().runActive).toBe(false);
   });
 });

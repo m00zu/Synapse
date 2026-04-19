@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { api } from "../api/client";
-import type { WidgetCatalog } from "../api/types";
+import type { WidgetCatalog, WsEvent } from "../api/types";
 
 export interface Node {
   id: string;
@@ -24,6 +24,8 @@ interface GraphState {
   selectedId: string | null;
   loading: boolean;
   error: string | null;
+  runStatus: Record<string, "running" | "ok" | "error">;
+  runActive: boolean;
 
   // Actions
   loadCatalog: () => Promise<void>;
@@ -34,6 +36,7 @@ interface GraphState {
   addEdge: (e: Edge) => Promise<void>;
   removeEdge: (e: Edge) => Promise<void>;
   select: (id: string | null) => void;
+  applyWsEvent: (ev: WsEvent) => void;
 }
 
 export const useGraph = create<GraphState>((set, get) => ({
@@ -43,6 +46,8 @@ export const useGraph = create<GraphState>((set, get) => ({
   selectedId: null,
   loading: false,
   error: null,
+  runStatus: {},
+  runActive: false,
 
   loadCatalog: async () => {
     set({ loading: true, error: null });
@@ -111,4 +116,23 @@ export const useGraph = create<GraphState>((set, get) => ({
   },
 
   select: (id) => set({ selectedId: id }),
+
+  applyWsEvent: (ev) => {
+    if (ev.kind === "node_started") {
+      set({
+        runStatus: { ...get().runStatus, [ev.node_id]: "running" },
+        runActive: true,
+      });
+    } else if (ev.kind === "node_finished") {
+      set({
+        runStatus: {
+          ...get().runStatus,
+          [ev.node_id]: ev.success ? "ok" : "error",
+        },
+      });
+    } else if (ev.kind === "run_finished") {
+      set({ runActive: false });
+    }
+    // node_progress + preview_available: ignored in Phase 1c
+  },
 }));
