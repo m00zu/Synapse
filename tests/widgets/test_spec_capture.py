@@ -196,6 +196,16 @@ def test_python_script_node_emits_custom_editor_spec():
                 sys.modules[_alias] = _orig  # type: ignore[assignment]
 
 
+def test_data_table_cell_emits_custom_cell_spec():
+    from synapse.nodes.display_nodes import DataTableCellNode
+    from synapse.widgets.spec import Custom
+    n = DataTableCellNode()
+    spec = n.get_widget_spec()
+    customs = [s for s in spec if isinstance(s, Custom)
+               and s.component_id == "data_table_cell"]
+    assert len(customs) == 1
+
+
 def test_filereadnode_captures_filepath_and_separator():
     """Integration: a real FileReadNode's spec should include BOTH the path
     FilePath and the separator TextField."""

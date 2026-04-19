@@ -204,6 +204,12 @@ class DataTableCellNode(BaseExecutionNode):
 
         self._table_widget = NodeTableWidget(self.view)
         self.add_custom_widget(self._table_widget, tab='View')
+        # Web panel: render as a wider TablePreview via the custom component.
+        from synapse.widgets.spec import Custom as _Custom
+        self._spec_builder.append(_Custom(
+            component_id="data_table_cell",
+            props={},
+        ))
 
     def evaluate(self):
         self.reset_progress()

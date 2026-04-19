@@ -1,8 +1,15 @@
-// data_table_cell.tsx (Task 4 stub; Task 6 replaces)
 import type { CustomSpec } from "../../api/types";
 import type { WidgetContext } from "../widgets/Renderer";
+import TablePreview from "../preview/TablePreview";
+
 export default function DataTableCell(
-  { spec: _spec, ctx: _ctx }: { spec: CustomSpec; ctx: WidgetContext }
+  { spec: _spec, ctx }: { spec: CustomSpec; ctx: WidgetContext }
 ) {
-  return <div className="text-xs text-fg/50 italic p-2">Data table cell (Task 6)</div>;
+  // DataTableCellNode displays its table input. The generic Preview widget
+  // at the output port serves the same purpose; this just wraps it wider.
+  return (
+    <div className="min-w-[360px]">
+      <TablePreview nodeId={ctx.nodeId} port="out" />
+    </div>
+  );
 }
