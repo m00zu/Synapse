@@ -54,10 +54,21 @@ async def upload(file: UploadFile = File(...)) -> dict:
 
 
 @router.get("/browse")
-async def browse(request: Request, path: str) -> dict:
-    """Directory listing, rooted at $HOME (or --allow-path). Path-traversal guarded."""
+async def browse(request: Request, path: str = "") -> dict:
+    """Directory listing, rooted at $HOME (or --allow-path). Path-traversal guarded.
+
+    Empty path / "/" / "~" are sugar for "start at the allowed root" — the
+    frontend has no way to know the server's $HOME ahead of time, so it
+    asks for "" and we resolve it here.
+
+    The response includes ``allowed_root`` so the frontend can clamp its
+    "go up" navigation (don't let the user step above the allowed root).
+    """
     root = _allowed_root(request)
-    p = Path(path).resolve()
+    if not path or path in ("/", "~"):
+        p = root
+    else:
+        p = Path(path).resolve()
     try:
         p.relative_to(root)
     except ValueError:
@@ -73,7 +84,7 @@ async def browse(request: Request, path: str) -> dict:
             "is_dir": child.is_dir(),
             "path": str(child),
         })
-    return {"root": str(p), "entries": entries}
+    return {"root": str(p), "allowed_root": str(root), "entries": entries}
 
 
 @router.get("/preview/{node_id}/{port}")

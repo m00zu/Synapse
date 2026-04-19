@@ -10,20 +10,38 @@ export default function ServerBrowseDialog({
   onSelect: (path: string) => void;
   onClose: () => void;
 }) {
-  const [root, setRoot] = useState(initialPath || "/");
+  // Empty string tells the server: "start at the allowed root". The server
+  // returns the real resolved path in r.root and the allowed root in
+  // r.allowed_root so we can clamp "go up" navigation.
+  const [root, setRoot] = useState(initialPath);
+  const [allowedRoot, setAllowedRoot] = useState<string>("");
   const [entries, setEntries] = useState<BrowseEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.browseDir(root)
-      .then((r) => { setRoot(r.root); setEntries(r.entries); setError(null); })
+      .then((r) => {
+        setRoot(r.root);
+        setAllowedRoot(r.allowed_root);
+        setEntries(r.entries);
+        setError(null);
+      })
       .catch((e) => { setError(String(e)); setEntries([]); });
   }, [root]);
 
   const goUp = () => {
+    // Don't go above the allowed root — the server would 403 anyway.
+    if (allowedRoot && root === allowedRoot) return;
     const parent = root.split("/").slice(0, -1).join("/") || "/";
-    setRoot(parent);
+    // If the computed parent would escape the allowed root, clamp to root.
+    if (allowedRoot && !parent.startsWith(allowedRoot)) {
+      setRoot(allowedRoot);
+    } else {
+      setRoot(parent);
+    }
   };
+
+  const atRoot = !!allowedRoot && root === allowedRoot;
 
   return (
     <div
@@ -35,7 +53,7 @@ export default function ServerBrowseDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-2">
-          <div className="text-xs text-fg/60 font-mono truncate">{root}</div>
+          <div className="text-xs text-fg/60 font-mono truncate">{root || "(resolving…)"}</div>
           <button onClick={onClose}
                   className="text-xs text-fg/60 hover:text-fg">✕</button>
         </div>
@@ -43,8 +61,10 @@ export default function ServerBrowseDialog({
           <div className="text-xs text-red-400 p-2">{error}</div>
         ) : (
           <ul className="overflow-y-auto max-h-[50vh] text-sm">
-            <li className="px-2 py-1 hover:bg-bg cursor-pointer"
-                onClick={goUp}>📁 ..</li>
+            {!atRoot && (
+              <li className="px-2 py-1 hover:bg-bg cursor-pointer"
+                  onClick={goUp}>📁 ..</li>
+            )}
             {entries.map((e) => (
               <li key={e.path}
                   className="px-2 py-1 hover:bg-bg cursor-pointer flex justify-between"

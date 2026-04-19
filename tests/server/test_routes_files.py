@@ -53,6 +53,21 @@ async def test_browse_rejects_path_traversal(client, tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_browse_empty_path_resolves_to_allowed_root(client, tmp_path, monkeypatch):
+    """Empty path / '/' / '~' are sugar for 'start at the allowed root'."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (tmp_path / "hello.txt").write_text("hi")
+    for p in ("", "/", "~"):
+        resp = await client.get(f"/api/files/browse?path={p}")
+        assert resp.status_code == 200, f"path={p!r} failed: {resp.text}"
+        body = resp.json()
+        # Response includes allowed_root so the frontend can clamp.
+        assert body["allowed_root"]
+        names = {e["name"] for e in body["entries"]}
+        assert "hello.txt" in names
+
+
+@pytest.mark.asyncio
 async def test_preview_stub_returns_404(client):
     resp = await client.get("/api/files/preview/nX/port0")
     assert resp.status_code == 404

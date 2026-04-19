@@ -64,9 +64,11 @@ export const api = {
     return (await r.json()) as { server_path: string };
   },
   browseDir: (path: string) =>
-    jfetch<{ root: string; entries: { name: string; is_dir: boolean; path: string }[] }>(
-      `/api/files/browse?path=${encodeURIComponent(path)}`
-    ),
+    jfetch<{
+      root: string;
+      allowed_root: string;
+      entries: { name: string; is_dir: boolean; path: string }[];
+    }>(`/api/files/browse?path=${encodeURIComponent(path)}`),
 
   // WebSocket — reconnects with jittered backoff on close.
   openWs: (onEvent: (ev: WsEvent) => void): { close: () => void } => {

@@ -48,7 +48,8 @@ export default function FilePath(
       </div>
       {browsing && (
         <ServerBrowseDialog
-          initialPath={(value as string) || "/"}
+          // Empty string → server resolves to $HOME (or --allow-path).
+          initialPath={value as string}
           onSelect={(p) => ctx.onChange(spec.prop, p)}
           onClose={() => setBrowsing(false)}
         />
