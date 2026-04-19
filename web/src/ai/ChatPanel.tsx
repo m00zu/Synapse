@@ -12,7 +12,12 @@ export default function ChatPanel() {
   const [providers, setProviders] = useState<ChatProvider[]>([]);
   const [provider, setProvider] = useState("Ollama");
   const [model, setModel] = useState("gemma3:12b");
-  const [busy, setBusy] = useState(false);
+
+  // `streaming` is driven by store state, not a local flag. The /api/chat/turn
+  // POST returns almost immediately (it kicks off a daemon thread server-side),
+  // so a local `busy` flag would clear before any token arrived — making the
+  // Stop button useless. Watch the last assistant bubble instead.
+  const streaming = bubbles.some((b) => b.role === "assistant" && b.streaming);
 
   useEffect(() => {
     api.listProviders().then((r) => setProviders(r.providers)).catch(() => {});
@@ -20,16 +25,16 @@ export default function ChatPanel() {
 
   const send = async () => {
     const t = text.trim();
-    if (!t || busy) return;
-    setText(""); setBusy(true);
+    if (!t || streaming) return;
+    setText("");
     try {
       await api.startChatTurn({ user_text: t, provider, model });
-    } finally {
-      setBusy(false);
+    } catch (e) {
+      console.error("startChatTurn failed:", e);
     }
   };
 
-  const stop = () => { api.stopChatTurn(); };
+  const stop = () => { api.stopChatTurn().catch(() => {}); };
 
   return (
     <div className="flex flex-col h-full">
@@ -57,7 +62,7 @@ export default function ChatPanel() {
         />
         <div className="flex flex-col gap-1">
           <button
-            onClick={send} disabled={busy || !text.trim()}
+            onClick={send} disabled={streaming || !text.trim()}
             className="px-3 py-1 bg-accent text-bg text-xs rounded disabled:opacity-50"
           >
             Send
@@ -65,7 +70,7 @@ export default function ChatPanel() {
           <button
             onClick={stop}
             className="px-3 py-1 bg-red-700 text-white text-xs rounded disabled:opacity-50"
-            disabled={!busy}
+            disabled={!streaming}
           >
             Stop
           </button>

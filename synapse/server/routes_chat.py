@@ -69,16 +69,23 @@ async def start_turn(request: Request, body: TurnReq) -> dict:
     client = _build_client(body.provider, model=body.model)
     if client is None:
         raise HTTPException(status_code=400, detail=f"unknown provider: {body.provider}")
-    dispatcher = _build_dispatcher_for_graph(session.graph, client=client)
+    # Tool handlers (modify_workflow, generate_workflow, write_python_script)
+    # expect the full NodeGraphQt NodeGraph surface — create_node,
+    # registered_nodes, remove_node(node_obj). Pass the underlying
+    # NodeGraph rather than the NodeGraphHeadless façade.
+    dispatcher = _build_dispatcher_for_graph(session.graph.node_graph, client=client)
 
-    # Conversation history: for Phase 1e we keep history per-session in memory.
-    # Persisted history lands in Phase 2+ when we add workflow save/load.
-    history = session.chat_history
+    # Conversation history: kick off the turn with a COPY. Otherwise the
+    # orchestrator mutates session.chat_history in place (appends user +
+    # provider-specific tool_use/tool_result blocks) which would corrupt
+    # the history for subsequent turns under different providers.
     turn_id = session.chat_session.start_turn(
         user_text=body.user_text, client=client,
-        dispatcher=dispatcher, history=history,
+        dispatcher=dispatcher, history=list(session.chat_history),
     )
-    history.append({"role": "user", "content": body.user_text})
+    # Persist only the user message to session history here; the assistant's
+    # final prose is appended by WebChatSession when the turn completes.
+    session.chat_history.append({"role": "user", "content": body.user_text})
     return {"turn_id": turn_id}
 
 
