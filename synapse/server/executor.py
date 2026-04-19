@@ -28,6 +28,21 @@ class Executor:
             yield {"kind": "node_finished", "node_id": node.id,
                    "success": bool(success),
                    "error": None if success else (err or "evaluate failed")}
+            if success:
+                try:
+                    from synapse.server.previews import write_previews
+                    output_values = getattr(node, "output_values", {}) or {}
+                    written = await asyncio.to_thread(
+                        write_previews, node.id, output_values, self._s.preview_dir,
+                    )
+                except Exception as exc:  # defensive — preview failures must not kill the run
+                    written = []
+                    import logging; logging.getLogger(__name__).warning(
+                        "preview write failed for %s: %s", node.id, exc,
+                    )
+                for w in written:
+                    yield {"kind": "preview_available",
+                           "node_id": node.id, "port": w["port"], "preview_kind": w["kind"]}
 
 
 async def run_graph(session) -> AsyncIterator[dict]:

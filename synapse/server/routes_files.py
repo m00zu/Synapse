@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
@@ -76,7 +77,20 @@ async def browse(request: Request, path: str) -> dict:
 
 
 @router.get("/preview/{node_id}/{port}")
-async def preview(request: Request, node_id: str, port: str) -> dict:
-    """Phase 1b stub. Real preview emission ships in Phase 1c alongside
-    React display-node rendering."""
-    raise HTTPException(status_code=404, detail="preview not yet implemented (Phase 1c)")
+async def preview(request: Request, node_id: str, port: str):
+    """Return the latest preview for (node_id, port).
+
+    Images and figures are PNG; tables are JSON. Missing previews return 404.
+    """
+    session = request.app.state.session
+    base = session.preview_dir
+    # Try both extensions; tables are .json, images/figures are .png.
+    for ext, media, as_json in (("png", "image/png", False),
+                                 ("json", "application/json", True)):
+        candidate = base / f"{node_id}__{port}.{ext}"
+        if candidate.is_file():
+            if as_json:
+                import json as _json
+                return JSONResponse(_json.loads(candidate.read_text("utf-8")))
+            return FileResponse(candidate, media_type=media)
+    raise HTTPException(status_code=404, detail="no preview")
