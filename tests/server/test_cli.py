@@ -40,16 +40,20 @@ def test_run_calls_uvicorn_with_app_and_args():
 def test_run_opens_browser_by_default():
     with patch("synapse.server.cli.uvicorn.run") as mock_run, \
          patch("synapse.server.cli.webbrowser.open") as mock_open, \
-         patch("synapse.server.cli.threading.Timer") as mock_timer:
-        # Make threading.Timer synchronous so the browser-open callback runs
-        # immediately during the test instead of after a real 0.8s delay.
-        class _ImmediateTimer:
-            def __init__(self, _seconds, func):
-                self._func = func
+         patch("synapse.server.cli.threading.Thread") as mock_thread:
+        # Make threading.Thread synchronous so the poll-and-open runs inline.
+        class _ImmediateThread:
+            def __init__(self, target, args=(), kwargs=None, daemon=None):
+                self._fn = target
+                self._args = args
+                self._kwargs = kwargs or {}
             def start(self):
-                self._func()
-        mock_timer.side_effect = _ImmediateTimer
-        run(["--port", "9999"])
+                self._fn(*self._args, **self._kwargs)
+        mock_thread.side_effect = _ImmediateThread
+        # Short-circuit the port-poll: pretend the port is instantly reachable.
+        with patch("synapse.server.cli.socket.create_connection") as mock_conn:
+            mock_conn.return_value.__enter__.return_value = object()
+            run(["--port", "9999"])
     mock_open.assert_called_once()
     url = mock_open.call_args.args[0]
     assert url.startswith("http://127.0.0.1:9999")

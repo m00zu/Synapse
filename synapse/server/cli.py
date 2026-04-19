@@ -5,6 +5,7 @@ import argparse
 import os
 import socket
 import threading
+import time
 import webbrowser
 
 import uvicorn
@@ -31,8 +32,13 @@ def run(argv: list[str] | None = None) -> None:
     port = args.port or _pick_free_port(args.host)
     url = f"http://{args.host}:{port}"
     if not args.no_browser:
-        # Delay browser open until uvicorn has had a moment to bind.
-        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
+        # Poll the port until uvicorn is accepting connections, THEN open
+        # the browser. A fixed Timer races with the lifespan hook (imports
+        # PySide6 + builds the widget catalog, ~3 s cold) and results in a
+        # "can't connect" splash on first launch.
+        threading.Thread(
+            target=_open_when_ready, args=(args.host, port, url), daemon=True,
+        ).start()
     # Stash CLI options on the app for the lifespan hook to consume.
     if args.allow_path:
         os.environ["SYNAPSE_ALLOW_PATH"] = args.allow_path
@@ -51,6 +57,20 @@ def _pick_free_port(host: str) -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, 0))
         return s.getsockname()[1]
+
+
+def _open_when_ready(host: str, port: int, url: str, timeout: float = 30.0) -> None:
+    """Poll TCP connect to (host, port) until it succeeds, then open the
+    browser. Gives up after *timeout* seconds to avoid hanging a background
+    thread on a stuck startup."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.2):
+                webbrowser.open(url)
+                return
+        except OSError:
+            time.sleep(0.1)
 
 
 def main() -> None:
