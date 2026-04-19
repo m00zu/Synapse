@@ -204,6 +204,12 @@ class DataTableCellNode(BaseExecutionNode):
 
         self._table_widget = NodeTableWidget(self.view)
         self.add_custom_widget(self._table_widget, tab='View')
+        # Web panel: render as a wider TablePreview via the custom component.
+        from synapse.widgets.spec import Custom as _Custom
+        self._spec_builder.append(_Custom(
+            component_id="data_table_cell",
+            props={},
+        ))
 
     def evaluate(self):
         self.reset_progress()
@@ -220,6 +226,15 @@ class DataTableCellNode(BaseExecutionNode):
 
         data = in_values[0] if in_values else None
         self.set_display(data)
+        # Route the received table through a virtual "out" port so the web
+        # preview pipeline (synapse.server.previews.write_previews) has
+        # something to serialize. Desktop ignores this — only the web
+        # catalog's auto-Preview reader and the DataTableCell React
+        # component consume it.
+        if isinstance(data, pd.DataFrame):
+            self.output_values['out'] = TableData(payload=data)
+        else:
+            self.output_values.pop('out', None)
         self.mark_clean()
         return True, None
 
@@ -252,6 +267,13 @@ class DataFigureCellNode(BaseExecutionNode):
 
         self._figure_widget = NodeImageWidget(self.view)
         self.add_custom_widget(self._figure_widget, tab='View')
+        # Web: mirror the figure on a virtual output preview. PORT_SPEC has
+        # no outputs, so the auto-Preview resolver won't help — emit it
+        # directly. evaluate() populates output_values['out'].
+        from synapse.widgets.spec import Preview as _Preview
+        self._spec_builder.append(_Preview(
+            preview_kind="figure", source="output:out",
+        ))
 
     def evaluate(self):
         self.reset_progress()
@@ -277,6 +299,15 @@ class DataFigureCellNode(BaseExecutionNode):
             return False, 'Input must be FigureData'
 
         self.set_display(data)
+        # Expose the figure on a virtual "out" port so the web preview
+        # pipeline can serialize it. Desktop ignores this.
+        try:
+            if isinstance(up_val, FigureData):
+                self.output_values['out'] = up_val
+            else:
+                self.output_values['out'] = FigureData(payload=data)
+        except Exception:
+            self.output_values.pop('out', None)
         self.mark_clean()
         return True, None
 
@@ -352,6 +383,13 @@ class ImageCellNode(BaseExecutionNode):
 
         self._image_widget = NodeImageWidget(self.view)
         self.add_custom_widget(self._image_widget, tab='View')
+        # Web: emit a Preview spec pointing at the virtual "out" port that
+        # evaluate() populates. PORT_SPEC has no outputs so the auto-Preview
+        # resolver wouldn't emit one.
+        from synapse.widgets.spec import Preview as _Preview
+        self._spec_builder.append(_Preview(
+            preview_kind="image", source="output:out",
+        ))
 
     def evaluate(self):
         from data_models import ImageData, LabelData
@@ -379,6 +417,13 @@ class ImageCellNode(BaseExecutionNode):
                     data = np.asarray(inner)
 
         self.set_display(data)
+        # Route to a virtual "out" port for the web preview pipeline.
+        if isinstance(data, np.ndarray):
+            self.output_values['out'] = ImageData(payload=data)
+        elif isinstance(data, Image.Image):
+            self.output_values['out'] = ImageData(payload=np.asarray(data))
+        else:
+            self.output_values.pop('out', None)
         self.mark_clean()
         return True, None
 

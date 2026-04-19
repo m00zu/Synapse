@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { api } from "../api/client";
 import type { NodeCategories, WidgetCatalog, WsEvent } from "../api/types";
+import { pushError } from "./toasts";
 
 export interface Node {
   id: string;
@@ -27,6 +28,7 @@ interface GraphState {
   error: string | null;
   runStatus: Record<string, "running" | "ok" | "error">;
   runActive: boolean;
+  previewVersions: Record<string, number>; // key = `${nodeId}:${port}`
 
   // Actions
   loadCatalog: () => Promise<void>;
@@ -56,6 +58,7 @@ export const useGraph = create<GraphState>((set, get) => ({
   error: null,
   runStatus: {},
   runActive: false,
+  previewVersions: {},
 
   loadCatalog: async () => {
     set({ loading: true, error: null });
@@ -66,6 +69,7 @@ export const useGraph = create<GraphState>((set, get) => ({
       ]);
       set({ catalog, categories, loading: false });
     } catch (e) {
+      pushError(`Load catalog failed: ${e}`);
       set({ error: String(e), loading: false });
     }
   },
@@ -78,37 +82,52 @@ export const useGraph = create<GraphState>((set, get) => ({
   },
 
   addNode: async (type, x = 0, y = 0) => {
-    const { id } = await api.addNode({ type, x, y });
-    // Use catalog default props for the optimistic client-side copy.
-    const cat = get().catalog;
-    const specs = cat?.[type] ?? [];
-    const props: Record<string, unknown> = {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const walk = (s: any) => {
-      if (s.children) s.children.forEach(walk);
-      else if ("prop" in s) props[s.prop] = s.default;
-    };
-    specs.forEach(walk);
-    set({ nodes: [...get().nodes, { id, type, x, y, props }] });
-    return id;
+    try {
+      const { id } = await api.addNode({ type, x, y });
+      // Use catalog default props for the optimistic client-side copy.
+      const cat = get().catalog;
+      const specs = cat?.[type] ?? [];
+      const props: Record<string, unknown> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const walk = (s: any) => {
+        if (s.children) s.children.forEach(walk);
+        else if ("prop" in s) props[s.prop] = s.default;
+      };
+      specs.forEach(walk);
+      set({ nodes: [...get().nodes, { id, type, x, y, props }] });
+      return id;
+    } catch (e) {
+      pushError(`Add node failed: ${e}`);
+      throw e;
+    }
   },
 
   removeNode: async (id) => {
-    await api.deleteNode(id);
-    set({
-      nodes: get().nodes.filter((n) => n.id !== id),
-      edges: get().edges.filter((e) => e.src !== id && e.dst !== id),
-      selectedId: get().selectedId === id ? null : get().selectedId,
-    });
+    try {
+      await api.deleteNode(id);
+      set({
+        nodes: get().nodes.filter((n) => n.id !== id),
+        edges: get().edges.filter((e) => e.src !== id && e.dst !== id),
+        selectedId: get().selectedId === id ? null : get().selectedId,
+      });
+    } catch (e) {
+      pushError(`Remove node failed: ${e}`);
+      throw e;
+    }
   },
 
   patchProp: async (id, prop, value) => {
-    await api.patchProps(id, { [prop]: value });
-    set({
-      nodes: get().nodes.map((n) =>
-        n.id === id ? { ...n, props: { ...n.props, [prop]: value } } : n
-      ),
-    });
+    try {
+      await api.patchProps(id, { [prop]: value });
+      set({
+        nodes: get().nodes.map((n) =>
+          n.id === id ? { ...n, props: { ...n.props, [prop]: value } } : n
+        ),
+      });
+    } catch (e) {
+      pushError(`Patch prop failed: ${e}`);
+      throw e;
+    }
   },
 
   setNodePos: (id, x, y) => {
@@ -123,23 +142,34 @@ export const useGraph = create<GraphState>((set, get) => ({
     try {
       await api.patchPos(id, n.x, n.y);
     } catch (e) {
+      pushError(`Commit position failed: ${e}`);
       console.error(`patchPos(${id}) failed:`, e);
     }
   },
 
   addEdge: async (e) => {
-    await api.connect(e);
-    set({ edges: [...get().edges, e] });
+    try {
+      await api.connect(e);
+      set({ edges: [...get().edges, e] });
+    } catch (err) {
+      pushError(`Add edge failed: ${err}`);
+      throw err;
+    }
   },
 
   removeEdge: async (e) => {
-    await api.disconnect(e);
-    set({
-      edges: get().edges.filter(
-        (x) => !(x.src === e.src && x.dst === e.dst &&
-                 x.src_port === e.src_port && x.dst_port === e.dst_port)
-      ),
-    });
+    try {
+      await api.disconnect(e);
+      set({
+        edges: get().edges.filter(
+          (x) => !(x.src === e.src && x.dst === e.dst &&
+                   x.src_port === e.src_port && x.dst_port === e.dst_port)
+        ),
+      });
+    } catch (err) {
+      pushError(`Remove edge failed: ${err}`);
+      throw err;
+    }
   },
 
   select: (id) => set({ selectedId: id }),
@@ -159,7 +189,14 @@ export const useGraph = create<GraphState>((set, get) => ({
       });
     } else if (ev.kind === "run_finished") {
       set({ runActive: false });
+    } else if (ev.kind === "preview_available") {
+      const key = `${ev.node_id}:${ev.port}`;
+      set({
+        previewVersions: {
+          ...get().previewVersions,
+          [key]: (get().previewVersions[key] ?? 0) + 1,
+        },
+      });
     }
-    // node_progress + preview_available: ignored in Phase 1c
   },
 }));

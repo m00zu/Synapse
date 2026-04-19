@@ -68,13 +68,57 @@ export const api = {
       `/api/files/browse?path=${encodeURIComponent(path)}`
     ),
 
-  // WebSocket
-  openWs: (onEvent: (ev: WsEvent) => void) => {
-    // Mirror the page's protocol so HTTPS deployments don't hit
-    // mixed-content blocks on the WS upgrade.
+  // WebSocket — reconnects with jittered backoff on close.
+  openWs: (onEvent: (ev: WsEvent) => void): { close: () => void } => {
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${proto}//${window.location.host}/api/ws`);
-    ws.onmessage = (m) => onEvent(JSON.parse(m.data) as WsEvent);
-    return ws;
+    const url = `${proto}//${window.location.host}/api/ws`;
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let closed = false;
+    // Track whether we've ever been connected + are currently connected.
+    // Use these to emit one disconnect toast (not a spam per reconnect
+    // attempt) and one reconnect toast when we actually recover.
+    let hasBeenOpen = false;
+    let isOpen = false;
+
+    const connect = () => {
+      if (closed) return;
+      ws = new WebSocket(url);
+      ws.onopen = () => {
+        const wasReconnect = hasBeenOpen && !isOpen;
+        hasBeenOpen = true;
+        isOpen = true;
+        if (wasReconnect) {
+          void import("../store/toasts").then(({ useToasts }) => {
+            useToasts.getState().push({ kind: "info", text: "Reconnected to server" });
+          });
+        }
+      };
+      ws.onmessage = (m) => onEvent(JSON.parse(m.data) as WsEvent);
+      ws.onclose = () => {
+        if (closed) return;
+        const wasOpen = isOpen;
+        isOpen = false;
+        if (wasOpen && hasBeenOpen) {
+          void import("../store/toasts").then(({ useToasts }) => {
+            useToasts.getState().push({
+              kind: "error",
+              text: "Disconnected from server, reconnecting…",
+            });
+          });
+        }
+        const jitter = 500 + Math.random() * 1000;
+        reconnectTimer = setTimeout(connect, jitter);
+      };
+    };
+
+    connect();
+    return {
+      close: () => {
+        closed = true;
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        ws?.close();
+      },
+    };
   },
 };
