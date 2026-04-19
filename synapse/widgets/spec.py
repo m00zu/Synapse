@@ -19,8 +19,14 @@ from typing import Any, Literal, Optional
 
 @dataclass
 class WidgetSpec:
-    """Base class. Subclasses set ``kind`` via a class attribute."""
+    """Base class. Subclasses set ``kind`` via a class attribute.
+
+    ``tab`` is an optional grouping hint: multiple sibling specs that share
+    the same ``tab`` value should render inside one tab panel. Empty string
+    means "main card" (no tab).
+    """
     kind: str = field(init=False)
+    tab: str = field(default="", kw_only=True)
 
 
 # ---------------------------------------------------------------------------

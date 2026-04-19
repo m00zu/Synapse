@@ -18,3 +18,13 @@ markdown>=3.6
 pygments>=2.17
 tabulate>=0.9
 fpdf2>=2.8.7
+
+# --- Web (Phase 1b) ---
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-multipart>=0.0.18
+
+# --- Test deps (Phase 1b) ---
+httpx>=0.27
+websockets>=13
+pytest-asyncio>=0.24

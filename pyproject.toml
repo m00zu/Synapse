@@ -46,6 +46,7 @@ dev = ["mkdocs", "mkdocs-material", "pymdown-extensions", "pytest>=8.0"]
 
 [project.scripts]
 synapse = "synapse.app:main"
+synapse-serve = "synapse.server.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/m00zu/Synapse"
