@@ -1,4 +1,4 @@
-import type { NodeCategories, WidgetCatalog, WsEvent } from "./types";
+import type { ChatProvider, NodeCategories, WidgetCatalog, WsEvent } from "./types";
 
 const API = ""; // same-origin; Vite proxies /api/* in dev
 
@@ -69,6 +69,22 @@ export const api = {
       allowed_root: string;
       entries: { name: string; is_dir: boolean; path: string }[];
     }>(`/api/files/browse?path=${encodeURIComponent(path)}`),
+
+  // Chat
+  listProviders: () => jfetch<{ providers: ChatProvider[] }>("/api/chat/providers"),
+  saveProviderKey: (name: string, key: string) =>
+    jfetch<{ ok: true }>(`/api/chat/providers/${encodeURIComponent(name)}/key`, {
+      method: "POST", body: JSON.stringify({ key }),
+    }),
+  listModels: (provider: string) =>
+    jfetch<{ models: string[] }>(
+      `/api/chat/models?provider=${encodeURIComponent(provider)}`
+    ),
+  startChatTurn: (req: { user_text: string; provider: string; model: string }) =>
+    jfetch<{ turn_id: string }>("/api/chat/turn", {
+      method: "POST", body: JSON.stringify(req),
+    }),
+  stopChatTurn: () => jfetch<{ ok: true }>("/api/chat/stop", { method: "POST" }),
 
   // WebSocket — reconnects with jittered backoff on close.
   openWs: (onEvent: (ev: WsEvent) => void): { close: () => void } => {
