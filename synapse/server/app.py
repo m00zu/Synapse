@@ -63,11 +63,13 @@ def create_app() -> FastAPI:
     from synapse.server.routes_exec import router as exec_router
     from synapse.server.ws import router as ws_router
     from synapse.server.routes_files import router as files_router
+    from synapse.server.routes_chat import router as chat_router
     app.include_router(nodes_router)
     app.include_router(graph_router)
     app.include_router(exec_router)
     app.include_router(ws_router)
     app.include_router(files_router)
+    app.include_router(chat_router)
 
     # SPA: built React bundle if present, else Phase 1b placeholder.
     if _DIST.is_dir():

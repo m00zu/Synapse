@@ -772,6 +772,106 @@ from synapse.ai.tool_handlers.modify_workflow import make_modify_workflow_handle
 from synapse.ai.tool_handlers.write_python_script import make_write_python_script_handler
 
 
+# ---------------------------------------------------------------------------
+# Module-level API-key helpers (also used by synapse.server.routes_chat)
+# ---------------------------------------------------------------------------
+
+def _load_api_keys() -> dict:
+    """Return a dict mapping provider → plaintext API key for every stored key.
+
+    Used by the web routes to check which providers have keys configured.
+    """
+    raw = _load_keys_file()
+    result = {}
+    for provider, encoded in raw.items():
+        try:
+            result[provider] = _b64.b85decode(encoded.encode()).decode()
+        except Exception:
+            pass
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Module-level factory functions (also used by synapse.server.routes_chat)
+# ---------------------------------------------------------------------------
+
+def _build_client(provider: str, model: Optional[str] = None,
+                  base_url: Optional[str] = None,
+                  api_key: Optional[str] = None):
+    """Instantiate the right LLMClient subclass for *provider*.
+
+    Returns ``None`` if the provider name is not recognised.
+    Loads the stored API key from the key file unless *api_key* is given.
+    """
+    if api_key is None:
+        api_key = _retrieve_api_key(provider)
+
+    if provider == "Ollama":
+        return OllamaClient(model=model or OllamaClient.DEFAULT_MODEL)
+    if provider == "Ollama Cloud":
+        return OllamaClient(
+            base_url=base_url or OllamaClient.CLOUD_BASE_URL,
+            model=model or OllamaClient.DEFAULT_MODEL,
+            api_key=api_key,
+        )
+    if provider == "OpenAI":
+        return OpenAIClient(api_key=api_key, model=model or OpenAIClient.DEFAULT_MODEL)
+    if provider == "Claude":
+        return ClaudeClient(api_key=api_key, model=model or ClaudeClient.DEFAULT_MODEL)
+    if provider == "Groq":
+        return GroqClient(api_key=api_key, model=model or GroqClient.DEFAULT_MODEL)
+    if provider == "Gemini":
+        return GeminiClient(api_key=api_key, model=model or GeminiClient.DEFAULT_MODEL)
+    if provider == "OpenRouter":
+        return OpenRouterClient(
+            api_key=api_key, model=model or OpenRouterClient.DEFAULT_MODEL,
+        )
+    return None
+
+
+def _build_dispatcher_for_graph(graph, client=None) -> "ToolDispatcher":
+    """Fresh ToolDispatcher wired to *graph*.
+
+    Registers all six tool handlers. Pass *client* for handlers that need
+    vision-support detection or LLM access (generate_workflow,
+    write_python_script, read_node_output). When *client* is None those
+    handlers still register but may have degraded behaviour.
+    """
+    d = ToolDispatcher()
+    d.register("inspect_canvas", make_inspect_canvas_handler(graph))
+    d.register("explain_node", explain_node_handler)
+    d.register("read_node_output", make_read_node_output_handler(
+        graph,
+        supports_vision=lambda: getattr(client, "supports_vision", False),
+    ))
+    d.register("generate_workflow",
+               make_generate_workflow_handler(graph, client))
+
+    def _factory(type_name: str, node_id: str):
+        try:
+            node = graph.create_node(type_name, push_undo=False)
+        except Exception:
+            try:
+                registered = graph.registered_nodes()
+            except Exception:
+                registered = []
+            match = next(
+                (n for n in registered if n.endswith("." + type_name) or n == type_name),
+                None,
+            )
+            if match is None:
+                raise ValueError(f"Unknown node class: {type_name}")
+            node = graph.create_node(match, push_undo=False)
+        node._llm_id = node_id
+        return node
+
+    d.register("modify_workflow",
+               make_modify_workflow_handler(graph, node_factory=_factory))
+    d.register("write_python_script",
+               make_write_python_script_handler(graph, client))
+    return d
+
+
 # Properties that are framework-internal and should not be sent to the LLM
 _IGNORE_PROPS: frozenset = frozenset([
     'name', 'color', 'border_color', 'text_color', 'type', 'id', 'pos',
@@ -2555,28 +2655,9 @@ class AIChatPanel(QtWidgets.QWidget):
         """Create the LLM client from current UI selections."""
         provider = self._provider_combo.currentText()
         model = self._model_combo.currentText()
-        api_key = self._apikey_edit.text().strip()
+        api_key = self._apikey_edit.text().strip() or None
 
-        if provider == "Ollama":
-            self._client = OllamaClient(model=model or OllamaClient.DEFAULT_MODEL)
-        elif provider == "Ollama Cloud":
-            self._client = OllamaClient(
-                base_url=OllamaClient.CLOUD_BASE_URL,
-                model=model or OllamaClient.DEFAULT_MODEL, api_key=api_key)
-        elif provider == "OpenAI":
-            self._client = OpenAIClient(api_key=api_key, model=model or OpenAIClient.DEFAULT_MODEL)
-        elif provider == "Claude":
-            self._client = ClaudeClient(api_key=api_key, model=model or ClaudeClient.DEFAULT_MODEL)
-        elif provider == "Groq":
-            self._client = GroqClient(api_key=api_key, model=model or GroqClient.DEFAULT_MODEL)
-        elif provider == "Gemini":
-            self._client = GeminiClient(api_key=api_key, model=model or GeminiClient.DEFAULT_MODEL)
-        elif provider == "OpenRouter":
-            self._client = OpenRouterClient(
-                api_key=api_key, model=model or OpenRouterClient.DEFAULT_MODEL,
-            )
-        else:
-            self._client = None
+        self._client = _build_client(provider, model=model or None, api_key=api_key)
 
         if self._client:
             self.graph._llm_client = self._client
@@ -2645,40 +2726,7 @@ class AIChatPanel(QtWidgets.QWidget):
     # ------------------------------------------------------------------
     def _build_dispatcher(self) -> ToolDispatcher:
         """Fresh ToolDispatcher wired to the current graph + client."""
-        d = ToolDispatcher()
-        d.register("inspect_canvas", make_inspect_canvas_handler(self.graph))
-        d.register("explain_node", explain_node_handler)
-        d.register("read_node_output", make_read_node_output_handler(
-            self.graph,
-            supports_vision=lambda: getattr(self._client, "supports_vision", False),
-        ))
-        d.register("generate_workflow",
-                   make_generate_workflow_handler(self.graph, self._client))
-
-        def _factory(type_name: str, node_id: str):
-            try:
-                node = self.graph.create_node(type_name, push_undo=False)
-            except Exception:
-                # Fallback: find a registered identifier ending in the class name.
-                try:
-                    registered = self.graph.registered_nodes()
-                except Exception:
-                    registered = []
-                match = next(
-                    (n for n in registered if n.endswith("." + type_name) or n == type_name),
-                    None,
-                )
-                if match is None:
-                    raise ValueError(f"Unknown node class: {type_name}")
-                node = self.graph.create_node(match, push_undo=False)
-            node._llm_id = node_id
-            return node
-
-        d.register("modify_workflow",
-                   make_modify_workflow_handler(self.graph, node_factory=_factory))
-        d.register("write_python_script",
-                   make_write_python_script_handler(self.graph, self._client))
-        return d
+        return _build_dispatcher_for_graph(self.graph, client=self._client)
 
     def _run_with_orchestrator(self, user_text: str):
         self._send_btn.setEnabled(False)

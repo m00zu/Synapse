@@ -101,7 +101,21 @@ export type WsEvent =
   | { kind: "node_finished"; node_id: string; success: boolean; error?: string }
   | { kind: "run_finished"; run_id: string }
   | { kind: "preview_available"; node_id: string; port: string;
-      preview_kind: "image" | "table" | "figure" };
+      preview_kind: "image" | "table" | "figure" }
+  | { kind: "chat_turn_started"; bubble_id: string; turn_id: string; user_text: string }
+  | { kind: "chat_token"; bubble_id: string; text: string }
+  | { kind: "chat_tool_start"; bubble_id: string; chip_id: string;
+      name: string; input: Record<string, unknown> }
+  | { kind: "chat_tool_finish"; bubble_id: string; chip_id: string;
+      status: "ok" | "error"; result: Record<string, unknown> }
+  | { kind: "chat_workflow_preview"; bubble_id: string; result: Record<string, unknown> }
+  | { kind: "chat_cap_hit"; bubble_id: string; tool_name: string }
+  | { kind: "chat_error"; bubble_id: string; error: string }
+  | { kind: "chat_turn_cancelled"; bubble_id: string }
+  | { kind: "chat_turn_done"; bubble_id: string };
+
+export interface ChatProvider { name: string; has_key: boolean; }
+export interface ChatModel { id: string; vision?: boolean; }
 
 // /api/nodes response shape.
 export type WidgetCatalog = Record<string, WidgetSpec[]>;
