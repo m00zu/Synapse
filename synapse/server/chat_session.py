@@ -134,15 +134,28 @@ class WebChatSession:
             self._emit({"kind": "chat_turn_done", "bubble_id": bubble_id})
 
     def _apply_workflow_silent(self, workflow: dict) -> None:
-        """Import workflow JSON into the session graph on a silent auto-apply
-        (canvas_was_empty=True path). ``deserialize_session`` constructs Qt
-        widgets, so marshal the import to the loop thread — same reason
-        tool dispatches route through ``_LoopDispatchProxy``. Logs on
-        failure instead of raising so a broken workflow never kills the
-        turn."""
+        """Apply the compact LLM workflow JSON to the session graph.
+
+        Note: ``generate_workflow`` returns the condensed
+        ``{"nodes": [...], "edges": [...]}`` format, NOT NodeGraphQt's
+        ``serialize_session()`` output — so ``graph.import_`` (which
+        calls ``deserialize_session``) would fail with
+        ``'list' object has no attribute 'items'``. Use ``WorkflowLoader``
+        (same path desktop uses in ``_apply_workflow_from_orchestrator``).
+
+        ``WorkflowLoader.build`` constructs Qt widgets, so marshal to the
+        loop thread — same reason tool dispatches route through
+        ``_LoopDispatchProxy``. Logs on failure instead of raising so a
+        broken workflow never kills the turn.
+        """
+        result_box: dict = {"ok": False}
+
         def _do_import():
             try:
-                self._session.graph.import_(workflow)
+                from synapse.llm_assistant import WorkflowLoader
+                loader = WorkflowLoader(self._session.graph.node_graph)
+                loader.build(workflow)
+                result_box["ok"] = True
             except Exception as exc:  # noqa: BLE001 — best-effort
                 import logging
                 logging.getLogger(__name__).warning(
@@ -152,17 +165,71 @@ class WebChatSession:
         loop = self._loop
         if loop is None or not loop.is_running():
             _do_import()
-            return
-        done = threading.Event()
+        else:
+            done = threading.Event()
 
-        def runner():
+            def runner():
+                try:
+                    _do_import()
+                finally:
+                    done.set()
+
+            loop.call_soon_threadsafe(runner)
+            done.wait()
+
+        # The frontend keeps its own shadow of the graph and doesn't poll
+        # /api/graph — broadcast the fresh compact snapshot so it can
+        # mirror the just-added nodes. Without this the UI shows
+        # "Applied" but the canvas stays empty.
+        if result_box["ok"]:
+            snap = self._compact_snapshot()
+            self._emit({"kind": "graph_snapshot", **snap})
+
+    def _compact_snapshot(self) -> dict:
+        """Return the graph in the frontend's shadow format.
+
+        {nodes: [{id, type, x, y, props}], edges: [{src, dst, src_port,
+        dst_port}]}. Mirrors the shape the frontend builds when adding
+        nodes one at a time via POST /api/graph/nodes.
+        """
+        from synapse.llm_assistant import _IGNORE_PROPS
+
+        g = self._session.graph.node_graph
+        nodes_out: list[dict] = []
+        edges_out: list[dict] = []
+        for n in g.all_nodes():
+            props: dict = {}
             try:
-                _do_import()
-            finally:
-                done.set()
-
-        loop.call_soon_threadsafe(runner)
-        done.wait()
+                for k, v in n.model.custom_properties.items():
+                    if k in _IGNORE_PROPS or k.startswith("_"):
+                        continue
+                    # Strip values we can't JSON-serialize (numpy arrays,
+                    # Qt objects, etc.) — the shadow only needs scalars /
+                    # plain containers.
+                    try:
+                        import json as _json
+                        _json.dumps(v)
+                    except Exception:
+                        continue
+                    props[k] = v
+            except Exception:
+                pass
+            try:
+                pos = n.pos()
+                x, y = float(pos[0]), float(pos[1])
+            except Exception:
+                x, y = 0.0, 0.0
+            nodes_out.append({
+                "id": n.id, "type": type(n).__name__,
+                "x": x, "y": y, "props": props,
+            })
+            for port_name, port in n.outputs().items():
+                for peer in port.connected_ports():
+                    edges_out.append({
+                        "src": n.id, "dst": peer.node().id,
+                        "src_port": port_name, "dst_port": peer.name(),
+                    })
+        return {"nodes": nodes_out, "edges": edges_out}
 
     def _to_ws(self, ev, bubble_id: str) -> Optional[dict]:
         """Translate an OrchestratorEvent to a WS-shaped chat_* event.

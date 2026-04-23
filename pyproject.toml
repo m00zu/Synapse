@@ -55,8 +55,12 @@ Issues = "https://github.com/m00zu/Synapse/issues"
 [tool.setuptools]
 packages = [
     "synapse", "synapse.nodes", "synapse.translations", "synapse.ui",
+    "synapse.util", "synapse.widgets",
+    "synapse.ai", "synapse.ai.clients", "synapse.ai.tool_handlers",
+    "synapse.server",
     "synapse.plugins", "synapse.plugins.image_analysis",
     "synapse.plugins.statistical_analysis", "synapse.plugins.figure_plotting",
+    "synapse.plugins.data_processing",
     "NodeGraphQt", "NodeGraphQt.base", "NodeGraphQt.nodes",
     "NodeGraphQt.qgraphics", "NodeGraphQt.widgets",
     "NodeGraphQt.custom_widgets", "NodeGraphQt.custom_widgets.properties_bin",
@@ -77,6 +81,7 @@ synapse = [
     "translations/*.py",
     "site/**/*",
     "llm_node_schema.json",
+    "web/dist/**/*",
 ]
 NodeGraphQt = [
     "widgets/icons/*.png",

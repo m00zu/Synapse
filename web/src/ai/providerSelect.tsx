@@ -8,18 +8,30 @@ interface Props {
   model: string;
   onProvider: (p: string) => void;
   onModel: (m: string) => void;
+  onKeySaved?: () => void;
 }
 
 export default function ProviderSelect({
-  providers, provider, model, onProvider, onModel,
+  providers, provider, model, onProvider, onModel, onKeySaved,
 }: Props) {
   const [models, setModels] = useState<string[]>([]);
   const [keyInput, setKeyInput] = useState("");
   const [keyEditing, setKeyEditing] = useState(false);
 
-  useEffect(() => {
-    api.listModels(provider).then((r) => setModels(r.models)).catch(() => setModels([]));
-  }, [provider]);
+  const loadModels = (p: string) =>
+    api.listModels(p)
+      .then((r) => {
+        setModels(r.models);
+        // If the current selection isn't in the list, pick the first entry so
+        // the turn request sends a valid model name — "gemma3:12b" is the
+        // Ollama default but doesn't exist on Claude/OpenAI/etc.
+        if (r.models.length && !r.models.includes(model)) {
+          onModel(r.models[0]);
+        }
+      })
+      .catch(() => setModels([]));
+
+  useEffect(() => { loadModels(provider); }, [provider]);
 
   const providerInfo = providers.find((p) => p.name === provider);
   const needsKey = providerInfo && !providerInfo.has_key &&
@@ -28,12 +40,10 @@ export default function ProviderSelect({
   const saveKey = async () => {
     await api.saveProviderKey(provider, keyInput);
     setKeyInput(""); setKeyEditing(false);
-    // Refresh providers list to update has_key flag.
-    const r = await api.listProviders();
-    // Parent component owns the providers state; signal via a re-fetch.
-    // Simplest: reload after a tiny delay so parent's useEffect re-runs.
-    // Actually: just trigger a models refresh — parent will keep the list fresh on next panel mount.
-    void r;
+    // Refresh models now that the key is stored — most providers reject
+    // /models without a valid key, so the list was empty before save.
+    await loadModels(provider);
+    onKeySaved?.();
   };
 
   return (

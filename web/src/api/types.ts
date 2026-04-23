@@ -112,7 +112,18 @@ export type WsEvent =
   | { kind: "chat_cap_hit"; bubble_id: string; tool_name: string }
   | { kind: "chat_error"; bubble_id: string; error: string }
   | { kind: "chat_turn_cancelled"; bubble_id: string }
-  | { kind: "chat_turn_done"; bubble_id: string };
+  | { kind: "chat_turn_done"; bubble_id: string }
+  | {
+      kind: "graph_snapshot";
+      nodes: Array<{
+        id: string; type: string; x: number; y: number;
+        props: Record<string, unknown>;
+      }>;
+      edges: Array<{
+        src: string; dst: string;
+        src_port?: string; dst_port?: string;
+      }>;
+    };
 
 export interface ChatProvider { name: string; has_key: boolean; }
 export interface ChatModel { id: string; vision?: boolean; }

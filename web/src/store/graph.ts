@@ -211,6 +211,19 @@ export const useGraph = create<GraphState>((set, get) => ({
           [key]: (get().previewVersions[key] ?? 0) + 1,
         },
       });
+    } else if (ev.kind === "graph_snapshot") {
+      // Fired after the server auto-applies an LLM-generated workflow.
+      // Replace the whole shadow (the server is authoritative) so the
+      // canvas mirrors the just-created nodes.
+      set({
+        nodes: ev.nodes.map((n) => ({
+          id: n.id, type: n.type, x: n.x, y: n.y, props: n.props ?? {},
+        })),
+        edges: ev.edges.map((e) => ({
+          src: e.src, dst: e.dst,
+          src_port: e.src_port, dst_port: e.dst_port,
+        })),
+      });
     }
   },
 
