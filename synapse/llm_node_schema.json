@@ -66,6 +66,7 @@
                                 "HoughCirclesNode",
                                 "HoughEllipseNode",
                                 "HoughLinesNode",
+                                "HsvRangeMaskNode",
                                 "ImageHistogramNode",
                                 "ImageMathNode",
                                 "ImageStatsNode",
@@ -85,6 +86,7 @@
                                 "MorphCloseNode",
                                 "MorphOpenNode",
                                 "MultiChannelBCNode",
+                                "MultiChannelThresholdNode",
                                 "MultiOtsuNode",
                                 "OIRReaderNode",
                                 "ParticleClassifyNode",
@@ -583,6 +585,10 @@
                                             "auto_otsu_per_image": {
                                                 "type": "boolean",
                                                 "description": "Default: True set to false when using an explicit thresh_state value; default true overrides manual threshold"
+                                            },
+                                            "apply_to_image": {
+                                                "type": "boolean",
+                                                "description": "Default: False true = preview shows masked input image; false = preview shows the binary mask. Display only \u2014 masked_image output is always produced."
                                             }
                                         }
                                     }
@@ -1239,6 +1245,44 @@
                             "if": {
                                 "properties": {
                                     "type": {
+                                        "const": "HsvRangeMaskNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "hsv_state": {
+                                                "type": "string",
+                                                "description": "Default: [0.0, 360.0, 0.0, 100.0, 0.0, 100.0] [h_min, h_max, s_min, s_max, v_min, v_max] \u2014 H in 0\u2013360\u00b0, S/V in 0\u2013100%. h_min > h_max wraps around."
+                                            },
+                                            "hsv_range_widget": {
+                                                "type": "string",
+                                                "description": "Default: [0.0, 360.0, 0.0, 100.0, 0.0, 100.0]"
+                                            },
+                                            "mode": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "Include",
+                                                    "Exclude"
+                                                ],
+                                                "description": "Default: Include. Must be one of the listed options. 'Include' = mask is inside the H\u2229S\u2229V box; 'Exclude' = mask is outside."
+                                            },
+                                            "apply_to_image": {
+                                                "type": "boolean",
+                                                "description": "Default: False Display-only toggle. masked_image output is always produced."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
                                         "const": "ImageHistogramNode"
                                     }
                                 }
@@ -1658,6 +1702,56 @@
                                             "mc_bc_widget": {
                                                 "type": "string",
                                                 "description": "Default: {'ranges': [(0.0, 255.0), (0.0, 255.0), (0.0, 255.0), (0.0, 255.0)], 'colors': [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 0, 255]], 'grayscale': [False, False, False, False]}"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "MultiChannelThresholdNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "thresh_state_ch1": {
+                                                "type": "string",
+                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch1 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip. Legacy 2-element [threshold, direction] is also accepted (defaults enabled=1)."
+                                            },
+                                            "thresh_state_ch2": {
+                                                "type": "string",
+                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch2 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                                            },
+                                            "thresh_state_ch3": {
+                                                "type": "string",
+                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch3 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                                            },
+                                            "thresh_state_ch4": {
+                                                "type": "string",
+                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch4 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                                            },
+                                            "mc_thresh_widget": {
+                                                "type": "string",
+                                                "description": "Default: {'thresholds': [(128.0, True), (128.0, True), (128.0, True), (128.0, True)]}"
+                                            },
+                                            "combine_mode": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "AND",
+                                                    "OR"
+                                                ],
+                                                "description": "Default: AND. Must be one of the listed options. 'AND' or 'OR' \u2014 how to merge active per-channel masks"
+                                            },
+                                            "apply_to_image": {
+                                                "type": "boolean",
+                                                "description": "Default: False true = preview shows masked image; false = preview shows combined mask. Display only \u2014 masked_image output is always produced."
                                             }
                                         }
                                     }
@@ -2116,6 +2210,28 @@
                                             "prune_iters": {
                                                 "type": "number",
                                                 "description": "Default: 0"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "SplitRGBNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "colorized": {
+                                                "type": "boolean",
+                                                "description": "Default: False"
                                             }
                                         }
                                     }
@@ -6303,6 +6419,10 @@
                 {
                     "name": "mask",
                     "type": "mask"
+                },
+                {
+                    "name": "masked_image",
+                    "type": "image"
                 }
             ],
             "configurable_properties": {
@@ -6329,6 +6449,11 @@
                     "type": "bool",
                     "default": true,
                     "description": "set to false when using an explicit thresh_state value; default true overrides manual threshold"
+                },
+                "apply_to_image": {
+                    "type": "bool",
+                    "default": false,
+                    "description": "true = preview shows masked input image; false = preview shows the binary mask. Display only \u2014 masked_image output is always produced."
                 }
             }
         },
@@ -7100,6 +7225,64 @@
                 }
             }
         },
+        "HsvRangeMaskNode": {
+            "description": "HSV-based colour range mask.",
+            "inputs": [
+                {
+                    "name": "image",
+                    "type": "image"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "mask",
+                    "type": "mask"
+                },
+                {
+                    "name": "masked_image",
+                    "type": "image"
+                }
+            ],
+            "configurable_properties": {
+                "hsv_state": {
+                    "type": "list",
+                    "default": [
+                        0.0,
+                        360.0,
+                        0.0,
+                        100.0,
+                        0.0,
+                        100.0
+                    ],
+                    "description": "[h_min, h_max, s_min, s_max, v_min, v_max] \u2014 H in 0\u2013360\u00b0, S/V in 0\u2013100%. h_min > h_max wraps around."
+                },
+                "hsv_range_widget": {
+                    "type": "list",
+                    "default": [
+                        0.0,
+                        360.0,
+                        0.0,
+                        100.0,
+                        0.0,
+                        100.0
+                    ]
+                },
+                "mode": {
+                    "type": "str",
+                    "default": "Include",
+                    "options": [
+                        "Include",
+                        "Exclude"
+                    ],
+                    "description": "'Include' = mask is inside the H\u2229S\u2229V box; 'Exclude' = mask is outside."
+                },
+                "apply_to_image": {
+                    "type": "bool",
+                    "default": false,
+                    "description": "Display-only toggle. masked_image output is always produced."
+                }
+            }
+        },
         "ImageHistogramNode": {
             "description": "Plots the pixel intensity histogram of an image.",
             "inputs": [
@@ -7732,6 +7915,132 @@
                 }
             }
         },
+        "MultiChannelThresholdNode": {
+            "description": "Per-channel thresholding with combined mask output.",
+            "inputs": [
+                {
+                    "name": "image",
+                    "type": "image"
+                },
+                {
+                    "name": "ch1",
+                    "type": "image"
+                },
+                {
+                    "name": "ch2",
+                    "type": "image"
+                },
+                {
+                    "name": "ch3",
+                    "type": "image"
+                },
+                {
+                    "name": "ch4",
+                    "type": "image"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "mask_ch1",
+                    "type": "mask"
+                },
+                {
+                    "name": "mask_ch2",
+                    "type": "mask"
+                },
+                {
+                    "name": "mask_ch3",
+                    "type": "mask"
+                },
+                {
+                    "name": "mask_ch4",
+                    "type": "mask"
+                },
+                {
+                    "name": "combined_mask",
+                    "type": "mask"
+                },
+                {
+                    "name": "masked_image",
+                    "type": "image"
+                }
+            ],
+            "configurable_properties": {
+                "thresh_state_ch1": {
+                    "type": "list",
+                    "default": [
+                        128.0,
+                        1,
+                        1
+                    ],
+                    "description": "[threshold, direction, enabled] for ch1 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip. Legacy 2-element [threshold, direction] is also accepted (defaults enabled=1)."
+                },
+                "thresh_state_ch2": {
+                    "type": "list",
+                    "default": [
+                        128.0,
+                        1,
+                        1
+                    ],
+                    "description": "[threshold, direction, enabled] for ch2 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                },
+                "thresh_state_ch3": {
+                    "type": "list",
+                    "default": [
+                        128.0,
+                        1,
+                        1
+                    ],
+                    "description": "[threshold, direction, enabled] for ch3 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                },
+                "thresh_state_ch4": {
+                    "type": "list",
+                    "default": [
+                        128.0,
+                        1,
+                        1
+                    ],
+                    "description": "[threshold, direction, enabled] for ch4 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                },
+                "mc_thresh_widget": {
+                    "type": "dict",
+                    "default": {
+                        "thresholds": [
+                            [
+                                128.0,
+                                true
+                            ],
+                            [
+                                128.0,
+                                true
+                            ],
+                            [
+                                128.0,
+                                true
+                            ],
+                            [
+                                128.0,
+                                true
+                            ]
+                        ]
+                    }
+                },
+                "combine_mode": {
+                    "type": "str",
+                    "default": "AND",
+                    "options": [
+                        "AND",
+                        "OR"
+                    ],
+                    "description": "'AND' or 'OR' \u2014 how to merge active per-channel masks"
+                },
+                "apply_to_image": {
+                    "type": "bool",
+                    "default": false,
+                    "description": "true = preview shows masked image; false = preview shows combined mask. Display only \u2014 masked_image output is always produced."
+                }
+            }
+        },
         "MultiOtsuNode": {
             "description": "Splits image intensity into N classes using multi-Otsu thresholding.",
             "inputs": [
@@ -8346,7 +8655,12 @@
                     "type": "image"
                 }
             ],
-            "configurable_properties": {}
+            "configurable_properties": {
+                "colorized": {
+                    "type": "bool",
+                    "default": false
+                }
+            }
         },
         "ThresholdLocalNode": {
             "description": "Applies adaptive local thresholding to produce a binary mask.",

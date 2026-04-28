@@ -1,10 +1,12 @@
 use numpy::IntoPyArray;
 use numpy::{PyArray2, PyReadonlyArray2};
 use pyo3::prelude::*;
+use pyo3::exceptions::PyValueError;
 use umap_rs::Metric; // trait needed for .metric_type()
 use umap_rs::{
-    EuclideanMetric, FittedUmap, GraphParams, LearnedManifold, ManifoldParams, Optimizer,
-    OptimizationParams, Umap, UmapConfig,
+    DistanceMetric, EuclideanMetric, FittedUmap, GraphParams, LearnedManifold, ManifoldParams,
+    Optimizer, OptimizationParams, Umap, UmapConfig,
+    knn_dense_bool, knn_dense_f32, knn_dense_f64, knn_dense_u32,
 };
 
 // ---------------------------------------------------------------------------
@@ -334,6 +336,107 @@ fn fit<'py>(
 }
 
 // ---------------------------------------------------------------------------
+// KNN bindings
+// ---------------------------------------------------------------------------
+
+fn parse_metric(name: &str, p: f32) -> PyResult<DistanceMetric> {
+    let m = DistanceMetric::parse(name).ok_or_else(|| {
+        PyValueError::new_err(format!(
+            "Unknown metric '{name}'. Valid: euclidean, sqeuclidean, manhattan, \
+             chebyshev, cosine, correlation, tanimoto, minkowski, canberra, \
+             braycurtis, jaccard, dice, hamming, hash_jaccard"
+        ))
+    })?;
+    // The ``p`` kwarg only matters for Minkowski; override its default p=2.
+    Ok(match m {
+        DistanceMetric::Minkowski(_) => DistanceMetric::Minkowski(p),
+        other => other,
+    })
+}
+
+/// Brute-force parallel k-NN over a dense ``f32`` matrix.
+///
+/// Parameters
+/// ----------
+/// data : np.ndarray[f32]  (n_samples, n_features)
+/// k    : int — number of neighbours per row (excluding self).
+/// metric : str — 'euclidean', 'sqeuclidean', 'manhattan', 'chebyshev',
+///                'cosine', 'correlation', 'tanimoto'.
+///
+/// Returns
+/// -------
+/// (indices: np.ndarray[u32]  (n_samples, k),
+///  distances: np.ndarray[f32]  (n_samples, k))
+#[pyfunction]
+#[pyo3(signature = (data, k, metric = "euclidean", p = 2.0))]
+fn knn_f32<'py>(
+    py: Python<'py>,
+    data: PyReadonlyArray2<'py, f32>,
+    k: usize,
+    metric: &str,
+    p: f32,
+) -> PyResult<(Bound<'py, PyArray2<u32>>, Bound<'py, PyArray2<f32>>)> {
+    let m = parse_metric(metric, p)?;
+    let arr = data.as_array().to_owned();
+    let (idx, dist) = py.detach(move || knn_dense_f32(arr.view(), k, m));
+    Ok((idx.into_pyarray(py), dist.into_pyarray(py)))
+}
+
+/// Brute-force parallel k-NN over a dense ``f64`` matrix.
+/// Distances are returned as ``f32`` for consistency with the rest of the API.
+#[pyfunction]
+#[pyo3(signature = (data, k, metric = "euclidean", p = 2.0))]
+fn knn_f64<'py>(
+    py: Python<'py>,
+    data: PyReadonlyArray2<'py, f64>,
+    k: usize,
+    metric: &str,
+    p: f32,
+) -> PyResult<(Bound<'py, PyArray2<u32>>, Bound<'py, PyArray2<f32>>)> {
+    let m = parse_metric(metric, p)?;
+    let arr = data.as_array().to_owned();
+    let (idx, dist) = py.detach(move || knn_dense_f64(arr.view(), k, m));
+    Ok((idx.into_pyarray(py), dist.into_pyarray(py)))
+}
+
+/// Brute-force parallel k-NN over a dense ``bool`` matrix (bit fingerprints).
+///
+/// Metric must be 'jaccard', 'dice', 'hamming', 'euclidean' (= sqrt-Hamming),
+/// 'sqeuclidean' (= Hamming count), or 'manhattan' (= Hamming count).
+#[pyfunction]
+#[pyo3(signature = (data, k, metric = "jaccard", p = 2.0))]
+fn knn_bool<'py>(
+    py: Python<'py>,
+    data: PyReadonlyArray2<'py, bool>,
+    k: usize,
+    metric: &str,
+    p: f32,
+) -> PyResult<(Bound<'py, PyArray2<u32>>, Bound<'py, PyArray2<f32>>)> {
+    let m = parse_metric(metric, p)?;
+    let arr = data.as_array().to_owned();
+    let (idx, dist) = py.detach(move || knn_dense_bool(arr.view(), k, m));
+    Ok((idx.into_pyarray(py), dist.into_pyarray(py)))
+}
+
+/// Brute-force parallel k-NN over a dense ``uint32`` matrix (MinHash signatures).
+///
+/// Metric must be 'hash_jaccard'.
+#[pyfunction]
+#[pyo3(signature = (data, k, metric = "hash_jaccard", p = 2.0))]
+fn knn_u32<'py>(
+    py: Python<'py>,
+    data: PyReadonlyArray2<'py, u32>,
+    k: usize,
+    metric: &str,
+    p: f32,
+) -> PyResult<(Bound<'py, PyArray2<u32>>, Bound<'py, PyArray2<f32>>)> {
+    let m = parse_metric(metric, p)?;
+    let arr = data.as_array().to_owned();
+    let (idx, dist) = py.detach(move || knn_dense_u32(arr.view(), k, m));
+    Ok((idx.into_pyarray(py), dist.into_pyarray(py)))
+}
+
+// ---------------------------------------------------------------------------
 // Python module
 // ---------------------------------------------------------------------------
 
@@ -341,5 +444,9 @@ fn fit<'py>(
 fn umap_rs_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyUMAP>()?;
     m.add_function(wrap_pyfunction!(fit, m)?)?;
+    m.add_function(wrap_pyfunction!(knn_f32, m)?)?;
+    m.add_function(wrap_pyfunction!(knn_f64, m)?)?;
+    m.add_function(wrap_pyfunction!(knn_bool, m)?)?;
+    m.add_function(wrap_pyfunction!(knn_u32, m)?)?;
     Ok(())
 }

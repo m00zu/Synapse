@@ -179,7 +179,7 @@ fn optimize_layout_euclidean_single_epoch(
       let grad_coeff = if dist_squared > 0.0 {
         let dist_pow_b = f32::powf(dist_squared, b);
         let mut gc = -2.0 * a * b * dist_pow_b / dist_squared;
-        gc /= a * dist_pow_b * dist_squared + 1.0;
+        gc /= a * dist_pow_b + 1.0;
         gc
       } else {
         0.0
@@ -213,7 +213,7 @@ fn optimize_layout_euclidean_single_epoch(
 
         let grad_coeff = if dist_squared > 0.0 {
           let dist_pow_b = f32::powf(dist_squared, b);
-          2.0 * gamma * b / ((0.001 + dist_squared) * (a * dist_pow_b * dist_squared + 1.0))
+          2.0 * gamma * b / ((0.001 + dist_squared) * (a * dist_pow_b + 1.0))
         } else {
           0.0
         };
@@ -290,7 +290,7 @@ fn optimize_layout_euclidean_single_epoch_parallel(
         let grad_coeff = if dist_squared > 0.0 {
           let dist_pow_b = f32::powf(dist_squared, b);
           let mut gc = -2.0 * a * b * dist_pow_b / dist_squared;
-          gc /= a * dist_pow_b * dist_squared + 1.0;
+          gc /= a * dist_pow_b + 1.0;
           gc
         } else {
           0.0
@@ -326,7 +326,7 @@ fn optimize_layout_euclidean_single_epoch_parallel(
 
           let grad_coeff = if dist_squared > 0.0 {
             let dist_pow_b = f32::powf(dist_squared, b);
-            2.0 * gamma * b / ((0.001 + dist_squared) * (a * dist_pow_b * dist_squared + 1.0))
+            2.0 * gamma * b / ((0.001 + dist_squared) * (a * dist_pow_b + 1.0))
           } else {
             0.0
           };

@@ -52,6 +52,7 @@
 
 // Public modules
 pub mod config;
+pub mod knn;
 pub mod metric;
 
 // Public re-exports (primary API)
@@ -80,6 +81,11 @@ pub mod optimizer;
 
 // Re-export distances for convenience
 pub use distances::EuclideanMetric;
+pub use knn::DistanceMetric;
+pub use knn::knn_dense_bool;
+pub use knn::knn_dense_f32;
+pub use knn::knn_dense_f64;
+pub use knn::knn_dense_u32;
 
 // Tests
 #[cfg(test)]

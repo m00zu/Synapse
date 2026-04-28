@@ -1373,7 +1373,7 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         upstream = self._get_input_image_data()
         if upstream:
             kwargs = {f: getattr(upstream, f, None)
-                      for f in upstream.model_fields if f != 'payload'}
+                      for f in type(upstream).model_fields if f != 'payload'}
             out = ImageData(payload=img, **kwargs)
         else:
             out = ImageData(payload=img)
