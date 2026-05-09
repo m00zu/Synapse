@@ -80,6 +80,7 @@ sync_plugins.sh
 # Legacy / scratch scripts
 /_*.py
 _*.ipynb
+_*.sh
 !__init__.py
 !synapse/ai/clients/_fallback_parser.py
 /test_*.py

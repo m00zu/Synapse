@@ -108,7 +108,7 @@ def get_plugin_dir() -> Path:
 # Core loader
 # ---------------------------------------------------------------------------
 
-def load_plugins(graph) -> list[dict]:
+def load_plugins(graph, on_step=None) -> list[dict]:
     """Scan the plugin directory, import modules, register node classes.
 
     Supports two plugin formats:
@@ -170,10 +170,24 @@ def load_plugins(graph) -> list[dict]:
                 error = (error + '; ' + fragment) if error else fragment
         return registered, error
 
+    # Build the full list of plugins up front so we can report progress.
+    py_files = [f for f in sorted(plugin_dir.glob('*.py'))
+                if not f.name.startswith('_')]
+    pkg_dirs = [d for d in sorted(plugin_dir.iterdir())
+                if d.is_dir() and not d.name.startswith('_')
+                and (d / '__init__.py').exists()]
+    total = len(py_files) + len(pkg_dirs)
+    step = 0
+
     # ── Flat .py plugins ─────────────────────────────────────────────────────
-    for py_file in sorted(plugin_dir.glob('*.py')):
-        if py_file.name.startswith('_'):
-            continue
+    for py_file in py_files:
+
+        step += 1
+        if on_step is not None:
+            try:
+                on_step(py_file.stem, step, total)
+            except Exception:
+                pass
 
         if py_file.stem in disabled:
             results.append({'file': py_file.name, 'nodes': [], 'error': None,
@@ -199,12 +213,15 @@ def load_plugins(graph) -> list[dict]:
                         'disabled': False})
 
     # ── Package directory plugins (folder/__init__.py + optional vendor/) ────
-    for pkg_dir in sorted(plugin_dir.iterdir()):
-        if not pkg_dir.is_dir() or pkg_dir.name.startswith('_'):
-            continue
+    for pkg_dir in pkg_dirs:
         init_file = pkg_dir / '__init__.py'
-        if not init_file.exists():
-            continue
+
+        step += 1
+        if on_step is not None:
+            try:
+                on_step(pkg_dir.name, step, total)
+            except Exception:
+                pass
 
         # Skip disabled packages
         if pkg_dir.name in disabled:

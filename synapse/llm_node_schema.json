@@ -11568,7 +11568,9 @@
                         "x",
                         "y",
                         "filopodia_length_px",
-                        "edge_length_px"
+                        "edge_length_px",
+                        "filopodia_length_um",
+                        "edge_length_um"
                     ]
                 },
                 {

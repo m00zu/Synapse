@@ -605,8 +605,10 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
     _RECENT_MAX = 10
     _AUTOSAVE_INTERVAL_MS = 120000
 
-    def __init__(self, theme_manager: 'ThemeManager | None' = None):
+    def __init__(self, theme_manager: 'ThemeManager | None' = None,
+                 on_plugin_step=None):
         super(NodeExecutionWindow, self).__init__()
+        self._on_plugin_step = on_plugin_step
         self.theme_manager = theme_manager or ThemeManager(QtWidgets.QApplication.instance())
         self.settings = QtCore.QSettings("Synapse", "Synapse")
         self._current_workflow_path = ""
@@ -631,7 +633,8 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         # Load plugins — must happen before NodesTreeWidget is constructed so
         # that plugin nodes appear in the Node Explorer tree automatically.
         from .plugin_loader import load_plugins, get_plugin_dir
-        self._plugin_results = load_plugins(self.graph)
+        self._plugin_results = load_plugins(
+            self.graph, on_step=self._on_plugin_step)
         self._plugin_dir = get_plugin_dir()
 
         # Context Menu: Add "Clear Cache" and "Disable/Enable" for nodes
@@ -2829,7 +2832,15 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             self.graph.fit_to_selection()
 
 
-def main():
+def main(splash=None, on_status=None):
+    """Launch the Synapse GUI.
+
+    ``splash`` (optional): a QSplashScreen already shown by the wrapper —
+        will be auto-closed once the main window appears.
+    ``on_status`` (optional): callable ``(text: str) -> None`` for splash
+        message updates.  Used both directly (phase changes) and indirectly
+        via the per-plugin progress callback.
+    """
     # Handle subcommands before launching the GUI
     if len(sys.argv) >= 2 and sys.argv[1] == 'package':
         from synapse.package_plugin import main as _pack_main
@@ -2838,7 +2849,7 @@ def main():
         return
 
     load_language()
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
     app.setApplicationName("Synapse")
     app.setApplicationDisplayName("Synapse")
     app.setStyle("Fusion")
@@ -2849,11 +2860,22 @@ def main():
     if _icon_path.exists():
         app.setWindowIcon(QtGui.QIcon(str(_icon_path)))
 
+    if on_status:
+        on_status("Initializing UI…")
+
     # ThemeManager applies the initial dark palette and owns all theme transitions
     theme_manager = ThemeManager(app)
 
-    window = NodeExecutionWindow(theme_manager=theme_manager)
+    def _plugin_step(name, current, total):
+        if on_status:
+            on_status(f"Loading plugins… ({current}/{total}) {name}")
+
+    window = NodeExecutionWindow(theme_manager=theme_manager,
+                                 on_plugin_step=_plugin_step)
     window.show()
+
+    if splash is not None:
+        splash.finish(window)
 
     # Auto-regenerate LLM node schema after window is visible
     try:
