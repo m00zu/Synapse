@@ -18,7 +18,7 @@ class MCPSetupDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle('AI Connection (MCP)')
         self.setWindowFlag(QtCore.Qt.WindowType.Dialog)
-        self.resize(620, 580)
+        self.resize(640, 460)
 
         # Active port for everything the user copies / writes here.
         # Defaults to the live running port, falling back to the saved
@@ -35,7 +35,22 @@ class MCPSetupDialog(QtWidgets.QDialog):
 
     # ── UI ───────────────────────────────────────────────────────────
     def _build_ui(self) -> None:
-        layout = QtWidgets.QVBoxLayout(self)
+        outer = QtWidgets.QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # Everything except the Close button lives in a scroll area so
+        # the dialog stays compact even with all the auto-configure
+        # sections.  Setting widgetResizable so the inner content
+        # expands to the scroll viewport's width.
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        inner = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(inner)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(14)
 
@@ -59,18 +74,28 @@ class MCPSetupDialog(QtWidgets.QDialog):
         # Claude Desktop section
         layout.addWidget(self._claude_desktop_section())
 
+        # Antigravity section
+        layout.addWidget(self._antigravity_section())
+
+        # Gemini CLI section
+        layout.addWidget(self._gemini_cli_section())
+
         # Other clients
         layout.addWidget(self._other_clients_section())
 
         layout.addStretch(1)
 
-        # Bottom: Close button
+        scroll.setWidget(inner)
+        outer.addWidget(scroll, 1)
+
+        # Bottom: Close button (stays pinned outside the scroll area).
         button_row = QtWidgets.QHBoxLayout()
+        button_row.setContentsMargins(16, 8, 16, 12)
         button_row.addStretch(1)
         close_btn = QtWidgets.QPushButton('Close')
         close_btn.clicked.connect(self.accept)
         button_row.addWidget(close_btn)
-        layout.addLayout(button_row)
+        outer.addLayout(button_row)
 
     def _status_banner(self) -> QtWidgets.QWidget:
         w = QtWidgets.QFrame()
@@ -149,19 +174,100 @@ class MCPSetupDialog(QtWidgets.QDialog):
         return group
 
     def _claude_desktop_section(self) -> QtWidgets.QWidget:
-        group = QtWidgets.QGroupBox('Claude Desktop (macOS / Windows app)')
-        v = QtWidgets.QVBoxLayout(group)
-        v.addWidget(QtWidgets.QLabel(
-            "Auto-configure Claude Desktop to launch Synapse's stdio "
-            "bridge.  Existing MCP servers in your config are preserved."))
+        return self._stdio_client_section(
+            title='Claude Desktop (macOS / Windows app)',
+            blurb=("Auto-configure Claude Desktop to launch Synapse's "
+                   "stdio bridge.  Existing MCP servers in your config "
+                   "are preserved."),
+            button_label='Auto-configure Claude Desktop',
+            config_path=_helper.claude_desktop_config_path(),
+            display_name='Claude Desktop',
+        )
 
-        btn = QtWidgets.QPushButton('Auto-configure Claude Desktop')
-        btn.clicked.connect(self._on_setup_claude_desktop)
+    def _antigravity_section(self) -> QtWidgets.QWidget:
+        """Antigravity uses an HTTP transport (``serverUrl`` field) —
+        no stdio bridge needed.  Writes directly to its config file.
+        """
+        return self._http_client_section(
+            title='Google Antigravity',
+            blurb=("Auto-configure Antigravity to talk to Synapse over "
+                   "HTTP (no stdio bridge).  Existing MCP servers in "
+                   "the file are preserved."),
+            button_label='Auto-configure Antigravity',
+            config_path=_helper.antigravity_config_path(),
+            display_name='Antigravity',
+            writer=_helper.write_antigravity_config,
+        )
+
+    def _gemini_cli_section(self) -> QtWidgets.QWidget:
+        """Gemini CLI uses an HTTP transport (``httpUrl`` field) — same
+        pattern as Antigravity but a different config file + key name.
+        """
+        return self._http_client_section(
+            title='Gemini CLI',
+            blurb=("Auto-configure Gemini CLI to talk to Synapse over "
+                   "HTTP.  Merges into ``~/.gemini/settings.json``; "
+                   "other settings + MCP servers are preserved."),
+            button_label='Auto-configure Gemini CLI',
+            config_path=_helper.gemini_cli_config_path(),
+            display_name='Gemini CLI',
+            writer=_helper.write_gemini_cli_config,
+        )
+
+    def _http_client_section(
+        self, *,
+        title: str,
+        blurb: str,
+        button_label: str,
+        config_path,
+        display_name: str,
+        writer,
+    ) -> QtWidgets.QWidget:
+        """Shared builder for any HTTP-MCP client (no bridge).  ``writer``
+        is the function from ``setup_helper`` that takes
+        ``(config_path, port)`` and merges the URL entry into the file.
+        """
+        group = QtWidgets.QGroupBox(title)
+        v = QtWidgets.QVBoxLayout(group)
+        v.addWidget(QtWidgets.QLabel(blurb))
+
+        btn = QtWidgets.QPushButton(button_label)
+        btn.clicked.connect(
+            lambda: self._write_http_config(
+                config_path, display_name, writer))
         v.addWidget(btn, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
 
         path_info = QtWidgets.QLabel(
-            f"<i>Config file: "
-            f"<code>{_helper.claude_desktop_config_path()}</code></i>")
+            f"<i>Config file: <code>{config_path}</code></i>")
+        path_info.setStyleSheet('color: #888;')
+        path_info.setWordWrap(True)
+        v.addWidget(path_info)
+
+        return group
+
+    def _stdio_client_section(
+        self, *,
+        title: str,
+        blurb: str,
+        button_label: str,
+        config_path,
+        display_name: str,
+    ) -> QtWidgets.QWidget:
+        """Shared builder for any stdio-MCP client that uses the
+        ``{command, args, cwd?}`` config shape (Claude Desktop, Antigravity,
+        Cursor, Cline, etc.).
+        """
+        group = QtWidgets.QGroupBox(title)
+        v = QtWidgets.QVBoxLayout(group)
+        v.addWidget(QtWidgets.QLabel(blurb))
+
+        btn = QtWidgets.QPushButton(button_label)
+        btn.clicked.connect(
+            lambda: self._write_stdio_config(config_path, display_name))
+        v.addWidget(btn, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
+
+        path_info = QtWidgets.QLabel(
+            f"<i>Config file: <code>{config_path}</code></i>")
         path_info.setStyleSheet('color: #888;')
         path_info.setWordWrap(True)
         v.addWidget(path_info)
@@ -194,13 +300,53 @@ class MCPSetupDialog(QtWidgets.QDialog):
         QtWidgets.QMessageBox.information(
             self, 'Copied', toast)
 
-    def _on_setup_claude_desktop(self) -> None:
-        path = _helper.claude_desktop_config_path()
+    def _write_http_config(self, config_path, display_name: str,
+                            writer) -> None:
+        """Shared HTTP-MCP-client writer.  ``writer(config_path, port)``
+        is the helper that produces the right entry shape for this
+        client (``write_antigravity_config``, ``write_gemini_cli_config``,
+        etc.).
+        """
         try:
-            result = _helper.write_claude_desktop_config(path)
+            result = writer(config_path, self._port)
         except ValueError as e:
             QtWidgets.QMessageBox.critical(
-                self, 'Could not update Claude Desktop config', str(e))
+                self, f'Could not update {display_name} config', str(e))
+            return
+
+        extras = ''
+        if result['other_servers']:
+            extras = (
+                f"\n\nPreserved other MCP servers: "
+                f"{', '.join(result['other_servers'])}.")
+        port_warn = ''
+        if (self._running_port is not None
+                and self._running_port != self._port):
+            port_warn = (
+                f"\n\n⚠ Wrote URL using port {self._port}, but Synapse "
+                f"is currently listening on {self._running_port}.  "
+                f"Update the port spinbox above or restart Synapse so "
+                f"the live port matches before connecting from "
+                f"{display_name}.")
+        msg = (
+            f"{'Updated' if result['replaced'] else 'Added'} "
+            f"Synapse in:\n{result['config_path']}"
+            f"{extras}"
+            f"{port_warn}\n\n"
+            f"Restart {display_name} to pick up the new config.")
+        QtWidgets.QMessageBox.information(
+            self, f'{display_name} configured', msg)
+
+    def _write_stdio_config(self, config_path, display_name: str) -> None:
+        """Shared handler — write the synapse stdio entry into any
+        client's MCP config file in the standard ``{command, args, cwd?}``
+        shape.  Used by the Claude Desktop and Antigravity buttons.
+        """
+        try:
+            result = _helper.write_claude_desktop_config(config_path)
+        except ValueError as e:
+            QtWidgets.QMessageBox.critical(
+                self, f'Could not update {display_name} config', str(e))
             return
 
         extras = ''
@@ -212,13 +358,13 @@ class MCPSetupDialog(QtWidgets.QDialog):
             f"{'Updated' if result['replaced'] else 'Added'} "
             f"Synapse in:\n{result['config_path']}"
             f"{extras}\n\n"
-            "Restart Claude Desktop to pick up the new config.  "
-            "Synapse must be running for the bridge to connect.  "
-            "The bridge auto-discovers the live port from "
-            "~/.synapse/mcp-port — port changes here don't affect "
-            "Claude Desktop.")
+            f"Restart {display_name} to pick up the new config.  "
+            f"Synapse must be running for the bridge to connect.  "
+            f"The bridge auto-discovers the live port from "
+            f"~/.synapse/mcp-port — port changes here don't affect "
+            f"{display_name}.")
         QtWidgets.QMessageBox.information(
-            self, 'Claude Desktop configured', msg)
+            self, f'{display_name} configured', msg)
 
     def _on_port_changed(self, value: int) -> None:
         """Refresh the displayed command + URL when the port spinbox changes."""

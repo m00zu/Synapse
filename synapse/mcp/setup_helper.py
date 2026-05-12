@@ -30,6 +30,123 @@ def claude_desktop_config_path() -> Path:
     return Path.home() / '.config' / 'Claude' / 'claude_desktop_config.json'
 
 
+def antigravity_config_path() -> Path:
+    """Return the location of Google Antigravity's MCP config file.
+
+    Antigravity follows the Gemini-CLI dotfile convention
+    (``~/.gemini/...``) on every platform — same path on macOS,
+    Windows, and Linux.
+    """
+    return Path.home() / '.gemini' / 'antigravity' / 'mcp_config.json'
+
+
+def antigravity_entry(port: int, server_name: str = 'synapse') -> dict:
+    """Build the JSON snippet Antigravity expects.
+
+    Antigravity uses an HTTP transport with a ``serverUrl`` field
+    rather than the stdio ``{command, args}`` shape Claude Desktop uses
+    — no bridge subprocess needed, the client talks directly to
+    Synapse's MCP HTTP server.
+    """
+    return {server_name: {'serverUrl': mcp_url(int(port))}}
+
+
+def write_antigravity_config(
+    config_path: Path,
+    port: int,
+    server_name: str = 'synapse',
+) -> dict[str, Any]:
+    """Merge Synapse into Antigravity's MCP config (HTTP shape).
+
+    Same shape and merge semantics as ``write_claude_desktop_config``
+    but writes the ``{serverUrl: URL}`` entry instead of the
+    ``{command, args, cwd}`` stdio entry.  Preserves other servers
+    and unrelated keys.
+    """
+    return _write_http_config(
+        config_path, antigravity_entry(port, server_name), server_name)
+
+
+# ── Gemini CLI ──────────────────────────────────────────────────────────────
+
+def gemini_cli_config_path() -> Path:
+    """Return the location of Gemini CLI's settings file.
+
+    Same path on macOS, Windows, and Linux — Gemini CLI uses a single
+    top-level settings file under ``~/.gemini/``.
+    """
+    return Path.home() / '.gemini' / 'settings.json'
+
+
+def gemini_cli_entry(port: int, server_name: str = 'synapse') -> dict:
+    """Build the JSON snippet Gemini CLI expects.
+
+    Gemini CLI uses ``httpUrl`` for HTTP MCP transport (different
+    field name from Antigravity's ``serverUrl`` or Claude Code's
+    URL-as-positional-arg).
+    """
+    return {server_name: {'httpUrl': mcp_url(int(port))}}
+
+
+def write_gemini_cli_config(
+    config_path: Path,
+    port: int,
+    server_name: str = 'synapse',
+) -> dict[str, Any]:
+    """Merge Synapse into Gemini CLI's settings file.
+
+    Preserves all other keys and other MCP servers in the file.
+    Refuses to clobber malformed JSON.
+    """
+    return _write_http_config(
+        config_path, gemini_cli_entry(port, server_name), server_name)
+
+
+# ── Shared merge logic for any HTTP-style MCP config ────────────────────────
+
+def _write_http_config(
+    config_path: Path,
+    entry: dict,
+    server_name: str,
+) -> dict[str, Any]:
+    """Merge a single ``mcpServers`` entry into a JSON settings file.
+
+    ``entry`` must have shape ``{server_name: {<client-specific keys>}}``.
+    Used by both Antigravity (``serverUrl``) and Gemini CLI (``httpUrl``).
+    """
+    config_path = Path(config_path)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if config_path.is_file():
+        try:
+            data = json.loads(config_path.read_text())
+            if not isinstance(data, dict):
+                data = {}
+        except json.JSONDecodeError:
+            raise ValueError(
+                f"Existing config at {config_path} isn't valid JSON. "
+                "Fix or move it aside first.")
+    else:
+        data = {}
+
+    servers = data.setdefault('mcpServers', {})
+    if not isinstance(servers, dict):
+        raise ValueError(
+            f"'mcpServers' in {config_path} isn't an object — "
+            "the file shape is unexpected.")
+
+    replaced = server_name in servers
+    other_servers = sorted(s for s in servers if s != server_name)
+    servers.update(entry)
+
+    config_path.write_text(json.dumps(data, indent=2))
+    return {
+        'config_path': str(config_path),
+        'replaced': replaced,
+        'other_servers': other_servers,
+    }
+
+
 def claude_code_command(port: int,
                         server_name: str = 'synapse') -> str:
     """Return the one-line ``claude mcp add`` command for Claude Code.
@@ -81,9 +198,15 @@ def claude_desktop_entry(python_path: str | None = None,
     """
     if _is_frozen():
         # Bundle case: re-launch the Synapse binary itself.
+        # Nuitka's ``--onefile`` mode may make ``sys.executable`` point
+        # at a temp-extracted bootstrap that gets cleaned up.  Nuitka
+        # exposes the durable path to the *original* .exe / .app via
+        # the ``NUITKA_ONEFILE_BINARY`` env var — prefer that.
+        import os as _os
+        exe = _os.environ.get('NUITKA_ONEFILE_BINARY') or sys.executable
         return {
             server_name: {
-                'command': sys.executable,
+                'command': exe,
                 'args': ['--mcp-bridge'],
             },
         }
