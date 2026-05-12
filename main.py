@@ -9,10 +9,38 @@ import pathlib
 from PySide6 import QtCore, QtGui, QtWidgets
 
 
+def _find_icon():
+    base = pathlib.Path(__file__).parent
+    # Source layout first, then Nuitka-bundle root, then a couple of
+    # other reasonable spots.  ``is_file()`` is wrapped in try/except
+    # because in a bundle a parent component may itself be a file
+    # (Nuitka has been seen to do this), which raises NotADirectoryError.
+    candidates = [
+        base / 'synapse' / 'icons' / 'synapse_icon.png',
+        base / 'synapse_icon.png',
+        base / 'icons' / 'synapse_icon.png',
+    ]
+    for p in candidates:
+        try:
+            if p.is_file():
+                return p
+        except OSError:
+            continue
+    return None
+
+
 def _show_splash(app):
-    icon = pathlib.Path(__file__).parent / 'synapse' / 'icons' / 'synapse_icon.png'
-    pix = QtGui.QPixmap(str(icon)) if icon.exists() else QtGui.QPixmap(400, 200)
-    pix = pix.scaledToWidth(400, QtCore.Qt.SmoothTransformation)
+    icon = _find_icon()
+    pix = None
+    if icon is not None:
+        loaded = QtGui.QPixmap(str(icon))
+        if not loaded.isNull():
+            pix = loaded.scaledToWidth(400, QtCore.Qt.SmoothTransformation)
+    if pix is None:
+        # Solid-colour fallback — never show uninitialised pixel memory.
+        pix = QtGui.QPixmap(400, 200)
+        pix.fill(QtGui.QColor('#1e1e1e'))
+
     splash = QtWidgets.QSplashScreen(pix, QtCore.Qt.WindowStaysOnTopHint)
     splash.setAttribute(QtCore.Qt.WA_DeleteOnClose)
     splash.show()
