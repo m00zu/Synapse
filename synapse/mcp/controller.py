@@ -154,63 +154,97 @@ class NodeGraphController:
         self._type_summaries: dict[str, NodeInfo] = {}
 
     # ── helpers ─────────────────────────────────────────────────────────
-    def _build_node_info(self, type_id: str, cls) -> NodeInfo:
-        # NODE_NAME comes from BaseExecutionNode attribute; PORT_SPEC has
-        # input/output port names; docstring drives the summary.
+    def _build_node_info(self, type_id: str, cls,
+                          inst=None) -> NodeInfo:
         port_spec = getattr(cls, 'PORT_SPEC', {}) or {}
         category = getattr(cls, '__identifier__', '').split('.')[-1] or 'misc'
-        # First non-blank line of docstring is the summary.
         doc = (cls.__doc__ or '').strip()
         summary = next((ln.strip() for ln in doc.splitlines()
                         if ln.strip()), '')
-        # Property names come from default WidgetEnum properties — we
-        # introspect by instantiating once (cheap) only when describing.
+
+        # If we have an instance, read actual ports and custom properties.
+        # Otherwise fall back to class-level PORT_SPEC (often stale) and
+        # leave properties empty until describe_registered fills them in.
+        if inst is not None:
+            try:
+                inputs = [p.name() for p in inst.input_ports()]
+                outputs = [p.name() for p in inst.output_ports()]
+            except Exception:
+                inputs = list(port_spec.get('inputs', []))
+                outputs = list(port_spec.get('outputs', []))
+            try:
+                custom = getattr(inst.model, 'custom_properties', {}) or {}
+                props = [k for k in custom.keys() if not k.startswith('_')]
+            except Exception:
+                props = []
+        else:
+            inputs = list(port_spec.get('inputs', []))
+            outputs = list(port_spec.get('outputs', []))
+            props = []
+
         return NodeInfo(
             category=category,
             name=getattr(cls, 'NODE_NAME', type_id),
             type_id=type_id,
-            properties=[],  # filled lazily in describe_registered
-            input_ports=list(port_spec.get('inputs', [])),
-            output_ports=list(port_spec.get('outputs', [])),
+            properties=props,
+            input_ports=inputs,
+            output_ports=outputs,
             summary=summary,
         )
+
+    def _ensure_info_cached(self, type_id: str, cls) -> NodeInfo:
+        """Populate cache for ``type_id`` if missing.  Tries instance
+        introspection; falls back to class-only on instantiation failure.
+        """
+        cached = self._type_summaries.get(type_id)
+        if cached is not None and cached.properties:
+            # Already cached with instance info (properties non-empty
+            # implies we successfully instantiated).
+            return cached
+        # Try the heavyweight path first.
+        try:
+            inst = cls()
+            info = self._build_node_info(type_id, cls, inst=inst)
+        except Exception:
+            info = self._build_node_info(type_id, cls, inst=None)
+        self._type_summaries[type_id] = info
+        return info
+
+    def _safe_props(self, node) -> dict:
+        """Return only user-defined custom properties (no framework state).
+
+        ``node.properties()`` includes 'inputs', 'outputs', 'pos', etc. with
+        values that contain ``PortModel`` instances and aren't JSON-serializable.
+        ``node.model.custom_properties`` is the right surface — exactly the
+        spinboxes/combos/checkboxes the user defined.
+        """
+        custom = getattr(node.model, 'custom_properties', {}) or {}
+        out: dict = {}
+        for k, v in custom.items():
+            if k.startswith('_'):
+                continue
+            out[k] = v
+        return out
 
     # ── inspection / query ──────────────────────────────────────────────
     def list_registered(self) -> list[NodeInfo]:
         out = []
         for type_id, cls in self._graph.node_factory.nodes.items():
-            if type_id not in self._type_summaries:
-                self._type_summaries[type_id] = self._build_node_info(
-                    type_id, cls)
-            out.append(self._type_summaries[type_id])
+            out.append(self._ensure_info_cached(type_id, cls))
         return out
 
     def describe_registered(self, type_id: str) -> NodeInfo:
         cls = self._graph.node_factory.nodes.get(type_id)
         if cls is None:
             raise KeyError(f"unknown node type: {type_id}")
-        base = self._build_node_info(type_id, cls)
-        # Spin up a throwaway instance to enumerate properties — most
-        # nodes create properties in __init__ rather than as class attrs.
-        try:
-            tmp = cls()
-            props = [p for p in tmp.model.properties.keys()
-                     if not p.startswith('_')]
-        except Exception:
-            props = []
-        return NodeInfo(
-            category=base.category, name=base.name, type_id=base.type_id,
-            properties=props, input_ports=base.input_ports,
-            output_ports=base.output_ports, summary=base.summary,
-        )
+        return self._ensure_info_cached(type_id, cls)
 
     def list_active(self) -> list[NodeRecord]:
         out = []
         for node in self._graph.all_nodes():
             out.append(NodeRecord(
                 id=node.id, type_id=node.type_, name=node.name(),
-                properties={k: node.get_property(k) for k in node.properties()
-                            if not k.startswith('_')},
+                properties=self._safe_props(node),
                 status=getattr(node, '_status', 'pending') or 'pending',
                 last_message=getattr(node, '_last_message', None),
             ))
@@ -231,8 +265,7 @@ class NodeGraphController:
             raise KeyError(f"unknown node id: {node_id}")
         return NodeRecord(
             id=node.id, type_id=node.type_, name=node.name(),
-            properties={k: node.get_property(k) for k in node.properties()
-                        if not k.startswith('_')},
+            properties=self._safe_props(node),
             status=getattr(node, '_status', 'pending') or 'pending',
             last_message=getattr(node, '_last_message', None),
         )
