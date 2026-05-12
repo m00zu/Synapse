@@ -41,7 +41,11 @@ def test_describe_node_full_info(ctl):
     info = describe_node(
         ctl, 'plugins.ML.Classification.RandomForestClassifierNode')
     assert info['name'] == 'Random Forest'
-    assert info['properties'] == ['target_column', 'n_estimators']
+    # Backward-compat shape: each property is now a dict with at least
+    # a 'name' field (FakeGraphController doesn't surface specs, so
+    # describe_node falls back to {name: ...} per property).
+    assert [p['name'] for p in info['properties']] == [
+        'target_column', 'n_estimators']
     assert info['inputs'] == ['train']
     assert info['outputs'] == ['model', 'result']
 
@@ -74,3 +78,37 @@ def test_search_nodes_returns_at_most_top_k(ctl):
 def test_search_nodes_empty_query_returns_empty(ctl):
     assert search_nodes(ctl, '') == []
     assert search_nodes(ctl, '   ') == []
+
+
+def test_describe_node_surfaces_combo_options_and_hints():
+    """When the controller knows widget metadata, describe_node returns
+    rich per-property dicts including combo options and author hints."""
+    ctl = FakeGraphController(registered=[
+        NodeInfo(
+            'stats', 'Outlier Detection',
+            'plugins.Stats.OutlierDetectionNode',
+            ['method', 'threshold', 'drop_outliers'],
+            ['table'], ['table'],
+            'Flag rows with outlier values per group.',
+            property_specs=[
+                {'name': 'method', 'kind': 'combo',
+                 'options': ['IQR', 'Z-score', 'MAD'],
+                 'default': 'IQR',
+                 'hint': 'How to flag outliers per group.'},
+                {'name': 'threshold', 'kind': 'float',
+                 'default': 1.5, 'range': [0.0, 10.0]},
+                {'name': 'drop_outliers', 'kind': 'bool',
+                 'default': False},
+            ],
+        ),
+    ])
+    info = describe_node(ctl, 'plugins.Stats.OutlierDetectionNode')
+    method = next(p for p in info['properties'] if p['name'] == 'method')
+    assert method['kind'] == 'combo'
+    assert method['options'] == ['IQR', 'Z-score', 'MAD']
+    assert method['default'] == 'IQR'
+    assert 'flag outliers' in method['hint']
+    threshold = next(p for p in info['properties']
+                     if p['name'] == 'threshold')
+    assert threshold['kind'] == 'float'
+    assert threshold['range'] == [0.0, 10.0]

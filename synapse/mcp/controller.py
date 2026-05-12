@@ -9,6 +9,24 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 
+_WIDGET_KIND: dict[int, str] = {
+    0:  'hidden',
+    2:  'label',
+    3:  'text',
+    4:  'textarea',
+    5:  'combo',
+    6:  'bool',
+    7:  'int',
+    8:  'float',
+    9:  'color',
+    10: 'color_rgba',
+    11: 'slider_int',
+    12: 'slider_float',
+    13: 'file_open',
+    14: 'file_save',
+}
+
+
 @dataclass(frozen=True)
 class NodeInfo:
     """Description of a node *type* (template, not an instance)."""
@@ -19,6 +37,8 @@ class NodeInfo:
     input_ports: list[str]
     output_ports: list[str]
     summary: str         # one-line description for catalog
+    property_specs: list[dict] = field(default_factory=list)
+    # Each dict: {name, kind, default, options?, range?, hint?}
 
 
 @dataclass
@@ -300,15 +320,51 @@ class NodeGraphController:
             except Exception:
                 inputs = list(port_spec.get('inputs', []))
                 outputs = list(port_spec.get('outputs', []))
+
+            # Custom properties: names + per-prop metadata
+            specs: list[dict] = []
+            props: list[str] = []
             try:
                 custom = getattr(inst.model, 'custom_properties', {}) or {}
-                props = [k for k in custom.keys() if not k.startswith('_')]
+                # Per-property hints declared on the class.
+                hints = getattr(cls, 'PROP_DESCRIPTIONS', {}) or {}
+                attrs = getattr(inst.model, '_TEMP_property_attrs', {}) or {}
+                for prop_name in custom.keys():
+                    if prop_name.startswith('_'):
+                        continue
+                    props.append(prop_name)
+                    spec: dict = {
+                        'name': prop_name,
+                        'default': custom.get(prop_name),
+                    }
+                    # Widget kind
+                    try:
+                        wk = inst.model.get_widget_type(prop_name)
+                    except Exception:
+                        wk = None
+                    spec['kind'] = _WIDGET_KIND.get(wk, 'unknown')
+                    # Items / range / etc.
+                    attr_block = attrs.get(prop_name) or {}
+                    if 'items' in attr_block:
+                        spec['options'] = list(attr_block['items'])
+                    if 'range' in attr_block:
+                        rng = attr_block['range']
+                        try:
+                            spec['range'] = [float(rng[0]), float(rng[1])]
+                        except Exception:
+                            pass
+                    # Author-supplied hint, if any.
+                    if prop_name in hints:
+                        spec['hint'] = str(hints[prop_name])
+                    specs.append(spec)
             except Exception:
                 props = []
+                specs = []
         else:
             inputs = list(port_spec.get('inputs', []))
             outputs = list(port_spec.get('outputs', []))
             props = []
+            specs = []
 
         return NodeInfo(
             category=category,
@@ -318,6 +374,7 @@ class NodeGraphController:
             input_ports=inputs,
             output_ports=outputs,
             summary=summary,
+            property_specs=specs,
         )
 
     def _ensure_info_cached(self, type_id: str, cls) -> NodeInfo:

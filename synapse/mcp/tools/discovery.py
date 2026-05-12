@@ -25,10 +25,24 @@ def describe_node(controller: GraphController,
                   node_type: str) -> dict[str, Any]:
     """Return full info for a single registered node type.
 
-    ``node_type`` is the ``type`` field from ``list_nodes`` output.  The
-    returned dict has ``{name, category, summary, inputs, outputs,
-    properties}``.  Properties are property-name strings; values/defaults
-    are not introspected in v0 (would require instantiating the node).
+    Returns ``{name, category, summary, inputs, outputs, properties}``.
+    Each entry in ``properties`` is a dict::
+
+        {
+          "name":    "method",            # property identifier
+          "kind":    "combo",             # one of: combo, bool, int, float,
+                                          #         text, file_open, file_save,
+                                          #         slider_int, slider_float,
+                                          #         color, color_rgba, hidden,
+                                          #         label, textarea, unknown
+          "default": <current default value>,
+          "options": ["IQR", "Z-score"],  # combo only
+          "range":   [0.0, 100.0],        # numeric only (when defined)
+          "hint":    "..."                # author-supplied per-property doc
+        }
+
+    **Use the ``options`` field for combo properties when calling
+    ``set_property`` — the values must match exactly (case-sensitive).**
     """
     try:
         info: NodeInfo = controller.describe_registered(node_type)
@@ -36,13 +50,20 @@ def describe_node(controller: GraphController,
         raise ValueError(
             f"Unknown node type: {node_type!r}. "
             f"Call list_nodes() to see all registered types.")
+    # Prefer the rich property_specs if available; fall back to the
+    # legacy bare-name list so older controllers (the Fake in tests)
+    # still produce a sensible response.
+    if info.property_specs:
+        props_out = info.property_specs
+    else:
+        props_out = [{'name': n} for n in info.properties]
     return {
         'name': info.name,
         'category': info.category,
         'summary': info.summary,
         'inputs': list(info.input_ports),
         'outputs': list(info.output_ports),
-        'properties': list(info.properties),
+        'properties': props_out,
     }
 
 

@@ -99,3 +99,15 @@ def test_fake_run_node_returns_canned_result():
     ctl.set_run_result(a, success=True, message='ok', duration_ms=12.3)
     result = ctl.run_node(a)
     assert result == {'success': True, 'message': 'ok', 'duration_ms': 12.3}
+
+
+def test_fake_describe_registered_returns_node_info():
+    """FakeGraphController returns NodeInfo with empty property_specs
+    (since it has no widget introspection); the legacy properties list
+    keeps working."""
+    ctl = FakeGraphController(registered=[
+        NodeInfo('cat', 'N', 'cat.N', ['x', 'y'], [], [], 'docs'),
+    ])
+    info = ctl.describe_registered('cat.N')
+    assert info.properties == ['x', 'y']
+    assert info.property_specs == []

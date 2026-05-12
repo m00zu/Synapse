@@ -78,7 +78,7 @@ Claude has access to 17 tools:
 | Group | Tool | Purpose |
 |---|---|---|
 | Discovery | `list_nodes` | Catalog of every registered node (name + summary + category) |
-| Discovery | `describe_node(node_type)` | Full details on a node type — ports + properties |
+| Discovery | `describe_node(node_type)` | Full details on a node type — ports + per-property metadata (combo options, types, defaults, hints) |
 | Discovery | `search_nodes(query)` | Keyword search; fallback when the catalog is too large |
 | Compose | `create_workflow(definition, run=False)` | Atomic one-shot — build a whole pipeline, optionally execute it |
 | Inspect | `describe_graph()` | Snapshot of the current workflow |
