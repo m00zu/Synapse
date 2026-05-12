@@ -72,3 +72,37 @@ def test_server_registers_v0_tools(qapp, tmp_path, monkeypatch):
         }
     finally:
         mcp_server.stop_server()
+
+
+def test_tool_schemas_omit_controller_arg(qapp, tmp_path, monkeypatch):
+    """Regression: _wrap must preserve typed signatures so FastMCP exposes
+    proper input schemas to the LLM (not the useless *args/**kwargs that
+    a naive wrapper produces).
+    """
+    import asyncio
+    from synapse.mcp.controller import FakeGraphController
+    from synapse.mcp import server as mcp_server
+
+    monkeypatch.setattr(mcp_server, '_PORT_FILE', tmp_path / 'mcp-port')
+
+    ctl = FakeGraphController(registered=[])
+    port = _free_port()
+    mcp_server.start_server_with_controller(ctl, port=port)
+    try:
+        tools = asyncio.new_event_loop().run_until_complete(
+            mcp_server._fastmcp.list_tools())
+        # Every tool's input schema must (a) NOT contain 'controller' and
+        # (b) NOT contain a bare 'args' or 'kwargs' (which would be the
+        # broken naive *args/**kwargs schema).
+        for t in tools:
+            props = set((t.inputSchema or {}).get('properties', {}).keys())
+            assert 'controller' not in props, \
+                f"{t.name}: schema leaks controller arg"
+            # A naive *args/**kwargs wrapper produces exactly {'args', 'kwargs'}.
+            # A properly-wrapped tool either has real named params or is empty
+            # (for no-user-arg tools like list_nodes).
+            assert props != {'args', 'kwargs'}, \
+                f"{t.name}: schema is broken naive *args/**kwargs " \
+                f"(saw only {props})"
+    finally:
+        mcp_server.stop_server()

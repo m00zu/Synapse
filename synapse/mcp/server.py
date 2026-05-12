@@ -7,6 +7,8 @@ the Qt main thread (where NodeGraph lives).  Port is written to
 """
 from __future__ import annotations
 
+import functools
+import inspect
 import json
 import threading
 from pathlib import Path
@@ -28,14 +30,23 @@ _PORT_FILE = Path.home() / '.synapse' / 'mcp-port'
 _server_thread: Optional[threading.Thread] = None
 _fastmcp: Optional[FastMCP] = None
 _tool_names: list[str] = []
+_uvicorn_server: Optional[Any] = None
 
 
 def _wrap(hop: ThreadHop, controller: GraphController, fn):
-    """Wrap a tool fn so it dispatches to the Qt main thread via ThreadHop."""
+    """Wrap a tool fn so it dispatches to the Qt main thread via ThreadHop.
+
+    Preserves the wrapped function's typed signature (minus the first
+    ``controller`` arg, which is closed over) so FastMCP can build a
+    proper JSON input schema for the LLM.
+    """
+    @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         return hop.call(fn, controller, *args, **kwargs)
-    wrapper.__name__ = fn.__name__
-    wrapper.__doc__ = fn.__doc__
+    # Drop the leading 'controller' parameter from the LLM-visible signature.
+    orig_sig = inspect.signature(fn)
+    params = list(orig_sig.parameters.values())
+    wrapper.__signature__ = orig_sig.replace(parameters=params[1:])
     return wrapper
 
 
@@ -105,8 +116,9 @@ def start_server_with_controller(controller: GraphController,
             host='127.0.0.1', port=port,
             log_level='warning',
         )
-        server = uvicorn.Server(config)
-        server.run()
+        global _uvicorn_server
+        _uvicorn_server = uvicorn.Server(config)
+        _uvicorn_server.run()
 
     _server_thread = threading.Thread(target=_serve, daemon=True,
                                        name='synapse-mcp')
@@ -121,12 +133,13 @@ def start_server(window) -> int:
 
 
 def stop_server() -> None:
-    """Best-effort stop.  v0 relies on daemon thread + process exit."""
-    global _server_thread, _fastmcp, _tool_names
-    # uvicorn doesn't expose a clean shutdown without keeping a handle;
-    # daemon thread dies with the process.  v1 will use a proper handle.
+    """Best-effort stop.  Signals uvicorn shutdown and clears globals."""
+    global _server_thread, _fastmcp, _tool_names, _uvicorn_server
+    if _uvicorn_server is not None:
+        _uvicorn_server.should_exit = True
     _server_thread = None
     _fastmcp = None
+    _uvicorn_server = None
     _tool_names = []
     try:
         _PORT_FILE.unlink()
