@@ -203,3 +203,116 @@ def test_get_node_output_unknown_mode_raises(ctl):
     with pytest.raises(ValueError) as exc:
         get_node_output(ctl, nid, mode='whoops')
     assert 'whoops' in str(exc.value)
+
+
+# ── get_node_image tests ──────────────────────────────────────────────────────
+
+def test_get_node_image_ndarray(ctl):
+    """numpy uint8 ndarray round-trips through PNG encoding."""
+    if not _HAS_PANDAS:   # pandas guard from earlier — also implies numpy
+        pytest.skip("numpy not available")
+    import numpy as np
+    from synapse.mcp.tools.images import get_node_image
+
+    nid = ctl.add_node('cat.Foo')
+    arr = np.full((50, 70, 3), 128, dtype=np.uint8)
+    ctl.set_output(nid, 'out', arr)
+
+    blocks = get_node_image(ctl, nid)
+    # We return a list of Content blocks: text + image.
+    assert isinstance(blocks, list)
+    assert len(blocks) == 2
+    text_block, img_block = blocks
+    assert text_block.type == 'text'
+    assert img_block.type == 'image'
+    assert img_block.mimeType == 'image/png'
+    # The base64 data starts with iVBOR (PNG header in base64).
+    assert img_block.data.startswith('iVBOR')
+
+
+def test_get_node_image_pil(ctl):
+    from PIL import Image as _PILImage
+    from synapse.mcp.tools.images import get_node_image
+    nid = ctl.add_node('cat.Foo')
+    img = _PILImage.new('RGB', (40, 30), color=(255, 0, 0))
+    ctl.set_output(nid, 'out', img)
+
+    blocks = get_node_image(ctl, nid)
+    assert blocks[1].type == 'image'
+    assert blocks[1].mimeType == 'image/png'
+
+
+def test_get_node_image_downsamples_large_image(ctl):
+    """Verify >1024 dim is brought under the cap."""
+    import numpy as np
+    from synapse.mcp.tools.images import get_node_image
+    import base64, io
+    from PIL import Image as _PILImage
+
+    nid = ctl.add_node('cat.Foo')
+    big = np.full((2000, 3000, 3), 64, dtype=np.uint8)
+    ctl.set_output(nid, 'out', big)
+
+    blocks = get_node_image(ctl, nid, max_dim=512)
+    img_block = blocks[1]
+    # Decode the PNG and assert its dimensions are <= 512 on the long side.
+    raw = base64.b64decode(img_block.data)
+    decoded = _PILImage.open(io.BytesIO(raw))
+    assert max(decoded.size) <= 512
+
+
+def test_get_node_image_bool_mask(ctl):
+    """Bool masks (from threshold ops) should encode as 0/255 grayscale."""
+    import numpy as np
+    from synapse.mcp.tools.images import get_node_image
+    import base64, io
+    from PIL import Image as _PILImage
+
+    nid = ctl.add_node('cat.Foo')
+    mask = np.zeros((50, 50), dtype=bool)
+    mask[10:40, 10:40] = True
+    ctl.set_output(nid, 'out', mask)
+
+    blocks = get_node_image(ctl, nid)
+    raw = base64.b64decode(blocks[1].data)
+    decoded = _PILImage.open(io.BytesIO(raw))
+    pixels = np.array(decoded)
+    # Should have BOTH 0 and 255 (and only those).
+    unique = set(pixels.flatten().tolist())
+    assert 0 in unique
+    assert 255 in unique
+
+
+def test_get_node_image_unsupported_payload_raises(ctl):
+    """Trying to read a non-image output gives an actionable error."""
+    from synapse.mcp.tools.images import get_node_image
+    nid = ctl.add_node('cat.Foo')
+    ctl.set_output(nid, 'out', {'not_an_image': True})
+    with pytest.raises(ValueError) as exc:
+        get_node_image(ctl, nid)
+    assert "preview" in str(exc.value).lower()
+
+
+def test_get_node_image_unknown_node_raises_actionable(ctl):
+    from synapse.mcp.tools.images import get_node_image
+    with pytest.raises(ValueError) as exc:
+        get_node_image(ctl, 'nonsense')
+    assert 'nonsense' in str(exc.value)
+    assert 'describe_graph' in str(exc.value)
+
+
+def test_get_node_image_unwraps_payload(ctl):
+    """Wrapped data classes (ImageData(payload=...)) should be unwrapped."""
+    import numpy as np
+    from synapse.mcp.tools.images import get_node_image
+
+    class _FakeImageData:
+        def __init__(self, payload):
+            self.payload = payload
+
+    nid = ctl.add_node('cat.Foo')
+    arr = np.full((10, 10), 200, dtype=np.uint8)
+    ctl.set_output(nid, 'out', _FakeImageData(arr))
+
+    blocks = get_node_image(ctl, nid)
+    assert blocks[1].type == 'image'

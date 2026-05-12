@@ -73,7 +73,7 @@ Start a Claude Code session and ask things like:
 - "Build a fingerprint clustering pipeline for the CSV at /Users/me/molecules.csv"
 - "Add a Murcko Scaffold node after the MolTable Reader."
 
-Claude has access to 17 tools:
+Claude has access to 18 tools:
 
 | Group | Tool | Purpose |
 |---|---|---|
@@ -91,6 +91,7 @@ Claude has access to 17 tools:
 | Execute | `run_node(node_id)` | Evaluate a node (re-runs dirty upstream) |
 | Execute | `get_node_status(node_id)` | Last known status of a node, no re-run |
 | Execute | `get_node_output(node_id, port_name?, mode?, ...)` | Read a node's output port. Modes: `preview` (default), `describe`, `range(start,end)`, `columns(...)`, `filter(query)`, `full`. |
+| Execute | `get_node_image(node_id, port_name?, max_dim?)` | Return a node's output as a PNG image — for visual inspection by the LLM's vision model |
 | Persist | `new_workflow()` | Clear every node + connection from the current graph |
 | Persist | `save_workflow(path)` | Write the current workflow to a JSON file |
 | Persist | `load_workflow(path)` | Replace the current workflow with one from disk |
