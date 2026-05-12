@@ -22,7 +22,7 @@ From a terminal where the `claude` CLI is installed:
 
 ```bash
 PORT=$(python -c "import json; print(json.load(open('$HOME/.synapse/mcp-port'))['port'])")
-claude mcp add synapse --transport http "http://127.0.0.1:$PORT/mcp/"
+claude mcp add synapse --transport http "http://127.0.0.1:$PORT/mcp"
 ```
 
 Verify with:
