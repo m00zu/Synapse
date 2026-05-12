@@ -62,15 +62,9 @@ def _validate(controller: GraphController,
     return nodes, connections
 
 
-def _terminal_aliases(nodes: list[dict],
-                      connections: list[dict]) -> list[str]:
-    """Aliases with no outgoing connections — these are the run targets."""
-    has_outgoing = {c['src'] for c in connections}
-    return [n['id'] for n in nodes if n['id'] not in has_outgoing]
-
-
-_X_PAD = 300.0
-_Y_PAD = 120.0
+_X_PAD = 300.0     # fallback column width when node width is unknown
+_Y_PAD = 120.0     # fallback row height when node height is unknown
+_GAP   = 60.0      # visual breathing room between columns / rows
 
 
 def _layout_new_nodes(controller: GraphController,
@@ -121,33 +115,78 @@ def _layout_new_nodes(controller: GraphController,
     for nid in [n['id'] for n in nodes]:
         buckets.setdefault(depth[nid], []).append(nid)
 
+    graph = controller._graph  # type: ignore[attr-defined]
+
+    def _node_width(n) -> float:
+        """Best-effort actual width; default to _X_PAD if unavailable."""
+        try:
+            w = getattr(n, 'width', None)
+            if callable(w):
+                w = w()
+            return float(w) if w else _X_PAD
+        except Exception:
+            return _X_PAD
+
+    def _node_height(n) -> float:
+        try:
+            h = getattr(n, 'height', None)
+            if callable(h):
+                h = h()
+            return float(h) if h else _Y_PAD
+        except Exception:
+            return _Y_PAD
+
     # Find current canvas extent so we don't smash onto existing nodes.
+    # Use right-edge (x + width) of the rightmost existing node + gap.
     base_x = 0.0
     try:
-        for n in controller._graph.all_nodes():  # type: ignore[attr-defined]
-            real_id = controller.get_node(n.id).id
-            if real_id in created.values():
+        for n in graph.all_nodes():
+            if n.id in created.values():
                 continue   # skip the nodes we just added
             try:
                 p = n.pos()
                 x = p[0] if not hasattr(p, 'x') else p.x()
-                base_x = max(base_x, x + _X_PAD)
+                base_x = max(base_x, x + _node_width(n) + _GAP)
             except Exception:
                 continue
     except Exception:
-        pass  # If we can't introspect, just start at 0,0.
+        pass
 
-    for d, alias_list in buckets.items():
-        for i, alias in enumerate(alias_list):
+    # Compute column x positions using each level's widest node width.
+    col_x: dict[int, float] = {}
+    x_cursor = base_x
+    for d in sorted(buckets.keys()):
+        col_x[d] = x_cursor
+        max_w = 0.0
+        for alias in buckets[d]:
             real_id = created.get(alias)
             if real_id is None:
                 continue
             try:
-                node = controller._graph.get_node_by_id(real_id)  # type: ignore[attr-defined]
-                if node is not None:
-                    node.set_pos(base_x + d * _X_PAD, i * _Y_PAD)
+                n = graph.get_node_by_id(real_id)
+                if n is not None:
+                    max_w = max(max_w, _node_width(n))
             except Exception:
-                pass
+                continue
+        x_cursor += (max_w or _X_PAD) + _GAP
+
+    # Place each node at its column-x; stack siblings vertically using
+    # each sibling's height + gap (so tall nodes don't crash into the
+    # next row down).
+    for d, alias_list in buckets.items():
+        y_cursor = 0.0
+        for alias in alias_list:
+            real_id = created.get(alias)
+            if real_id is None:
+                continue
+            try:
+                node = graph.get_node_by_id(real_id)
+                if node is None:
+                    continue
+                node.set_pos(col_x[d], y_cursor)
+                y_cursor += _node_height(node) + _GAP
+            except Exception:
+                continue
 
 
 def create_workflow(controller: GraphController,
@@ -185,8 +224,11 @@ def create_workflow(controller: GraphController,
     any check fails, no nodes are created (any partial creation during
     this call is rolled back).
 
-    With ``run=True``, terminal nodes (no outgoing edges) are evaluated
-    after creation; per-alias results are returned in ``run_results``.
+    With ``run=True``, every just-created node is evaluated in
+    topological order (upstream before downstream) — equivalent to
+    clicking "Run" on the canvas.  Per-alias results land in
+    ``run_results``; evaluation stops at the first failure so a broken
+    upstream node doesn't trigger misleading errors downstream.
 
     Returns ``{created_ids: {alias: real_id}, run_results?: {...}}``.
     Pre-existing graph state is never touched.
@@ -220,9 +262,52 @@ def create_workflow(controller: GraphController,
     result: dict[str, Any] = {'created_ids': dict(created)}
 
     if run:
+        # Evaluate every just-created node in topological order so each
+        # node's inputs are already populated by the time it runs.  This
+        # mirrors clicking "Run" on the canvas — without it, terminal
+        # nodes would read empty input ports on first build.
         run_results: dict[str, dict] = {}
-        for alias in _terminal_aliases(nodes, connections):
-            run_results[alias] = controller.run_node(created[alias])
+        for alias in _topo_order(nodes, connections):
+            res = controller.run_node(created[alias])
+            run_results[alias] = res
+            # Stop early on failure so downstream nodes don't run with
+            # missing inputs and report misleading errors.
+            if not res.get('success', True):
+                break
         result['run_results'] = run_results
 
     return result
+
+
+def _topo_order(nodes: list[dict],
+                connections: list[dict]) -> list[str]:
+    """Kahn's-algorithm topological sort over the node aliases.
+
+    Ensures upstream nodes evaluate before their downstream consumers.
+    Cycles (shouldn't happen — NodeGraphQt prevents them at connect time)
+    fall through with their nodes appended in arbitrary order so we still
+    return a complete schedule.
+    """
+    in_count: dict[str, int] = {n['id']: 0 for n in nodes}
+    edges: dict[str, list[str]] = {n['id']: [] for n in nodes}
+    for c in connections:
+        s, d = c['src'], c['dst']
+        if d in in_count:
+            in_count[d] += 1
+        if s in edges:
+            edges[s].append(d)
+
+    order: list[str] = []
+    ready = [nid for nid, n in in_count.items() if n == 0]
+    while ready:
+        nid = ready.pop(0)
+        order.append(nid)
+        for dst in edges.get(nid, []):
+            in_count[dst] -= 1
+            if in_count[dst] == 0:
+                ready.append(dst)
+    # Anything left = part of a cycle (defensive); tack it on.
+    for nid in in_count:
+        if nid not in order:
+            order.append(nid)
+    return order
