@@ -2874,6 +2874,15 @@ def main(splash=None, on_status=None):
                                  on_plugin_step=_plugin_step)
     window.show()
 
+    # Start MCP server so external chat clients can drive Synapse.
+    # Failure here is non-fatal — Synapse keeps working without it.
+    try:
+        from synapse.mcp import start_server as _mcp_start
+        _mcp_port = _mcp_start(window)
+        print(f"[mcp] server listening on 127.0.0.1:{_mcp_port}")
+    except Exception as _mcp_err:
+        print(f"[mcp] failed to start: {_mcp_err}")
+
     if splash is not None:
         splash.finish(window)
 
@@ -2884,7 +2893,14 @@ def main(splash=None, on_status=None):
     except Exception as e:
         print(f"[schema] auto-regenerate skipped: {e}")
 
-    app.exec()
+    try:
+        app.exec()
+    finally:
+        try:
+            from synapse.mcp import stop_server as _mcp_stop
+            _mcp_stop()
+        except Exception:
+            pass
 
 if __name__ == '__main__':
     main()
