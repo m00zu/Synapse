@@ -24,25 +24,30 @@ def get_node_image(controller: GraphController,
                    node_id: str,
                    port_name: str | None = None,
                    max_dim: int = 1024) -> list:
-    """Return a node's output port as a PNG image the LLM can see.
+    """**Use this whenever the user wants to SEE a figure or image** —
+    plots, masks, thresholded images, anything visual.  The output is
+    embedded as an MCP ImageContent so your vision model receives the
+    actual pixels, not metadata.
 
-    Use this when you want to *visually inspect* a node's output rather
-    than read its raw data — e.g., looking at a thresholded mask, a
-    plotted figure, or any image-like output.
+    Prefer this over ``get_node_output`` for any image/figure/mask
+    output.  ``get_node_output(mode='preview')`` on a figure only
+    returns width/height/n_axes — useless for actually seeing it.
 
     Supported payload types:
       - PIL.Image (returned as-is)
-      - numpy.ndarray (2-D grayscale or 3-D HxWxC, dtype anything)
-      - matplotlib.figure.Figure (rasterised via savefig)
+      - numpy.ndarray (2-D grayscale or 3-D HxWxC, dtype anything,
+        bool masks auto-convert to 0/255)
+      - matplotlib.figure.Figure (rasterised via savefig at adaptive DPI)
+      - FigureData.svg_override (edited SVG from the SVG Editor node,
+        rasterised via Qt's QSvgRenderer so user edits are preserved)
 
     ``max_dim`` caps the longest side (default 1024 px; hard ceiling
-    1600).  Larger images are downsampled with Lanczos filter so chat
-    context stays bounded.
+    1600).  Larger images are downsampled with Lanczos resampling.
 
-    Returns a list of MCP content blocks (TextContent + ImageContent)
-    so Claude's vision model sees the pixels directly.
+    Returns a list of MCP content blocks (TextContent + ImageContent).
 
-    Errors with a clear message for non-image outputs.
+    Errors with a clear message for non-image outputs — fall back to
+    ``get_node_output(mode='preview')`` for tables, models, scalars.
     """
     try:
         rec = controller.get_node(node_id)

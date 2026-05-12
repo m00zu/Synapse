@@ -274,6 +274,8 @@ def _summarize(value: Any, port_name: str) -> dict[str, Any]:
             out.update({
                 'kind': 'image', 'size': list(payload.size),
                 'mode': payload.mode,
+                'hint': 'To VIEW this image, call '
+                        'get_node_image(node_id, port_name) instead.',
             })
             return out
     except Exception:
@@ -289,6 +291,9 @@ def _summarize(value: Any, port_name: str) -> dict[str, Any]:
                 'kind': 'figure',
                 'width_inches': float(w), 'height_inches': float(h),
                 'n_axes': len(payload.axes),
+                'hint': 'To VIEW this figure rendered as a PNG, call '
+                        'get_node_image(node_id, port_name) instead.  '
+                        'This preview gives only metadata.',
             })
             return out
     except Exception:
