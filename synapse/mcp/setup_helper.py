@@ -46,19 +46,49 @@ def mcp_url(port: int) -> str:
     return f"http://127.0.0.1:{port}/mcp"
 
 
+def _is_frozen() -> bool:
+    """Detect whether we're running inside a Nuitka or PyInstaller bundle."""
+    # PyInstaller sets sys.frozen=True.  Nuitka sets __compiled__ on the
+    # __main__ module (when built with --standalone or onefile).
+    if getattr(sys, 'frozen', False):
+        return True
+    main_mod = sys.modules.get('__main__')
+    if main_mod is not None and hasattr(main_mod, '__compiled__'):
+        return True
+    return False
+
+
 def claude_desktop_entry(python_path: str | None = None,
                           server_name: str = 'synapse') -> dict:
     """Build the JSON snippet Claude Desktop expects.
 
-    Uses ``sys.executable`` by default — the exact Python running
-    Synapse — so the stdio bridge subprocess inherits the right env
-    (where the ``synapse`` package is importable).
+    Two flavours, picked automatically based on whether Synapse is
+    running as a frozen binary or from source:
 
-    Also pins ``cwd`` to the directory containing the ``synapse``
-    package.  Required when running from source so
-    ``python -m synapse.mcp.bridge_stdio`` resolves; harmless when
-    Synapse is installed into site-packages.
+    - **Frozen** (Nuitka / PyInstaller bundle): re-launch ``sys.executable``
+      with the ``--mcp-bridge`` flag.  ``main.py`` short-circuits to the
+      stdio proxy before any Qt imports happen, so the bundle binary
+      acts as both the GUI and the bridge — no extra files to ship.
+
+    - **Source** (running ``python main.py`` during dev): invoke
+      ``python -m synapse.mcp.bridge_stdio`` with ``cwd`` pinned to the
+      directory containing the ``synapse`` package, so the package
+      resolves regardless of where Claude Desktop launches the
+      subprocess from.
+
+    The ``python_path`` override always wins for the dev case (lets the
+    user point at a different env if they want).
     """
+    if _is_frozen():
+        # Bundle case: re-launch the Synapse binary itself.
+        return {
+            server_name: {
+                'command': sys.executable,
+                'args': ['--mcp-bridge'],
+            },
+        }
+
+    # Source case: invoke via python -m.
     try:
         import synapse as _synapse_pkg
         synapse_parent: str | None = str(
