@@ -1467,6 +1467,10 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         ai_conn_action.triggered.connect(self._open_mcp_setup_dialog)
         help_menu.addAction(ai_conn_action)
 
+        mcp_log_action = QtGui.QAction(tr("MCP Call Log…"), self)
+        mcp_log_action.triggered.connect(self._open_mcp_log_dialog)
+        help_menu.addAction(mcp_log_action)
+
         help_menu.addSeparator()
         toggle_help_action = QtGui.QAction(tr("Node Help Panel"), self)
         toggle_help_action.setCheckable(True)
@@ -1505,6 +1509,16 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 self, "MCP not available", str(e))
             return
         open_setup_dialog(self)
+
+    def _open_mcp_log_dialog(self) -> None:
+        """Open the MCP call log viewer (non-modal)."""
+        try:
+            from synapse.mcp.log_dialog import open_log_dialog
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(
+                self, "MCP not available", str(e))
+            return
+        open_log_dialog(self)
 
     @staticmethod
     def _docstring_to_html(doc: str) -> str:

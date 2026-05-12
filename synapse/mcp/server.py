@@ -46,11 +46,40 @@ def _wrap(hop: ThreadHop, controller: GraphController, fn):
 
     Preserves the wrapped function's typed signature (minus the first
     ``controller`` arg, which is closed over) so FastMCP can build a
-    proper JSON input schema for the LLM.
+    proper JSON input schema for the LLM.  Also records every call to
+    the in-process MCP log so the user can inspect activity via
+    ``Help → MCP Call Log``.
     """
+    import time as _time
+    from .logger import MCPLogger, MCPLogEntry
+
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        return hop.call(fn, controller, *args, **kwargs)
+        t0 = _time.perf_counter()
+        entry = MCPLogEntry(
+            timestamp=_time.time(), tool=fn.__name__,
+            args={'positional': list(args), **kwargs} if args else dict(kwargs),
+        )
+        try:
+            result = hop.call(fn, controller, *args, **kwargs)
+        except Exception as exc:
+            entry.success = False
+            entry.error = f'{type(exc).__name__}: {exc}'
+            entry.duration_ms = (_time.perf_counter() - t0) * 1000.0
+            MCPLogger.instance().log(entry)
+            raise
+        entry.success = True
+        entry.duration_ms = (_time.perf_counter() - t0) * 1000.0
+        # Keep the result summary short — the dialog shows full details
+        # on click, the table row just gets a one-liner.
+        try:
+            r_str = repr(result)
+        except Exception:
+            r_str = '<unrepr-able result>'
+        entry.result_summary = r_str[:200] + ('…' if len(r_str) > 200 else '')
+        MCPLogger.instance().log(entry)
+        return result
+
     # Drop the leading 'controller' parameter from the LLM-visible signature.
     orig_sig = inspect.signature(fn)
     params = list(orig_sig.parameters.values())
