@@ -1462,6 +1462,15 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         open_online_action.triggered.connect(self._open_online_manual)
         help_menu.addAction(open_online_action)
 
+        # MCP / AI connection setup
+        ai_conn_action = QtGui.QAction(tr("AI Connection (MCP)…"), self)
+        ai_conn_action.triggered.connect(self._open_mcp_setup_dialog)
+        help_menu.addAction(ai_conn_action)
+
+        mcp_log_action = QtGui.QAction(tr("MCP Call Log…"), self)
+        mcp_log_action.triggered.connect(self._open_mcp_log_dialog)
+        help_menu.addAction(mcp_log_action)
+
         help_menu.addSeparator()
         toggle_help_action = QtGui.QAction(tr("Node Help Panel"), self)
         toggle_help_action.setCheckable(True)
@@ -1490,6 +1499,26 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 return
         # No bundled docs — fall back to online
         self._open_online_manual()
+
+    def _open_mcp_setup_dialog(self) -> None:
+        """Open the AI Connection (MCP) help dialog."""
+        try:
+            from synapse.mcp.setup_dialog import open_setup_dialog
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(
+                self, "MCP not available", str(e))
+            return
+        open_setup_dialog(self)
+
+    def _open_mcp_log_dialog(self) -> None:
+        """Open the MCP call log viewer (non-modal)."""
+        try:
+            from synapse.mcp.log_dialog import open_log_dialog
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(
+                self, "MCP not available", str(e))
+            return
+        open_log_dialog(self)
 
     @staticmethod
     def _docstring_to_html(doc: str) -> str:
@@ -2874,6 +2903,15 @@ def main(splash=None, on_status=None):
                                  on_plugin_step=_plugin_step)
     window.show()
 
+    # Start MCP server so external chat clients can drive Synapse.
+    # Failure here is non-fatal — Synapse keeps working without it.
+    try:
+        from synapse.mcp import start_server as _mcp_start
+        _mcp_port = _mcp_start(window)
+        print(f"[mcp] server listening on 127.0.0.1:{_mcp_port}")
+    except Exception as _mcp_err:
+        print(f"[mcp] failed to start: {_mcp_err}")
+
     if splash is not None:
         splash.finish(window)
 
@@ -2884,7 +2922,14 @@ def main(splash=None, on_status=None):
     except Exception as e:
         print(f"[schema] auto-regenerate skipped: {e}")
 
-    app.exec()
+    try:
+        app.exec()
+    finally:
+        try:
+            from synapse.mcp import stop_server as _mcp_stop
+            _mcp_stop()
+        except Exception:
+            pass
 
 if __name__ == '__main__':
     main()

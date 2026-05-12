@@ -5,6 +5,19 @@ chain so users on slower machines know the app is starting up.  Updates
 the splash with per-phase status (core import / UI init / plugin loading).
 """
 import sys
+
+# ── stdio MCP bridge short-circuit ───────────────────────────────────────
+# Claude Desktop launches Synapse with ``--mcp-bridge`` to run the
+# stdio<->HTTP MCP proxy.  We have to short-circuit BEFORE any Qt
+# imports, otherwise the bridge subprocess pulls in the whole GUI stack
+# (slow + opens a window in some configurations).  This branch is also
+# what makes the Nuitka-built Synapse binary serve double duty as the
+# bridge (no separate executable needed).
+if '--mcp-bridge' in sys.argv:
+    from synapse.mcp.bridge_stdio import main as _bridge_main
+    _bridge_main()
+    sys.exit(0)
+
 import pathlib
 from PySide6 import QtCore, QtGui, QtWidgets
 
