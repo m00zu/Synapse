@@ -1462,6 +1462,11 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         open_online_action.triggered.connect(self._open_online_manual)
         help_menu.addAction(open_online_action)
 
+        # MCP / AI connection setup
+        ai_conn_action = QtGui.QAction(tr("AI Connection (MCP)…"), self)
+        ai_conn_action.triggered.connect(self._open_mcp_setup_dialog)
+        help_menu.addAction(ai_conn_action)
+
         help_menu.addSeparator()
         toggle_help_action = QtGui.QAction(tr("Node Help Panel"), self)
         toggle_help_action.setCheckable(True)
@@ -1490,6 +1495,16 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 return
         # No bundled docs — fall back to online
         self._open_online_manual()
+
+    def _open_mcp_setup_dialog(self) -> None:
+        """Open the AI Connection (MCP) help dialog."""
+        try:
+            from synapse.mcp.setup_dialog import open_setup_dialog
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(
+                self, "MCP not available", str(e))
+            return
+        open_setup_dialog(self)
 
     @staticmethod
     def _docstring_to_html(doc: str) -> str:
