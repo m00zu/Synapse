@@ -53,8 +53,8 @@ Claude has access to 12 tools:
 | Modify | `add_node(node_type, properties?)` | Create a node in the current graph |
 | Modify | `delete_node(node_id)` | Remove a node + any edges that touch it |
 | Modify | `set_property(node_id, prop, value)` | Update a node's property |
-| Modify | `connect(src_id, src_port, dst_id, dst_port)` | Wire two nodes |
-| Modify | `disconnect(src_id, src_port, dst_id, dst_port)` | Remove a wire |
+| Modify | `connect(src_node_id, src_port, dst_node_id, dst_port)` | Wire two nodes |
+| Modify | `disconnect(src_node_id, src_port, dst_node_id, dst_port)` | Remove a wire |
 | Execute | `run_node(node_id)` | Evaluate a node (re-runs dirty upstream) |
 | Execute | `get_node_status(node_id)` | Last known status of a node, no re-run |
 
