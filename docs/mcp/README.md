@@ -39,6 +39,32 @@ claude mcp list
 
 You should see `synapse` listed.
 
+## Step 2b — Add Synapse to Claude Desktop (optional)
+
+Claude Desktop only speaks stdio to MCP servers, but Synapse runs over
+HTTP. A bundled stdio<->HTTP bridge handles the translation. Add this
+to your `~/Library/Application Support/Claude/claude_desktop_config.json`
+(macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "synapse": {
+      "command": "python",
+      "args": ["-m", "synapse.mcp.bridge_stdio"]
+    }
+  }
+}
+```
+
+If `python` doesn't resolve correctly in Claude Desktop's environment
+(common on macOS), use the absolute path to the Python you ran Synapse
+with — e.g. `/Users/you/anaconda3/envs/synapse/bin/python`.
+
+Restart Claude Desktop, and you should see Synapse appear in the MCP
+servers list. **Note:** Synapse must be running for the bridge to
+connect — start Synapse first, then start a Claude Desktop session.
+
 ## Step 3 — Use it
 
 Start a Claude Code session and ask things like:
@@ -71,8 +97,7 @@ Claude has access to 17 tools:
 
 ## Limitations in v0
 
-- **No Claude Desktop support yet** — Claude Desktop only speaks stdio
-  to MCP servers; a small bridge script lands in v1.
+- **Claude Desktop support is via the bridge** — see Step 2b above.
 - **No confirmation dialog** — every tool call is auto-allowed in v0.
   v1 adds an "Ask / Auto" setting that can prompt for destructive ops.
 
