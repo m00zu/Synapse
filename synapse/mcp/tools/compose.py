@@ -271,52 +271,14 @@ def create_workflow(controller: GraphController,
     result: dict[str, Any] = {'created_ids': dict(created)}
 
     if run:
-        # Evaluate every just-created node in topological order so each
-        # node's inputs are already populated by the time it runs.  This
-        # mirrors clicking "Run" on the canvas — without it, terminal
-        # nodes would read empty input ports on first build.
+        # Each run_node call now walks upstream automatically (mirrors
+        # Synapse's "Run" button), so we only need to invoke the
+        # terminals — they'll drag their dependencies through.
         run_results: dict[str, dict] = {}
-        for alias in _topo_order(nodes, connections):
-            res = controller.run_node(created[alias])
-            run_results[alias] = res
-            # Stop early on failure so downstream nodes don't run with
-            # missing inputs and report misleading errors.
-            if not res.get('success', True):
-                break
+        terminals = [n['id'] for n in nodes
+                     if n['id'] not in {c['src'] for c in connections}]
+        for alias in terminals:
+            run_results[alias] = controller.run_node(created[alias])
         result['run_results'] = run_results
 
     return result
-
-
-def _topo_order(nodes: list[dict],
-                connections: list[dict]) -> list[str]:
-    """Kahn's-algorithm topological sort over the node aliases.
-
-    Ensures upstream nodes evaluate before their downstream consumers.
-    Cycles (shouldn't happen — NodeGraphQt prevents them at connect time)
-    fall through with their nodes appended in arbitrary order so we still
-    return a complete schedule.
-    """
-    in_count: dict[str, int] = {n['id']: 0 for n in nodes}
-    edges: dict[str, list[str]] = {n['id']: [] for n in nodes}
-    for c in connections:
-        s, d = c['src'], c['dst']
-        if d in in_count:
-            in_count[d] += 1
-        if s in edges:
-            edges[s].append(d)
-
-    order: list[str] = []
-    ready = [nid for nid, n in in_count.items() if n == 0]
-    while ready:
-        nid = ready.pop(0)
-        order.append(nid)
-        for dst in edges.get(nid, []):
-            in_count[dst] -= 1
-            if in_count[dst] == 0:
-                ready.append(dst)
-    # Anything left = part of a cycle (defensive); tack it on.
-    for nid in in_count:
-        if nid not in order:
-            order.append(nid)
-    return order

@@ -616,24 +616,146 @@ class NodeGraphController:
 
     # ── execution ───────────────────────────────────────────────────────
     def run_node(self, node_id: str) -> dict:
+        """Evaluate ``node_id`` after first bringing all upstream
+        dependencies up-to-date.  Mirrors what Synapse's "Run" button
+        does for the subgraph that feeds this node.
+
+        - Computes the set of transitive upstream ancestors.
+        - Topologically sorts them + the target node.
+        - Walks the order, evaluating any that are dirty, and calls
+          ``mark_clean`` on success / ``mark_error`` on failure.
+        - Returns the *target* node's result (success / message / total
+          duration).  Upstream nodes that fail short-circuit the walk
+          and the error is reported as if the target had failed.
+        """
         import time
-        node = self._graph.get_node_by_id(node_id)
-        if node is None:
+        target = self._graph.get_node_by_id(node_id)
+        if target is None:
             raise KeyError(f"unknown node id: {node_id}")
-        # Mirror Synapse's "Run" semantics: re-evaluate dirty upstream too.
-        # Delegate to the existing helper if available; otherwise call evaluate.
-        t0 = time.perf_counter()
-        try:
-            if hasattr(node, 'evaluate_with_upstream'):
-                success, msg = node.evaluate_with_upstream()
-            else:
-                success, msg = node.evaluate()
-            success = bool(success)
-        except Exception as exc:
+
+        # ── 1. Build ancestor subgraph via reverse BFS over inputs ─────
+        subgraph: list = []        # topo-sorted list, target last
+        visited = set()
+        in_stack = set()
+        cycle_found = [False]
+
+        def visit(n):
+            if cycle_found[0] or id(n) in visited:
+                return
+            if id(n) in in_stack:
+                cycle_found[0] = True
+                return
+            in_stack.add(id(n))
+            try:
+                upstream = n.connected_input_nodes().values()
+            except Exception:
+                upstream = []
+            for port_nodes in upstream:
+                for up in port_nodes:
+                    visit(up)
+            in_stack.discard(id(n))
+            visited.add(id(n))
+            subgraph.append(n)
+
+        visit(target)
+
+        if cycle_found[0]:
             return {'success': False,
-                    'message': f'{type(exc).__name__}: {exc}',
-                    'duration_ms': (time.perf_counter() - t0) * 1000.0}
-        return {'success': success, 'message': msg,
+                    'message': 'circular connection detected upstream',
+                    'duration_ms': 0.0}
+
+        # ── 2. Propagate dirty downstream within the subgraph ──────────
+        # Any dirty upstream means everything downstream of it is also
+        # dirty.  Matches GraphWorker's pass at synapse/app.py:84.
+        for n in subgraph:
+            if not hasattr(n, 'is_dirty'):
+                continue
+            try:
+                for in_port in n.inputs().values():
+                    for cp in in_port.connected_ports():
+                        if getattr(cp.node(), 'is_dirty', False):
+                            n.mark_dirty()
+                            break
+                    else:
+                        continue
+                    break
+            except Exception:
+                pass
+
+        # ── 3. Evaluate dirty nodes in topo order ──────────────────────
+        t0 = time.perf_counter()
+        target_success = True
+        target_message = None
+
+        for n in subgraph:
+            if not hasattr(n, 'evaluate'):
+                continue
+            # Skip clean nodes (already up-to-date).
+            if getattr(n, 'is_dirty', True) is False:
+                continue
+            # Skip disabled nodes.
+            if getattr(n, 'is_disabled', False):
+                if hasattr(n, 'mark_skipped'):
+                    try:
+                        n.mark_skipped()
+                    except Exception:
+                        pass
+                continue
+
+            try:
+                col_info = (n._check_collection_inputs()
+                            if hasattr(n, '_check_collection_inputs')
+                            else None)
+                if col_info and getattr(n, '_collection_aware', False):
+                    success, msg = n._evaluate_collection_loop(*col_info)
+                else:
+                    success, msg = n.evaluate()
+                success = bool(success)
+            except Exception as exc:
+                # If the failing node IS the target, that's what we report.
+                # Otherwise the target depends on a broken upstream — surface
+                # that as the target's failure too.
+                err_text = f'{type(exc).__name__}: {exc}'
+                if hasattr(n, 'mark_error'):
+                    try:
+                        n.mark_error()
+                    except Exception:
+                        pass
+                if n is target:
+                    return {'success': False, 'message': err_text,
+                            'duration_ms': (time.perf_counter() - t0) * 1000.0}
+                # Upstream raised — short-circuit and report.
+                return {'success': False,
+                        'message': (f"upstream node {n.name()!r} failed: "
+                                     f"{err_text}"),
+                        'duration_ms': (time.perf_counter() - t0) * 1000.0}
+
+            if not success:
+                if hasattr(n, 'mark_error'):
+                    try:
+                        n.mark_error()
+                    except Exception:
+                        pass
+                if n is target:
+                    target_success = False
+                    target_message = msg
+                    break
+                # Upstream returned False — report as target failure.
+                return {'success': False,
+                        'message': (f"upstream node {n.name()!r} failed: "
+                                     f"{msg}"),
+                        'duration_ms': (time.perf_counter() - t0) * 1000.0}
+            else:
+                # Success → clear dirty flag (this is what was missing).
+                if hasattr(n, 'mark_clean'):
+                    try:
+                        n.mark_clean()
+                    except Exception:
+                        pass
+                if n is target:
+                    target_message = msg
+
+        return {'success': target_success, 'message': target_message,
                 'duration_ms': (time.perf_counter() - t0) * 1000.0}
 
     # ── workflow I/O ────────────────────────────────────────────────────
