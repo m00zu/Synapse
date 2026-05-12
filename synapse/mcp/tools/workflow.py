@@ -7,11 +7,22 @@ from ..controller import GraphController
 
 
 def new_workflow(controller: GraphController) -> dict[str, Any]:
-    """Clear the current graph.
+    """**DESTRUCTIVE** — wipes every node and connection from the canvas.
 
-    Removes every node (and every connection) from the active workflow.
-    Use this before composing a fresh pipeline if the canvas already has
-    unrelated work on it.
+    Only call this when the user *explicitly* asks to clear, reset,
+    start over, or wipe the workflow.  **Never call this as a
+    "convenient reset" before modifying an existing graph** — that
+    throws away the user's work (node positions, manually-tweaked
+    properties, unsaved state).
+
+    For edits, use the surgical tools:
+
+    - ``disconnect`` + ``connect`` to change wiring.
+    - ``set_property`` to change a setting.
+    - ``replace_node`` to swap a node's type.
+    - ``add_node`` / ``delete_node`` for insertions / removals.
+
+    These are always preferable to clear-and-rebuild.
     """
     controller.clear_graph()
     return {'cleared': True}

@@ -201,16 +201,25 @@ def _layout_new_nodes(controller: GraphController,
 def create_workflow(controller: GraphController,
                     definition: dict,
                     run: bool = False) -> dict[str, Any]:
-    """Build a whole workflow in ONE call — preferred over add_node + connect.
+    """Build a NEW workflow (or a fresh sub-pipeline) in ONE atomic call.
 
-    **Use this whenever you're building two or more nodes that share
-    connections.**  It's one atomic call instead of N add_node + M connect
-    round-trips, the nodes get auto-laid-out so they don't overlap on the
-    canvas, and any validation failure rolls back cleanly (no half-built
-    graphs left behind).
+    **Use this ONLY for creating fresh nodes** — typically on an empty
+    canvas, or to add an entirely new sub-pipeline alongside existing
+    work.  One call instead of N × ``add_node`` + M × ``connect``;
+    nodes are auto-laid-out and validation failures roll back cleanly.
 
-    Only fall back to ``add_node`` / ``connect`` for surgical edits to an
-    existing graph (e.g. "add a Murcko Scaffold step between nodes X and Y").
+    **Do NOT use this to MODIFY an existing workflow.**  For any change
+    to nodes that already exist — re-wiring, property tweaks, swapping
+    types, deleting branches — use the modify tools instead:
+
+    - ``connect`` / ``disconnect`` — change wires.
+    - ``set_property`` — change a node's setting.
+    - ``replace_node`` — swap one node's type, preserving compatible wires.
+    - ``delete_node`` / ``add_node`` — surgical insertion or removal.
+
+    Calling ``create_workflow`` to "rebuild" the graph DUPLICATES the
+    existing nodes (it appends; it does not replace).  Always prefer the
+    smallest edit that achieves the user's goal.
 
     ``definition`` shape::
 
