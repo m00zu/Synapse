@@ -72,9 +72,18 @@ def get_node_image(controller: GraphController,
         raise ValueError(
             f"{e.args[0]}. Call run_node() first, then retry.")
 
-    payload = getattr(value, 'payload', value)
     cap = min(int(max_dim), _MAX_DIMENSION) if max_dim else _MAX_DIMENSION
-    png_bytes = _render_to_png(payload, max_dim=cap)
+
+    # SVG Editor produces FigureData with `svg_override` set to the
+    # edited SVG bytes — diverges from the underlying matplotlib
+    # figure once the user has touched anything.  Render the SVG
+    # directly via Qt so edits actually reach the LLM.
+    svg_bytes = getattr(value, 'svg_override', None)
+    if svg_bytes:
+        png_bytes = _svg_to_png(svg_bytes, max_dim=cap)
+    else:
+        payload = getattr(value, 'payload', value)
+        png_bytes = _render_to_png(payload, max_dim=cap)
 
     b64 = base64.b64encode(png_bytes).decode('ascii')
     # Return shape: FastMCP turns the dict into structured content, but
@@ -187,3 +196,40 @@ def _figure_to_png(fig, max_dim: int) -> bytes:
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=dpi, bbox_inches='tight')
     return buf.getvalue()
+
+
+def _svg_to_png(svg_bytes: bytes, max_dim: int) -> bytes:
+    """Rasterise SVG bytes to PNG via Qt's built-in QSvgRenderer.
+
+    Used for ``FigureData.svg_override`` payloads (the output of the
+    interactive SVG editor node).  Zero new dependencies — PySide6 is
+    already in the Synapse stack.
+    """
+    from PySide6 import QtCore, QtGui, QtSvg
+
+    renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(bytes(svg_bytes)))
+    if not renderer.isValid():
+        raise ValueError("svg_override payload is not valid SVG.")
+
+    # Native (vector-defined) size in pixels.  Downsample to max_dim
+    # while preserving aspect ratio.
+    native = renderer.defaultSize()
+    w, h = max(1, native.width()), max(1, native.height())
+    longest = max(w, h)
+    if longest > max_dim:
+        scale = max_dim / longest
+        w = max(1, int(w * scale))
+        h = max(1, int(h * scale))
+
+    img = QtGui.QImage(w, h, QtGui.QImage.Format.Format_ARGB32)
+    img.fill(QtCore.Qt.GlobalColor.transparent)
+    painter = QtGui.QPainter(img)
+    try:
+        renderer.render(painter)
+    finally:
+        painter.end()
+
+    buf = QtCore.QBuffer()
+    buf.open(QtCore.QIODevice.OpenModeFlag.WriteOnly)
+    img.save(buf, 'PNG')
+    return bytes(buf.data())
