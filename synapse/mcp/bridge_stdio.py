@@ -81,15 +81,26 @@ async def _run() -> None:
                 resp = await upstream.list_tools()
                 return list(resp.tools)
 
-            # call_tool decorator calls func(tool_name, arguments)
+            # call_tool decorator calls func(tool_name, arguments).
+            # We return a CallToolResult directly so the SDK forwards
+            # structuredContent unchanged — required when the upstream tool
+            # declares outputSchema (FastMCP auto-generates these from typed
+            # return annotations).  Claude Desktop validates structuredContent
+            # against outputSchema; dropping it causes:
+            #   "Output validation error: outputSchema defined but no
+            #    structured output returned"
+            # isError is also preserved so error state is not lost in transit.
             @server.call_tool()
             async def _call_tool(
                 name: str,
                 arguments: dict[str, Any] | None,
-            ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+            ) -> types.CallToolResult:
                 resp = await upstream.call_tool(name, arguments or {})
-                # Pass through whatever the upstream returned unchanged.
-                return list(resp.content)
+                return types.CallToolResult(
+                    content=list(resp.content),
+                    structuredContent=getattr(resp, "structuredContent", None),
+                    isError=bool(getattr(resp, "isError", False)),
+                )
 
             # stdio_server() is an async context manager yielding (read_stream, write_stream)
             async with stdio_mod.stdio_server() as (rstream, wstream):
