@@ -49,14 +49,11 @@ def test_write_creates_file_when_missing(tmp_path):
     result = write_claude_desktop_config(cfg, python_path='/x/python')
     assert cfg.is_file()
     data = json.loads(cfg.read_text())
-    assert data == {
-        'mcpServers': {
-            'synapse': {
-                'command': '/x/python',
-                'args': ['-m', 'synapse.mcp.bridge_stdio'],
-            },
-        },
-    }
+    entry = data['mcpServers']['synapse']
+    assert entry['command'] == '/x/python'
+    assert entry['args'] == ['-m', 'synapse.mcp.bridge_stdio']
+    # cwd is set so the bridge subprocess can find the synapse package.
+    assert 'cwd' in entry
     assert result['config_path'] == str(cfg)
     assert result['replaced'] is False
     assert result['other_servers'] == []

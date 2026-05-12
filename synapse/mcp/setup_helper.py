@@ -53,13 +53,26 @@ def claude_desktop_entry(python_path: str | None = None,
     Uses ``sys.executable`` by default — the exact Python running
     Synapse — so the stdio bridge subprocess inherits the right env
     (where the ``synapse`` package is importable).
+
+    Also pins ``cwd`` to the directory containing the ``synapse``
+    package.  Required when running from source so
+    ``python -m synapse.mcp.bridge_stdio`` resolves; harmless when
+    Synapse is installed into site-packages.
     """
-    return {
-        server_name: {
-            'command': python_path or sys.executable,
-            'args': ['-m', 'synapse.mcp.bridge_stdio'],
-        },
+    try:
+        import synapse as _synapse_pkg
+        synapse_parent: str | None = str(
+            Path(_synapse_pkg.__file__).parent.parent)
+    except Exception:
+        synapse_parent = None
+
+    entry: dict = {
+        'command': python_path or sys.executable,
+        'args': ['-m', 'synapse.mcp.bridge_stdio'],
     }
+    if synapse_parent:
+        entry['cwd'] = synapse_parent
+    return {server_name: entry}
 
 
 def write_claude_desktop_config(
