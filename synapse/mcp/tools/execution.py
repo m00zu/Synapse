@@ -41,22 +41,116 @@ def get_node_status(controller: GraphController,
             'last_message': rec.last_message}
 
 
+# ── Hard caps (not adjustable via tool params) ───────────────────────────────
+_RANGE_CAP = 500
+_COLUMNS_CAP = 500
+_FILTER_CAP = 200
+_FULL_LIMIT = 5000
+
+
+def _describe_mode(df: Any, port_name: str) -> dict[str, Any]:
+    try:
+        import math
+        summary = df.describe(include='all').to_dict()
+        cleaned: dict = {}
+        for col, stats in summary.items():
+            cleaned[str(col)] = {
+                str(k): (None if (isinstance(v, float) and math.isnan(v)) else
+                          v.item() if hasattr(v, 'item') else v)
+                for k, v in stats.items()
+            }
+    except Exception as e:
+        raise ValueError(f"describe failed: {e}")
+    return {'port': port_name, 'kind': 'describe',
+            'n_rows': int(df.shape[0]), 'n_cols': int(df.shape[1]),
+            'summary': cleaned}
+
+
+def _range_mode(df: Any, port_name: str,
+                start: int, end: int | None) -> dict[str, Any]:
+    n = len(df)
+    s = max(0, int(start))
+    e = n if end is None else max(s, int(end))
+    e = min(e, n, s + _RANGE_CAP)
+    rows = df.iloc[s:e].to_dict(orient='records')
+    return {'port': port_name, 'kind': 'range',
+            'start': s, 'end': e, 'n_total': n,
+            'n_returned': len(rows), 'rows': rows}
+
+
+def _columns_mode(df: Any, port_name: str,
+                  columns: list[str] | None,
+                  sample: int) -> dict[str, Any]:
+    if not columns:
+        raise ValueError("mode='columns' requires the 'columns' parameter.")
+    missing = [c for c in columns if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"Unknown column(s): {missing}. Available: {list(df.columns)}")
+    take = min(int(sample), _COLUMNS_CAP, len(df))
+    rows = df[columns].head(take).to_dict(orient='records')
+    return {'port': port_name, 'kind': 'columns',
+            'columns': list(columns), 'n_rows': int(len(df)),
+            'n_returned': len(rows), 'head': rows}
+
+
+def _filter_mode(df: Any, port_name: str, query: str | None) -> dict[str, Any]:
+    if not query or not query.strip():
+        raise ValueError("mode='filter' requires the 'query' parameter "
+                          "(pandas df.query syntax, e.g. \"area > 1000\").")
+    try:
+        filtered = df.query(query)
+    except Exception as e:
+        raise ValueError(
+            f"Invalid filter query {query!r}: {type(e).__name__}: {e}")
+    n_matched = int(len(filtered))
+    take = min(n_matched, _FILTER_CAP)
+    rows = filtered.head(take).to_dict(orient='records')
+    return {'port': port_name, 'kind': 'filter',
+            'query': query, 'n_matched': n_matched,
+            'n_returned': len(rows), 'rows': rows}
+
+
+def _full_mode(df: Any, port_name: str) -> dict[str, Any]:
+    n = int(len(df))
+    if n > _FULL_LIMIT:
+        raise ValueError(
+            f"Table has {n} rows (> {_FULL_LIMIT}); refusing 'full' to "
+            f"avoid blowing up chat context. Use mode='filter' with a "
+            f"pandas-query predicate or mode='range' with start/end.")
+    return {'port': port_name, 'kind': 'full',
+            'n_rows': n, 'rows': df.to_dict(orient='records')}
+
+
 def get_node_output(controller: GraphController,
                     node_id: str,
-                    port_name: str | None = None) -> dict[str, Any]:
-    """Read the value emitted on a node's output port (preview).
+                    port_name: str | None = None,
+                    mode: str = 'preview',
+                    # mode='range' args:
+                    start: int = 0,
+                    end: int | None = None,
+                    # mode='columns' args:
+                    columns: list[str] | None = None,
+                    sample: int = 20,
+                    # mode='filter' args:
+                    query: str | None = None,
+                    ) -> dict[str, Any]:
+    """Read a value emitted on a node's output port.
 
-    Returns a JSON-friendly summary of the data, scaled appropriately
-    for chat context.  For tabular data this is shape + dtypes + head(10).
-    For images: shape, dtype, basic stats.  For figures: dimensions.
-    For models: type name + repr.  For scalars: the value directly.
+    Modes (DataFrame outputs only, except ``'preview'`` which handles any):
 
-    If ``port_name`` is None and the node has exactly one output port,
-    that port is used automatically; otherwise pass the port name from
-    ``describe_graph`` or ``describe_node``.
+      - ``'preview'``  (default): shape + dtypes + first 10 rows / image
+        stats / model summary / scalar value.
+      - ``'describe'``: ``df.describe(include='all')`` — per-column stats.
+      - ``'range'``:    rows ``[start:end]`` (capped at 500).
+      - ``'columns'``:  project to ``columns`` then sample (capped at 500).
+      - ``'filter'``:   rows matching pandas ``df.query(query)`` (capped 200).
+      - ``'full'``:     entire dataframe (errors if > 5000 rows; use filter).
 
-    Errors with a clear message if the node hasn't been evaluated yet.
+    Use ``mode='preview'`` for non-table outputs (images, figures, models,
+    scalars).
     """
+    # ── 1. Resolve node + port ──────────────────────────────────────────
     try:
         rec = controller.get_node(node_id)
     except KeyError:
@@ -64,7 +158,6 @@ def get_node_output(controller: GraphController,
             f"Unknown node id: {node_id!r}. "
             f"Call describe_graph() to see current node ids.")
 
-    # Resolve port if not specified.
     if port_name is None:
         try:
             info = controller.describe_registered(rec.type_id)
@@ -74,8 +167,7 @@ def get_node_output(controller: GraphController,
         if len(outs) == 1:
             port_name = outs[0]
         elif len(outs) == 0:
-            raise ValueError(
-                f"Node {node_id!r} has no output ports.")
+            raise ValueError(f"Node {node_id!r} has no output ports.")
         else:
             raise ValueError(
                 f"Node {node_id!r} has {len(outs)} output ports "
@@ -87,7 +179,44 @@ def get_node_output(controller: GraphController,
         raise ValueError(
             f"{e.args[0]}. Call run_node() first, then retry.")
 
-    return _summarize(value, port_name)
+    # ── 2. Preview short-circuit ────────────────────────────────────────
+    if mode == 'preview':
+        return _summarize(value, port_name)
+
+    # ── 2b. Validate mode name before inspecting payload ────────────────
+    _VALID_MODES = {'preview', 'describe', 'range', 'columns', 'filter', 'full'}
+    if mode not in _VALID_MODES:
+        raise ValueError(
+            f"Unknown mode {mode!r}. "
+            f"Valid: 'preview', 'describe', 'range', 'columns', 'filter', 'full'.")
+
+    # ── 3. Other modes require a DataFrame payload ──────────────────────
+    payload = getattr(value, 'payload', value)
+    try:
+        import pandas as pd
+    except ImportError:
+        raise ValueError("pandas is required for non-preview modes.")
+    if not isinstance(payload, pd.DataFrame):
+        return {'port': port_name,
+                'kind': 'unsupported_mode', 'mode': mode,
+                'payload_type': type(payload).__name__,
+                'hint': "mode='preview' works for non-table outputs"}
+
+    # ── 4. Dispatch by mode ─────────────────────────────────────────────
+    if mode == 'describe':
+        return _describe_mode(payload, port_name)
+    if mode == 'range':
+        return _range_mode(payload, port_name, start, end)
+    if mode == 'columns':
+        return _columns_mode(payload, port_name, columns, sample)
+    if mode == 'filter':
+        return _filter_mode(payload, port_name, query)
+    if mode == 'full':
+        return _full_mode(payload, port_name)
+
+    raise ValueError(
+        f"Unknown mode {mode!r}. "
+        f"Valid: 'preview', 'describe', 'range', 'columns', 'filter', 'full'.")
 
 
 def _summarize(value: Any, port_name: str) -> dict[str, Any]:

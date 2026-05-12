@@ -63,15 +63,12 @@ Claude has access to 13 tools:
 | Modify | `disconnect(src_node_id, src_port, dst_node_id, dst_port)` | Remove a wire |
 | Execute | `run_node(node_id)` | Evaluate a node (re-runs dirty upstream) |
 | Execute | `get_node_status(node_id)` | Last known status of a node, no re-run |
-| Execute | `get_node_output(node_id, port_name?)` | Read the data on a node's output port (table preview, image stats, etc.) |
+| Execute | `get_node_output(node_id, port_name?, mode?, ...)` | Read a node's output port. Modes: `preview` (default), `describe`, `range(start,end)`, `columns(...)`, `filter(query)`, `full`. |
 
 ## Limitations in v0
 
 - **No Claude Desktop support yet** — Claude Desktop only speaks stdio
   to MCP servers; a small bridge script lands in v1.
-- **No output filtering** — `get_node_output` is available in v0 as a
-  preview (head 10 rows, image stats, etc.).  Advanced modes (range,
-  filter, pandas-query) land in v1.
 - **No workflow save/load via MCP** — you can still save manually in
   the GUI; tool support lands in v1.
 - **No confirmation dialog** — every tool call is auto-allowed in v0.
