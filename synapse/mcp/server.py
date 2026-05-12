@@ -139,22 +139,39 @@ def start_server_with_controller(controller: GraphController,
     _tool_names = _register_tools(mcp, hop, controller)
     _fastmcp = mcp
 
-    # Pick an actual port if 0 was passed.  Try the stable default first
-    # (so users only have to run `claude mcp add` once); fall back to a
-    # random port if the default is already taken (e.g. a second Synapse
-    # instance is running).
+    # Pick an actual port if 0 was passed.  Order of preference:
+    #   1. The user's saved preferred port (from the AI Connection dialog).
+    #   2. The built-in stable default (51780) so first-run users only run
+    #      `claude mcp add` once.
+    #   3. A random port if both above are busy (e.g. a second Synapse
+    #      instance is already running).
     import socket
     if port == 0:
-        try:
-            with socket.socket() as s:
-                s.bind(('127.0.0.1', _DEFAULT_PORT))
-            port = _DEFAULT_PORT
-        except OSError:
+        # Lazy import to avoid pulling setup_helper at server-import time.
+        from .setup_helper import get_preferred_port
+        candidates: list[int] = []
+        pref = get_preferred_port()
+        if pref is not None:
+            candidates.append(pref)
+        if _DEFAULT_PORT not in candidates:
+            candidates.append(_DEFAULT_PORT)
+
+        bound = False
+        for candidate in candidates:
+            try:
+                with socket.socket() as s:
+                    s.bind(('127.0.0.1', candidate))
+                port = candidate
+                bound = True
+                break
+            except OSError:
+                continue
+        if not bound:
             with socket.socket() as s:
                 s.bind(('127.0.0.1', 0))
                 port = s.getsockname()[1]
-            print(f"[mcp] default port {_DEFAULT_PORT} busy; "
-                  f"using random {port}. Re-run `claude mcp add` "
+            print(f"[mcp] preferred port(s) {candidates} busy; "
+                  f"using random {port}.  Re-run `claude mcp add` "
                   f"to pick up the new URL.")
 
     # Write port discovery file before starting the thread so callers can

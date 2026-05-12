@@ -165,3 +165,53 @@ def get_running_port() -> int | None:
         return int(data.get('port'))
     except (json.JSONDecodeError, ValueError, TypeError):
         return None
+
+
+# ── Preferred-port preference (persists user's choice across launches) ──────
+
+_PREF_FILE = Path.home() / '.synapse' / 'mcp-port-preference'
+
+
+def get_preferred_port() -> int | None:
+    """Return the user's saved preferred port, or None if never set.
+
+    The MCP server reads this at startup and tries it before falling
+    back to the built-in default (51780) and then to a random port.
+    """
+    if not _PREF_FILE.is_file():
+        return None
+    try:
+        data = json.loads(_PREF_FILE.read_text())
+        port = int(data.get('port'))
+        if 1 <= port <= 65535:
+            return port
+    except (json.JSONDecodeError, ValueError, TypeError):
+        pass
+    return None
+
+
+def set_preferred_port(port: int) -> Path:
+    """Persist the user's preferred port for next-launch use.
+
+    Validates the port is in the usable range (1024–65535 — privileged
+    ports below 1024 require root on most systems).  Returns the
+    written path so callers can show it in a confirmation message.
+    """
+    port = int(port)
+    if not (1024 <= port <= 65535):
+        raise ValueError(
+            f"Port {port} out of range — pick a value between 1024 and 65535.")
+    _PREF_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _PREF_FILE.write_text(json.dumps({'port': port}))
+    return _PREF_FILE
+
+
+def clear_preferred_port() -> bool:
+    """Forget the saved preference, falling back to the default port.
+
+    Returns True if a preference was removed, False if there was none.
+    """
+    if _PREF_FILE.is_file():
+        _PREF_FILE.unlink()
+        return True
+    return False

@@ -18,9 +18,19 @@ class MCPSetupDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle('AI Connection (MCP)')
         self.setWindowFlag(QtCore.Qt.WindowType.Dialog)
-        self.resize(620, 520)
+        self.resize(620, 580)
 
-        self._port = _helper.get_running_port()
+        # Active port for everything the user copies / writes here.
+        # Defaults to the live running port, falling back to the saved
+        # preference, falling back to the built-in 51780.
+        running = _helper.get_running_port()
+        preferred = _helper.get_preferred_port()
+        self._running_port = running                       # may be None
+        self._port = running or preferred or 51780
+        # Widgets that need to refresh when the port spinbox changes:
+        self._port_spin: QtWidgets.QSpinBox | None = None
+        self._cmd_view: QtWidgets.QLineEdit | None = None
+        self._url_view: QtWidgets.QLineEdit | None = None
         self._build_ui()
 
     # ── UI ───────────────────────────────────────────────────────────
@@ -39,6 +49,9 @@ class MCPSetupDialog(QtWidgets.QDialog):
             "No API key needed — your chat subscription handles auth.")
         intro.setWordWrap(True)
         layout.addWidget(intro)
+
+        # Port selector — affects every command/URL shown below.
+        layout.addWidget(self._port_section())
 
         # Claude Code section
         layout.addWidget(self._claude_code_section())
@@ -65,12 +78,12 @@ class MCPSetupDialog(QtWidgets.QDialog):
         h = QtWidgets.QHBoxLayout(w)
         h.setContentsMargins(10, 8, 10, 8)
         dot = QtWidgets.QLabel()
-        if self._port is not None:
+        if self._running_port is not None:
             dot.setText('●')
             dot.setStyleSheet('color: #3ec73e; font-size: 18px;')
             msg = QtWidgets.QLabel(
                 f"MCP server listening on "
-                f"<b>127.0.0.1:{self._port}</b>")
+                f"<b>127.0.0.1:{self._running_port}</b>")
         else:
             dot.setText('●')
             dot.setStyleSheet('color: #d05050; font-size: 18px;')
@@ -81,6 +94,40 @@ class MCPSetupDialog(QtWidgets.QDialog):
         h.addWidget(msg, 1)
         return w
 
+    def _port_section(self) -> QtWidgets.QWidget:
+        group = QtWidgets.QGroupBox('Port')
+        v = QtWidgets.QVBoxLayout(group)
+
+        row = QtWidgets.QHBoxLayout()
+        row.addWidget(QtWidgets.QLabel('Use port:'))
+        spin = QtWidgets.QSpinBox()
+        spin.setRange(1024, 65535)
+        spin.setValue(int(self._port))
+        spin.valueChanged.connect(self._on_port_changed)
+        self._port_spin = spin
+        row.addWidget(spin)
+
+        apply_btn = QtWidgets.QPushButton('Save for next launch')
+        apply_btn.clicked.connect(self._on_save_preferred_port)
+        row.addWidget(apply_btn)
+
+        reset_btn = QtWidgets.QPushButton('Reset to default')
+        reset_btn.clicked.connect(self._on_reset_preferred_port)
+        row.addWidget(reset_btn)
+        row.addStretch(1)
+        v.addLayout(row)
+
+        note = QtWidgets.QLabel(
+            "<i>Defaults to the currently-running port.  Changing it "
+            "here updates the commands below immediately.  "
+            "<b>'Save for next launch'</b> persists the choice so Synapse "
+            "binds the same port on every future start — restart "
+            "Synapse after saving for it to take effect.</i>")
+        note.setWordWrap(True)
+        note.setStyleSheet('color: #888;')
+        v.addWidget(note)
+        return group
+
     def _claude_code_section(self) -> QtWidgets.QWidget:
         group = QtWidgets.QGroupBox('Claude Code (CLI)')
         v = QtWidgets.QVBoxLayout(group)
@@ -88,18 +135,16 @@ class MCPSetupDialog(QtWidgets.QDialog):
             "Run this once in a terminal where the <code>claude</code> "
             "CLI is installed:"))
 
-        cmd_view = QtWidgets.QLineEdit(
-            _helper.claude_code_command(self._port) if self._port
-            else '— MCP server not running —')
+        cmd_view = QtWidgets.QLineEdit(_helper.claude_code_command(self._port))
         cmd_view.setReadOnly(True)
         cmd_view.setFont(QtGui.QFont('Menlo, Consolas, monospace'))
+        self._cmd_view = cmd_view
         v.addWidget(cmd_view)
 
         btn = QtWidgets.QPushButton('Copy Command')
         btn.clicked.connect(
             lambda: self._copy(cmd_view.text(),
                                 'Command copied to clipboard.'))
-        btn.setEnabled(self._port is not None)
         v.addWidget(btn, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
         return group
 
@@ -129,18 +174,16 @@ class MCPSetupDialog(QtWidgets.QDialog):
         v.addWidget(QtWidgets.QLabel(
             "Add an MCP server with this URL in your client's settings:"))
 
-        url_view = QtWidgets.QLineEdit(
-            _helper.mcp_url(self._port) if self._port
-            else '— MCP server not running —')
+        url_view = QtWidgets.QLineEdit(_helper.mcp_url(self._port))
         url_view.setReadOnly(True)
         url_view.setFont(QtGui.QFont('Menlo, Consolas, monospace'))
+        self._url_view = url_view
         v.addWidget(url_view)
 
         btn = QtWidgets.QPushButton('Copy URL')
         btn.clicked.connect(
             lambda: self._copy(url_view.text(),
                                 'URL copied to clipboard.'))
-        btn.setEnabled(self._port is not None)
         v.addWidget(btn, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
 
         return group
@@ -152,12 +195,6 @@ class MCPSetupDialog(QtWidgets.QDialog):
             self, 'Copied', toast)
 
     def _on_setup_claude_desktop(self) -> None:
-        if self._port is None:
-            QtWidgets.QMessageBox.warning(
-                self, 'MCP not running',
-                'The MCP server is not running.  Restart Synapse and '
-                'try again.')
-            return
         path = _helper.claude_desktop_config_path()
         try:
             result = _helper.write_claude_desktop_config(path)
@@ -176,9 +213,53 @@ class MCPSetupDialog(QtWidgets.QDialog):
             f"Synapse in:\n{result['config_path']}"
             f"{extras}\n\n"
             "Restart Claude Desktop to pick up the new config.  "
-            "Synapse must be running for the bridge to connect.")
+            "Synapse must be running for the bridge to connect.  "
+            "The bridge auto-discovers the live port from "
+            "~/.synapse/mcp-port — port changes here don't affect "
+            "Claude Desktop.")
         QtWidgets.QMessageBox.information(
             self, 'Claude Desktop configured', msg)
+
+    def _on_port_changed(self, value: int) -> None:
+        """Refresh the displayed command + URL when the port spinbox changes."""
+        self._port = int(value)
+        if self._cmd_view is not None:
+            self._cmd_view.setText(_helper.claude_code_command(self._port))
+        if self._url_view is not None:
+            self._url_view.setText(_helper.mcp_url(self._port))
+
+    def _on_save_preferred_port(self) -> None:
+        """Persist the spinbox value as the next-launch port."""
+        try:
+            path = _helper.set_preferred_port(self._port)
+        except ValueError as e:
+            QtWidgets.QMessageBox.critical(
+                self, 'Invalid port', str(e))
+            return
+        running = self._running_port
+        running_msg = ''
+        if running is not None and running != self._port:
+            running_msg = (
+                f"\n\nSynapse is still listening on {running}.  "
+                f"Restart Synapse to switch to port {self._port}.")
+        QtWidgets.QMessageBox.information(
+            self, 'Preferred port saved',
+            f"Saved port {self._port} as the preference at:\n{path}"
+            f"{running_msg}")
+
+    def _on_reset_preferred_port(self) -> None:
+        """Forget any saved preference and fall back to the built-in default."""
+        had = _helper.clear_preferred_port()
+        if had:
+            QtWidgets.QMessageBox.information(
+                self, 'Preference cleared',
+                "Saved port preference removed.  Synapse will use the "
+                "built-in default (51780) on next launch.")
+        else:
+            QtWidgets.QMessageBox.information(
+                self, 'No preference set',
+                "There was no saved preference — already using the "
+                "built-in default (51780).")
 
 
 def open_setup_dialog(parent=None) -> None:
