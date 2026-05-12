@@ -156,11 +156,25 @@ def start_server(window) -> int:
     return start_server_with_controller(controller)['port']
 
 
-def stop_server() -> None:
-    """Best-effort stop.  Signals uvicorn shutdown and clears globals."""
+def stop_server(timeout: float = 3.0) -> None:
+    """Signal uvicorn shutdown and wait for the serving thread to exit.
+
+    Best-effort: if uvicorn doesn't honour ``should_exit`` within
+    ``timeout`` seconds, we move on and the daemon thread dies at
+    process exit instead.
+    """
     global _server_thread, _fastmcp, _tool_names, _uvicorn_server
+
+    thread = _server_thread
     if _uvicorn_server is not None:
         _uvicorn_server.should_exit = True
+
+    if thread is not None and thread.is_alive():
+        thread.join(timeout=timeout)
+        # If still alive after the join window, the thread keeps running
+        # in the background but we surrender ownership — process exit
+        # will reap it (daemon=True).
+
     _server_thread = None
     _fastmcp = None
     _uvicorn_server = None

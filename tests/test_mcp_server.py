@@ -107,3 +107,47 @@ def test_tool_schemas_omit_controller_arg(qapp, tmp_path, monkeypatch):
                 f"(saw only {props})"
     finally:
         mcp_server.stop_server()
+
+
+def test_stop_server_releases_port_within_timeout(qapp, tmp_path, monkeypatch):
+    """stop_server should release the bound port quickly enough that
+    a subsequent start_server can re-bind the same port."""
+    import time
+    from synapse.mcp.controller import FakeGraphController
+    from synapse.mcp import server as mcp_server
+
+    monkeypatch.setattr(mcp_server, '_PORT_FILE',
+                        tmp_path / 'mcp-port')
+
+    ctl = FakeGraphController(registered=[])
+    port = _free_port()
+
+    # Start, stop, then re-bind the same port to confirm it was released.
+    mcp_server.start_server_with_controller(ctl, port=port)
+    # Wait briefly for uvicorn to actually listen.
+    deadline = time.time() + 2.0
+    while time.time() < deadline:
+        try:
+            with socket.socket() as s:
+                s.connect(('127.0.0.1', port))
+                break
+        except OSError:
+            qapp.processEvents()
+            time.sleep(0.05)
+
+    mcp_server.stop_server(timeout=3.0)
+
+    # After stop_server returns, the port should be re-bindable
+    # within a brief settling window.  Try for up to 2s.
+    rebound = False
+    deadline = time.time() + 2.0
+    while time.time() < deadline:
+        try:
+            with socket.socket() as s:
+                s.bind(('127.0.0.1', port))
+                rebound = True
+                break
+        except OSError:
+            qapp.processEvents()
+            time.sleep(0.05)
+    assert rebound, f"port {port} still bound 2s after stop_server()"
