@@ -270,14 +270,40 @@ class NodeGraphController:
             last_message=getattr(node, '_last_message', None),
         )
 
+    # Matches synapse/ai/tool_handlers/modify_workflow.py for visual consistency.
+    _AUTO_LAYOUT_X_PAD = 300.0
+    _AUTO_LAYOUT_Y_PAD = 120.0
+
+    def _next_auto_position(self) -> tuple[float, float]:
+        """Pick a default x,y that doesn't overlap existing nodes.
+
+        Places the new node one column to the right of the rightmost
+        existing node; ties broken by stacking vertically.
+        """
+        max_x = None
+        topmost_y_at_max = 0.0
+        for n in self._graph.all_nodes():
+            try:
+                p = n.pos()
+            except Exception:
+                continue
+            x, y = (p[0], p[1]) if not hasattr(p, 'x') else (p.x(), p.y())
+            if max_x is None or x > max_x:
+                max_x = x
+                topmost_y_at_max = y
+        if max_x is None:
+            return (0.0, 0.0)
+        return (max_x + self._AUTO_LAYOUT_X_PAD, topmost_y_at_max)
+
     # ── mutation ────────────────────────────────────────────────────────
     def add_node(self, type_id: str, properties: dict | None = None,
                  position: tuple[float, float] | None = None) -> str:
         node = self._graph.create_node(type_id)
         if node is None:
             raise KeyError(f"unknown node type: {type_id}")
-        if position is not None:
-            node.set_pos(*position)
+        if position is None:
+            position = self._next_auto_position()
+        node.set_pos(*position)
         for k, v in (properties or {}).items():
             node.set_property(k, v)
         return node.id

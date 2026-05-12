@@ -32,7 +32,14 @@ def add_node(controller: GraphController, node_type: str,
              properties: dict | None = None,
              position: tuple[float, float] | None = None
              ) -> dict[str, Any]:
-    """Create a new node of ``node_type`` in the current graph.
+    """Create a single new node of ``node_type`` in the current graph.
+
+    **For building a workflow from scratch with 2+ nodes, prefer
+    ``create_workflow`` instead** — it batches add+connect into one atomic
+    call and auto-positions nodes so they don't overlap.
+
+    Use ``add_node`` (this tool) only for surgical single-node insertions
+    into an existing graph.
 
     Returns ``{node_id, inputs, outputs}``.  Pre-set properties may be
     provided as ``{prop_name: value}``.  Use ``describe_node`` first to
