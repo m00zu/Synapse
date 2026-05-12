@@ -2,13 +2,13 @@
 import pytest
 
 from synapse.mcp.controller import FakeGraphController, NodeInfo
-from synapse.mcp.tools.execution import run_node, get_node_status
+from synapse.mcp.tools.execution import run_node, get_node_status, get_node_output
 
 
 @pytest.fixture
 def ctl():
     c = FakeGraphController(registered=[
-        NodeInfo('cat', 'Foo', 'cat.Foo', [], [], [], 'docs'),
+        NodeInfo('cat', 'Foo', 'cat.Foo', [], [], ['out'], 'docs'),
     ])
     return c
 
@@ -42,3 +42,38 @@ def test_get_node_status_reads_record(ctl):
     assert status['node_id'] == nid
     assert status['status'] == 'pending'
     assert status['last_message'] is None
+
+
+def test_get_node_output_dataframe(ctl):
+    import pandas as pd
+    nid = ctl.add_node('cat.Foo')
+    df = pd.DataFrame({'area': [42, 17, 99], 'mean': [1.1, 2.2, 3.3]})
+    ctl.set_output(nid, 'result', df)
+    out = get_node_output(ctl, nid, port_name='result')
+    assert out['kind'] == 'table'
+    assert out['n_rows'] == 3
+    assert out['columns'] == ['area', 'mean']
+    assert out['head'][0]['area'] == 42
+
+
+def test_get_node_output_scalar(ctl):
+    nid = ctl.add_node('cat.Foo')
+    ctl.set_output(nid, 'count', 42)
+    out = get_node_output(ctl, nid, port_name='count')
+    assert out['kind'] == 'scalar'
+    assert out['value'] == 42
+
+
+def test_get_node_output_unknown_node_raises_actionable(ctl):
+    with pytest.raises(ValueError) as exc:
+        get_node_output(ctl, 'nonsense', port_name='out')
+    assert 'nonsense' in str(exc.value)
+    assert 'describe_graph' in str(exc.value)
+
+
+def test_get_node_output_port_not_evaluated_raises_actionable(ctl):
+    nid = ctl.add_node('cat.Foo')
+    with pytest.raises(ValueError) as exc:
+        get_node_output(ctl, nid, port_name='out')
+    # Error should hint at run_node().
+    assert 'run_node' in str(exc.value).lower()

@@ -49,6 +49,7 @@ class GraphController(Protocol):
     def disconnect(self, src_id: str, src_port: str,
                    dst_id: str, dst_port: str) -> None: ...
     def run_node(self, node_id: str) -> dict: ...
+    def get_node_output(self, node_id: str, port_name: str) -> Any: ...
 
 
 # ── Fake implementation for unit tests ──────────────────────────────────────
@@ -62,6 +63,7 @@ class FakeGraphController:
         self._connections: list[tuple[str, str, str, str]] = []
         self._counter = 0
         self._run_results: dict[str, dict] = {}
+        self._outputs: dict[tuple[str, str], Any] = {}
 
     # ── inspection / query ──────────────────────────────────────────────
     def list_registered(self) -> list[NodeInfo]:
@@ -137,6 +139,19 @@ class FakeGraphController:
             'success': success, 'message': message,
             'duration_ms': duration_ms,
         }
+
+    def get_node_output(self, node_id: str, port_name: str) -> Any:
+        self.get_node(node_id)   # raises KeyError if missing
+        key = (node_id, port_name)
+        if key not in self._outputs:
+            raise KeyError(
+                f"node {node_id!r} has no output value on port "
+                f"{port_name!r} — run the node first")
+        return self._outputs[key]
+
+    def set_output(self, node_id: str, port_name: str, value: Any) -> None:
+        """Test helper: stash an output value on a port."""
+        self._outputs[(node_id, port_name)] = value
 
 
 # ── Real Qt-backed implementation ───────────────────────────────────────────
@@ -370,6 +385,18 @@ class NodeGraphController:
             raise KeyError(f"unknown node id: {node_id}")
         # NodeGraphQt's delete_node also tears down attached edges.
         self._graph.delete_node(node)
+
+    def get_node_output(self, node_id: str, port_name: str) -> Any:
+        node = self._graph.get_node_by_id(node_id)
+        if node is None:
+            raise KeyError(f"unknown node id: {node_id}")
+        outputs = getattr(node, 'output_values', None) or {}
+        if port_name not in outputs:
+            raise KeyError(
+                f"node {node_id!r} has no value on output port "
+                f"{port_name!r} — run the node first (current ports: "
+                f"{list(outputs.keys())})")
+        return outputs[port_name]
 
     # ── execution ───────────────────────────────────────────────────────
     def run_node(self, node_id: str) -> dict:

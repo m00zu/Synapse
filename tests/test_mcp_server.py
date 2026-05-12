@@ -1,5 +1,5 @@
 """Smoke test: server starts on a free port, port file is written, and
-the registered tool list contains the 12 v0 tools."""
+the registered tool list contains the 13 v0 tools."""
 import json
 import time
 import socket
@@ -68,7 +68,7 @@ def test_server_registers_v0_tools(qapp, tmp_path, monkeypatch):
             'add_node', 'delete_node', 'set_property',
             'connect', 'disconnect',
             'create_workflow',
-            'run_node', 'get_node_status',
+            'run_node', 'get_node_status', 'get_node_output',
         }
     finally:
         mcp_server.stop_server()

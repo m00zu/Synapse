@@ -47,7 +47,7 @@ Start a Claude Code session and ask things like:
 - "Build a fingerprint clustering pipeline for the CSV at /Users/me/molecules.csv"
 - "Add a Murcko Scaffold node after the MolTable Reader."
 
-Claude has access to 12 tools:
+Claude has access to 13 tools:
 
 | Group | Tool | Purpose |
 |---|---|---|
@@ -63,14 +63,15 @@ Claude has access to 12 tools:
 | Modify | `disconnect(src_node_id, src_port, dst_node_id, dst_port)` | Remove a wire |
 | Execute | `run_node(node_id)` | Evaluate a node (re-runs dirty upstream) |
 | Execute | `get_node_status(node_id)` | Last known status of a node, no re-run |
+| Execute | `get_node_output(node_id, port_name?)` | Read the data on a node's output port (table preview, image stats, etc.) |
 
 ## Limitations in v0
 
 - **No Claude Desktop support yet** — Claude Desktop only speaks stdio
   to MCP servers; a small bridge script lands in v1.
-- **No output sampling** — `get_node_output` (with table sampling,
-  filtering, head/tail, summary stats, pandas-query filtering) lands in
-  v1.
+- **No output filtering** — `get_node_output` is available in v0 as a
+  preview (head 10 rows, image stats, etc.).  Advanced modes (range,
+  filter, pandas-query) land in v1.
 - **No workflow save/load via MCP** — you can still save manually in
   the GUI; tool support lands in v1.
 - **No confirmation dialog** — every tool call is auto-allowed in v0.
