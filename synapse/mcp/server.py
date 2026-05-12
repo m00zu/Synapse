@@ -25,6 +25,7 @@ from .tools.graph import (
 )
 from .tools.compose import create_workflow
 from .tools.execution import run_node, get_node_status, get_node_output
+from .tools.workflow import new_workflow, save_workflow, load_workflow
 
 _PORT_FILE = Path.home() / '.synapse' / 'mcp-port'
 
@@ -74,6 +75,9 @@ def _register_tools(mcp: FastMCP, hop: ThreadHop,
         ('run_node', run_node),
         ('get_node_status', get_node_status),
         ('get_node_output', get_node_output),
+        ('new_workflow', new_workflow),
+        ('save_workflow', save_workflow),
+        ('load_workflow', load_workflow),
     ]
     names = []
     for name, fn in pairs:

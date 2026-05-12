@@ -52,6 +52,9 @@ class GraphController(Protocol):
     def get_node_output(self, node_id: str, port_name: str) -> Any: ...
     def replace_node(self, node_id: str, new_type_id: str,
                      properties: dict | None = None) -> dict: ...
+    def clear_graph(self) -> None: ...
+    def save_graph(self, path: str) -> None: ...
+    def load_graph(self, path: str) -> None: ...
 
 
 # ── Fake implementation for unit tests ──────────────────────────────────────
@@ -208,6 +211,60 @@ class FakeGraphController:
         return {'node_id': node_id, 'new_type': new_type_id,
                 'carried_properties': list(carried_props.keys()),
                 'dropped_connections': dropped}
+
+    def clear_graph(self) -> None:
+        self._active.clear()
+        self._connections.clear()
+        self._outputs.clear()
+        self._run_results.clear()
+
+    def save_graph(self, path: str) -> None:
+        """Serialize active nodes + connections to JSON on disk."""
+        import json
+        from pathlib import Path
+        p = Path(path).expanduser()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            'nodes': [
+                {'id': n.id, 'type_id': n.type_id, 'name': n.name,
+                 'properties': n.properties}
+                for n in self._active.values()
+            ],
+            'connections': [
+                {'src_id': s, 'src_port': sp, 'dst_id': d, 'dst_port': dp}
+                for (s, sp, d, dp) in self._connections
+            ],
+        }
+        p.write_text(json.dumps(data, indent=2))
+
+    def load_graph(self, path: str) -> None:
+        """Replace active state with whatever's at ``path``."""
+        import json
+        from pathlib import Path
+        p = Path(path).expanduser()
+        if not p.is_file():
+            raise FileNotFoundError(str(p))
+        data = json.loads(p.read_text())
+        self.clear_graph()
+        for n in data.get('nodes', []):
+            if n['type_id'] not in self._registered:
+                raise KeyError(f"unknown node type: {n['type_id']}")
+            info = self._registered[n['type_id']]
+            self._active[n['id']] = NodeRecord(
+                id=n['id'], type_id=n['type_id'],
+                name=n.get('name', info.name),
+                properties=dict(n.get('properties', {})),
+            )
+            # Track the highest id we've loaded so future add_node
+            # doesn't collide.
+            try:
+                num = int(str(n['id']).lstrip('n'))
+                self._counter = max(self._counter, num)
+            except (ValueError, AttributeError):
+                pass
+        for c in data.get('connections', []):
+            self._connections.append(
+                (c['src_id'], c['src_port'], c['dst_id'], c['dst_port']))
 
 
 # ── Real Qt-backed implementation ───────────────────────────────────────────
@@ -578,3 +635,20 @@ class NodeGraphController:
                     'duration_ms': (time.perf_counter() - t0) * 1000.0}
         return {'success': success, 'message': msg,
                 'duration_ms': (time.perf_counter() - t0) * 1000.0}
+
+    # ── workflow I/O ────────────────────────────────────────────────────
+    def clear_graph(self) -> None:
+        self._graph.clear_session()
+
+    def save_graph(self, path: str) -> None:
+        from pathlib import Path
+        p = Path(path).expanduser()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        self._graph.save_session(str(p))
+
+    def load_graph(self, path: str) -> None:
+        from pathlib import Path
+        p = Path(path).expanduser()
+        if not p.is_file():
+            raise FileNotFoundError(str(p))
+        self._graph.load_session(str(p))
