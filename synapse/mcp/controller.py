@@ -137,3 +137,179 @@ class FakeGraphController:
             'success': success, 'message': message,
             'duration_ms': duration_ms,
         }
+
+
+# ── Real Qt-backed implementation ───────────────────────────────────────────
+
+class NodeGraphController:
+    """GraphController backed by a live NodeGraphQt NodeGraph.
+
+    Must be called only from the Qt main thread (use ``ThreadHop`` from
+    the asyncio side).  Owns no threading itself.
+    """
+
+    def __init__(self, graph) -> None:  # NodeGraphQt.NodeGraph
+        self._graph = graph
+        # Cache of registered types so we can answer list_registered() fast.
+        self._type_summaries: dict[str, NodeInfo] = {}
+
+    # ── helpers ─────────────────────────────────────────────────────────
+    def _build_node_info(self, type_id: str, cls) -> NodeInfo:
+        # NODE_NAME comes from BaseExecutionNode attribute; PORT_SPEC has
+        # input/output port names; docstring drives the summary.
+        port_spec = getattr(cls, 'PORT_SPEC', {}) or {}
+        category = getattr(cls, '__identifier__', '').split('.')[-1] or 'misc'
+        # First non-blank line of docstring is the summary.
+        doc = (cls.__doc__ or '').strip()
+        summary = next((ln.strip() for ln in doc.splitlines()
+                        if ln.strip()), '')
+        # Property names come from default WidgetEnum properties — we
+        # introspect by instantiating once (cheap) only when describing.
+        return NodeInfo(
+            category=category,
+            name=getattr(cls, 'NODE_NAME', type_id),
+            type_id=type_id,
+            properties=[],  # filled lazily in describe_registered
+            input_ports=list(port_spec.get('inputs', [])),
+            output_ports=list(port_spec.get('outputs', [])),
+            summary=summary,
+        )
+
+    # ── inspection / query ──────────────────────────────────────────────
+    def list_registered(self) -> list[NodeInfo]:
+        out = []
+        for type_id, cls in self._graph.node_factory.nodes.items():
+            if type_id not in self._type_summaries:
+                self._type_summaries[type_id] = self._build_node_info(
+                    type_id, cls)
+            out.append(self._type_summaries[type_id])
+        return out
+
+    def describe_registered(self, type_id: str) -> NodeInfo:
+        cls = self._graph.node_factory.nodes.get(type_id)
+        if cls is None:
+            raise KeyError(f"unknown node type: {type_id}")
+        base = self._build_node_info(type_id, cls)
+        # Spin up a throwaway instance to enumerate properties — most
+        # nodes create properties in __init__ rather than as class attrs.
+        try:
+            tmp = cls()
+            props = [p for p in tmp.model.properties.keys()
+                     if not p.startswith('_')]
+        except Exception:
+            props = []
+        return NodeInfo(
+            category=base.category, name=base.name, type_id=base.type_id,
+            properties=props, input_ports=base.input_ports,
+            output_ports=base.output_ports, summary=base.summary,
+        )
+
+    def list_active(self) -> list[NodeRecord]:
+        out = []
+        for node in self._graph.all_nodes():
+            out.append(NodeRecord(
+                id=node.id, type_id=node.type_, name=node.name(),
+                properties={k: node.get_property(k) for k in node.properties()
+                            if not k.startswith('_')},
+                status=getattr(node, '_status', 'pending') or 'pending',
+                last_message=getattr(node, '_last_message', None),
+            ))
+        return out
+
+    def list_connections(self) -> list[tuple[str, str, str, str]]:
+        out = []
+        for node in self._graph.all_nodes():
+            for out_port in node.output_ports():
+                for in_port in out_port.connected_ports():
+                    out.append((node.id, out_port.name(),
+                                in_port.node().id, in_port.name()))
+        return out
+
+    def get_node(self, node_id: str) -> NodeRecord:
+        node = self._graph.get_node_by_id(node_id)
+        if node is None:
+            raise KeyError(f"unknown node id: {node_id}")
+        return NodeRecord(
+            id=node.id, type_id=node.type_, name=node.name(),
+            properties={k: node.get_property(k) for k in node.properties()
+                        if not k.startswith('_')},
+            status=getattr(node, '_status', 'pending') or 'pending',
+            last_message=getattr(node, '_last_message', None),
+        )
+
+    # ── mutation ────────────────────────────────────────────────────────
+    def add_node(self, type_id: str, properties: dict | None = None,
+                 position: tuple[float, float] | None = None) -> str:
+        node = self._graph.create_node(type_id)
+        if node is None:
+            raise KeyError(f"unknown node type: {type_id}")
+        if position is not None:
+            node.set_pos(*position)
+        for k, v in (properties or {}).items():
+            node.set_property(k, v)
+        return node.id
+
+    def set_property(self, node_id: str, prop: str, value: Any) -> None:
+        node = self._graph.get_node_by_id(node_id)
+        if node is None:
+            raise KeyError(f"unknown node id: {node_id}")
+        node.set_property(prop, value)
+
+    def connect(self, src_id: str, src_port: str,
+                dst_id: str, dst_port: str) -> None:
+        src = self._graph.get_node_by_id(src_id)
+        dst = self._graph.get_node_by_id(dst_id)
+        if src is None or dst is None:
+            raise KeyError(f"unknown node id: {src_id} or {dst_id}")
+        out = src.get_output(src_port)
+        inp = dst.get_input(dst_port)
+        if out is None:
+            raise KeyError(f"{src_id} has no output port '{src_port}'")
+        if inp is None:
+            raise KeyError(f"{dst_id} has no input port '{dst_port}'")
+        out.connect_to(inp)
+
+    def disconnect(self, src_id: str, src_port: str,
+                   dst_id: str, dst_port: str) -> None:
+        src = self._graph.get_node_by_id(src_id)
+        dst = self._graph.get_node_by_id(dst_id)
+        if src is None or dst is None:
+            raise KeyError(f"unknown node id: {src_id} or {dst_id}")
+        out = src.get_output(src_port)
+        inp = dst.get_input(dst_port)
+        if out is None or inp is None:
+            raise KeyError(
+                f"no such port: {src_id}.{src_port} or {dst_id}.{dst_port}")
+        if inp not in out.connected_ports():
+            raise KeyError(
+                f"no connection: {src_id}.{src_port} -> {dst_id}.{dst_port}")
+        out.disconnect_from(inp)
+
+    def delete_node(self, node_id: str) -> None:
+        node = self._graph.get_node_by_id(node_id)
+        if node is None:
+            raise KeyError(f"unknown node id: {node_id}")
+        # NodeGraphQt's delete_node also tears down attached edges.
+        self._graph.delete_node(node)
+
+    # ── execution ───────────────────────────────────────────────────────
+    def run_node(self, node_id: str) -> dict:
+        import time
+        node = self._graph.get_node_by_id(node_id)
+        if node is None:
+            raise KeyError(f"unknown node id: {node_id}")
+        # Mirror Synapse's "Run" semantics: re-evaluate dirty upstream too.
+        # Delegate to the existing helper if available; otherwise call evaluate.
+        t0 = time.perf_counter()
+        try:
+            if hasattr(node, 'evaluate_with_upstream'):
+                success, msg = node.evaluate_with_upstream()
+            else:
+                success, msg = node.evaluate()
+            success = bool(success)
+        except Exception as exc:
+            return {'success': False,
+                    'message': f'{type(exc).__name__}: {exc}',
+                    'duration_ms': (time.perf_counter() - t0) * 1000.0}
+        return {'success': success, 'message': msg,
+                'duration_ms': (time.perf_counter() - t0) * 1000.0}
