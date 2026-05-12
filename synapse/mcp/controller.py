@@ -270,30 +270,50 @@ class NodeGraphController:
             last_message=getattr(node, '_last_message', None),
         )
 
-    # Matches synapse/ai/tool_handlers/modify_workflow.py for visual consistency.
+    # Fallback when actual node width can't be measured.
     _AUTO_LAYOUT_X_PAD = 300.0
     _AUTO_LAYOUT_Y_PAD = 120.0
+    _AUTO_LAYOUT_GAP = 60.0
+
+    @staticmethod
+    def _measured_width(node) -> float:
+        """Return the rendered width of a NodeGraphQt node, after forcing
+        its view to lay out.  Falls back to the X_PAD default on failure.
+        """
+        try:
+            view = getattr(node, 'view', None)
+            if view is not None and hasattr(view, 'draw_node'):
+                try:
+                    view.draw_node()
+                except Exception:
+                    pass
+            if view is not None and hasattr(view, 'boundingRect'):
+                w = float(view.boundingRect().width())
+                if w > 0:
+                    return w
+        except Exception:
+            pass
+        return NodeGraphController._AUTO_LAYOUT_X_PAD
 
     def _next_auto_position(self) -> tuple[float, float]:
         """Pick a default x,y that doesn't overlap existing nodes.
 
         Places the new node one column to the right of the rightmost
-        existing node; ties broken by stacking vertically.
+        existing node (accounting for that node's actual width).
         """
-        max_x = None
-        topmost_y_at_max = 0.0
+        rightmost = None  # (x_right, y)
         for n in self._graph.all_nodes():
             try:
                 p = n.pos()
             except Exception:
                 continue
             x, y = (p[0], p[1]) if not hasattr(p, 'x') else (p.x(), p.y())
-            if max_x is None or x > max_x:
-                max_x = x
-                topmost_y_at_max = y
-        if max_x is None:
+            x_right = x + self._measured_width(n)
+            if rightmost is None or x_right > rightmost[0]:
+                rightmost = (x_right, y)
+        if rightmost is None:
             return (0.0, 0.0)
-        return (max_x + self._AUTO_LAYOUT_X_PAD, topmost_y_at_max)
+        return (rightmost[0] + self._AUTO_LAYOUT_GAP, rightmost[1])
 
     # ── mutation ────────────────────────────────────────────────────────
     def add_node(self, type_id: str, properties: dict | None = None,

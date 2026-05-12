@@ -117,24 +117,30 @@ def _layout_new_nodes(controller: GraphController,
 
     graph = controller._graph  # type: ignore[attr-defined]
 
-    def _node_width(n) -> float:
-        """Best-effort actual width; default to _X_PAD if unavailable."""
+    def _measure(n) -> tuple[float, float]:
+        """Return (width, height) of a NodeGraphQt node *after* its view
+        has been laid out.  Falls back to the X/Y_PAD defaults if any
+        accessor raises.
+        """
         try:
-            w = getattr(n, 'width', None)
-            if callable(w):
-                w = w()
-            return float(w) if w else _X_PAD
+            view = getattr(n, 'view', None)
+            # Force the view to compute its real width/height based on
+            # current widgets/ports.  Without this, the view's bounding
+            # rect is the default (~100x80) until Qt next repaints.
+            if view is not None and hasattr(view, 'draw_node'):
+                try:
+                    view.draw_node()
+                except Exception:
+                    pass
+            if view is not None and hasattr(view, 'boundingRect'):
+                rect = view.boundingRect()
+                w = float(rect.width())
+                h = float(rect.height())
+                if w > 0 and h > 0:
+                    return w, h
         except Exception:
-            return _X_PAD
-
-    def _node_height(n) -> float:
-        try:
-            h = getattr(n, 'height', None)
-            if callable(h):
-                h = h()
-            return float(h) if h else _Y_PAD
-        except Exception:
-            return _Y_PAD
+            pass
+        return _X_PAD, _Y_PAD
 
     # Find current canvas extent so we don't smash onto existing nodes.
     # Use right-edge (x + width) of the rightmost existing node + gap.
@@ -146,7 +152,8 @@ def _layout_new_nodes(controller: GraphController,
             try:
                 p = n.pos()
                 x = p[0] if not hasattr(p, 'x') else p.x()
-                base_x = max(base_x, x + _node_width(n) + _GAP)
+                w, _ = _measure(n)
+                base_x = max(base_x, x + w + _GAP)
             except Exception:
                 continue
     except Exception:
@@ -165,7 +172,8 @@ def _layout_new_nodes(controller: GraphController,
             try:
                 n = graph.get_node_by_id(real_id)
                 if n is not None:
-                    max_w = max(max_w, _node_width(n))
+                    w, _ = _measure(n)
+                    max_w = max(max_w, w)
             except Exception:
                 continue
         x_cursor += (max_w or _X_PAD) + _GAP
@@ -184,7 +192,8 @@ def _layout_new_nodes(controller: GraphController,
                 if node is None:
                     continue
                 node.set_pos(col_x[d], y_cursor)
-                y_cursor += _node_height(node) + _GAP
+                _, h = _measure(node)
+                y_cursor += h + _GAP
             except Exception:
                 continue
 
