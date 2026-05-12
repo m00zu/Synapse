@@ -10,20 +10,26 @@ is all that's required.
 Just run Synapse normally. On startup it prints a line like:
 
 ```
-[mcp] server listening on 127.0.0.1:54321
+[mcp] server listening on 127.0.0.1:51780
 ```
 
-(The port is picked freshly on each launch and written to
-`~/.synapse/mcp-port`.)
+The default port is **51780**. The current port is also written to
+`~/.synapse/mcp-port` (`{"port": N}`) for tooling.
 
-## Step 2 — Add Synapse to Claude Code
+> If 51780 is already in use (e.g. a second Synapse instance), a random
+> fallback port is chosen and printed instead — re-run `claude mcp add`
+> with the new URL in that case.
+
+## Step 2 — Add Synapse to Claude Code (one-time)
 
 From a terminal where the `claude` CLI is installed:
 
 ```bash
-PORT=$(python -c "import json; print(json.load(open('$HOME/.synapse/mcp-port'))['port'])")
-claude mcp add synapse --transport http "http://127.0.0.1:$PORT/mcp"
+claude mcp add synapse --transport http "http://127.0.0.1:51780/mcp"
 ```
+
+You only need to run this once. Subsequent Synapse restarts re-use the
+same port.
 
 Verify with:
 

@@ -27,6 +27,12 @@ from .tools.execution import run_node, get_node_status
 
 _PORT_FILE = Path.home() / '.synapse' / 'mcp-port'
 
+# Stable port that the MCP server tries to bind first, so users only need
+# to run ``claude mcp add`` once per machine.  Picked from the ephemeral
+# range (49152–65535) at a memorable position; falls back to a random
+# port if this one is busy.
+_DEFAULT_PORT = 51780
+
 _server_thread: Optional[threading.Thread] = None
 _fastmcp: Optional[FastMCP] = None
 _tool_names: list[str] = []
@@ -95,12 +101,23 @@ def start_server_with_controller(controller: GraphController,
     _tool_names = _register_tools(mcp, hop, controller)
     _fastmcp = mcp
 
-    # Pick an actual port if 0 was passed.
+    # Pick an actual port if 0 was passed.  Try the stable default first
+    # (so users only have to run `claude mcp add` once); fall back to a
+    # random port if the default is already taken (e.g. a second Synapse
+    # instance is running).
     import socket
     if port == 0:
-        with socket.socket() as s:
-            s.bind(('127.0.0.1', 0))
-            port = s.getsockname()[1]
+        try:
+            with socket.socket() as s:
+                s.bind(('127.0.0.1', _DEFAULT_PORT))
+            port = _DEFAULT_PORT
+        except OSError:
+            with socket.socket() as s:
+                s.bind(('127.0.0.1', 0))
+                port = s.getsockname()[1]
+            print(f"[mcp] default port {_DEFAULT_PORT} busy; "
+                  f"using random {port}. Re-run `claude mcp add` "
+                  f"to pick up the new URL.")
 
     # Write port discovery file before starting the thread so callers can
     # read the port immediately after this function returns.
