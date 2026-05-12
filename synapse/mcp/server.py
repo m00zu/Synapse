@@ -20,7 +20,8 @@ from .bridge import ThreadHop
 from .controller import GraphController, NodeGraphController
 from .tools.discovery import list_nodes, describe_node, search_nodes
 from .tools.graph import (
-    describe_graph, add_node, delete_node, set_property, connect, disconnect,
+    describe_graph, add_node, delete_node, set_property,
+    connect, disconnect, replace_node,
 )
 from .tools.compose import create_workflow
 from .tools.execution import run_node, get_node_status, get_node_output
@@ -65,6 +66,7 @@ def _register_tools(mcp: FastMCP, hop: ThreadHop,
         ('describe_graph', describe_graph),
         ('add_node', add_node),
         ('delete_node', delete_node),
+        ('replace_node', replace_node),
         ('set_property', set_property),
         ('connect', connect),
         ('disconnect', disconnect),

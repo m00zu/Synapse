@@ -50,6 +50,8 @@ class GraphController(Protocol):
                    dst_id: str, dst_port: str) -> None: ...
     def run_node(self, node_id: str) -> dict: ...
     def get_node_output(self, node_id: str, port_name: str) -> Any: ...
+    def replace_node(self, node_id: str, new_type_id: str,
+                     properties: dict | None = None) -> dict: ...
 
 
 # ── Fake implementation for unit tests ──────────────────────────────────────
@@ -152,6 +154,60 @@ class FakeGraphController:
     def set_output(self, node_id: str, port_name: str, value: Any) -> None:
         """Test helper: stash an output value on a port."""
         self._outputs[(node_id, port_name)] = value
+
+    def replace_node(self, node_id: str, new_type_id: str,
+                     properties: dict | None = None) -> dict:
+        """Swap a node's type; carry over compatible properties + edges."""
+        old = self.get_node(node_id)            # raises KeyError if missing
+        if new_type_id not in self._registered:
+            raise KeyError(f"unknown node type: {new_type_id}")
+
+        new_info = self._registered[new_type_id]
+        # Property carry-over (best-effort: keep keys that are still
+        # defined on the new type).
+        carried_props = {k: v for k, v in old.properties.items()
+                         if k in new_info.properties}
+        if properties:
+            carried_props.update(properties)
+
+        # Snapshot edges + figure out which survive.
+        in_edges  = [(s, sp, d, dp) for (s, sp, d, dp) in self._connections
+                     if d == node_id]
+        out_edges = [(s, sp, d, dp) for (s, sp, d, dp) in self._connections
+                     if s == node_id]
+
+        kept_in  = [e for e in in_edges  if e[3] in new_info.input_ports]
+        kept_out = [e for e in out_edges if e[1] in new_info.output_ports]
+        dropped: list[dict] = []
+        for (s, sp, d, dp) in in_edges:
+            if dp not in new_info.input_ports:
+                dropped.append({'src_node_id': s, 'src_port': sp,
+                                 'dst_node_id': d, 'dst_port': dp,
+                                 'reason': f"new type has no input port "
+                                           f"{dp!r}"})
+        for (s, sp, d, dp) in out_edges:
+            if sp not in new_info.output_ports:
+                dropped.append({'src_node_id': s, 'src_port': sp,
+                                 'dst_node_id': d, 'dst_port': dp,
+                                 'reason': f"new type has no output port "
+                                           f"{sp!r}"})
+
+        # Delete the old node (drops ALL its edges).
+        del self._active[node_id]
+        self._connections = [(s, sp, d, dp) for (s, sp, d, dp) in self._connections
+                             if s != node_id and d != node_id]
+
+        # Re-create with the same id so referencing edges still match.
+        self._active[node_id] = NodeRecord(
+            id=node_id, type_id=new_type_id, name=new_info.name,
+            properties=carried_props,
+        )
+        # Restore the compatible edges (same id is reused).
+        self._connections.extend(kept_in + kept_out)
+
+        return {'node_id': node_id, 'new_type': new_type_id,
+                'carried_properties': list(carried_props.keys()),
+                'dropped_connections': dropped}
 
 
 # ── Real Qt-backed implementation ───────────────────────────────────────────
@@ -385,6 +441,109 @@ class NodeGraphController:
             raise KeyError(f"unknown node id: {node_id}")
         # NodeGraphQt's delete_node also tears down attached edges.
         self._graph.delete_node(node)
+
+    def replace_node(self, node_id: str, new_type_id: str,
+                     properties: dict | None = None) -> dict:
+        """Swap a NodeGraphQt node's type, preserving compatible state.
+
+        Properties whose name still exists on the new type are carried
+        over.  Edges whose port name still exists on the new type are
+        reconnected.  Returns metadata about what was kept and dropped.
+        """
+        old = self._graph.get_node_by_id(node_id)
+        if old is None:
+            raise KeyError(f"unknown node id: {node_id}")
+        if new_type_id not in self._graph.node_factory.nodes:
+            raise KeyError(f"unknown node type: {new_type_id}")
+
+        # Snapshot what we want to preserve.
+        old_pos = None
+        try:
+            p = old.pos()
+            old_pos = (p[0], p[1]) if not hasattr(p, 'x') else (p.x(), p.y())
+        except Exception:
+            pass
+        old_props = self._safe_props(old)
+
+        # Snapshot all attached edges.
+        in_edges:  list[tuple[str, str, str, str]] = []  # (src_id, src_port, dst_id, dst_port)
+        out_edges: list[tuple[str, str, str, str]] = []
+        for in_port in old.input_ports():
+            for src in in_port.connected_ports():
+                in_edges.append((src.node().id, src.name(),
+                                  old.id, in_port.name()))
+        for out_port in old.output_ports():
+            for dst in out_port.connected_ports():
+                out_edges.append((old.id, out_port.name(),
+                                   dst.node().id, dst.name()))
+
+        # Learn the new type's port + property surface.
+        new_info = self.describe_registered(new_type_id)
+        new_in  = set(new_info.input_ports)
+        new_out = set(new_info.output_ports)
+        new_props_set = set(new_info.properties)
+
+        # Delete the old (also drops its edges).
+        self._graph.delete_node(old)
+
+        # Create the replacement.
+        new_node = self._graph.create_node(new_type_id)
+        if new_node is None:
+            raise RuntimeError(
+                f"create_node({new_type_id!r}) returned None — "
+                f"the replacement was not registered.")
+        new_id = new_node.id
+        if old_pos is not None:
+            try:
+                new_node.set_pos(*old_pos)
+            except Exception:
+                pass
+
+        # Carry over properties (best-effort).
+        carried: list[str] = []
+        merged_props = {k: v for k, v in old_props.items()
+                        if k in new_props_set}
+        if properties:
+            merged_props.update(properties)
+        for k, v in merged_props.items():
+            try:
+                new_node.set_property(k, v)
+                carried.append(k)
+            except Exception:
+                pass
+
+        # Re-wire compatible edges.
+        dropped: list[dict] = []
+        for (s_id, s_port, _, d_port) in in_edges:
+            if d_port not in new_in:
+                dropped.append({'src_node_id': s_id, 'src_port': s_port,
+                                 'dst_node_id': new_id, 'dst_port': d_port,
+                                 'reason': f"new type has no input port "
+                                           f"{d_port!r}"})
+                continue
+            try:
+                self.connect(s_id, s_port, new_id, d_port)
+            except KeyError as e:
+                dropped.append({'src_node_id': s_id, 'src_port': s_port,
+                                 'dst_node_id': new_id, 'dst_port': d_port,
+                                 'reason': str(e)})
+        for (_, s_port, d_id, d_port) in out_edges:
+            if s_port not in new_out:
+                dropped.append({'src_node_id': new_id, 'src_port': s_port,
+                                 'dst_node_id': d_id, 'dst_port': d_port,
+                                 'reason': f"new type has no output port "
+                                           f"{s_port!r}"})
+                continue
+            try:
+                self.connect(new_id, s_port, d_id, d_port)
+            except KeyError as e:
+                dropped.append({'src_node_id': new_id, 'src_port': s_port,
+                                 'dst_node_id': d_id, 'dst_port': d_port,
+                                 'reason': str(e)})
+
+        return {'node_id': new_id, 'new_type': new_type_id,
+                'carried_properties': carried,
+                'dropped_connections': dropped}
 
     def get_node_output(self, node_id: str, port_name: str) -> Any:
         node = self._graph.get_node_by_id(node_id)

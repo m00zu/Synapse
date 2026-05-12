@@ -47,7 +47,7 @@ Start a Claude Code session and ask things like:
 - "Build a fingerprint clustering pipeline for the CSV at /Users/me/molecules.csv"
 - "Add a Murcko Scaffold node after the MolTable Reader."
 
-Claude has access to 13 tools:
+Claude has access to 14 tools:
 
 | Group | Tool | Purpose |
 |---|---|---|
@@ -58,6 +58,7 @@ Claude has access to 13 tools:
 | Inspect | `describe_graph()` | Snapshot of the current workflow |
 | Modify | `add_node(node_type, properties?)` | Create a node in the current graph |
 | Modify | `delete_node(node_id)` | Remove a node + any edges that touch it |
+| Modify | `replace_node(node_id, new_type, properties?)` | Swap a node's type while preserving compatible properties + connections |
 | Modify | `set_property(node_id, prop, value)` | Update a node's property |
 | Modify | `connect(src_node_id, src_port, dst_node_id, dst_port)` | Wire two nodes |
 | Modify | `disconnect(src_node_id, src_port, dst_node_id, dst_port)` | Remove a wire |

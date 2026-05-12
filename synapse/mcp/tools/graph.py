@@ -121,3 +121,32 @@ def delete_node(controller: GraphController,
         raise ValueError(
             f"{e.args[0]}. Call describe_graph() to see current node ids.")
     return {'deleted': node_id}
+
+
+def replace_node(controller: GraphController, node_id: str,
+                 new_type: str,
+                 properties: dict | None = None) -> dict[str, Any]:
+    """Swap a node's type while keeping compatible state.
+
+    Properties whose names still exist on ``new_type`` are carried over;
+    new values may be supplied via ``properties``.  Edges whose port
+    names still exist on ``new_type`` are reconnected automatically.
+    Edges that can't survive the swap are listed in
+    ``dropped_connections`` (with a per-edge reason).
+
+    Use this instead of ``delete_node`` + ``add_node`` + N × ``connect``
+    when the user says "replace X with Y" — same result, one call,
+    fewer chances to drop wires by mistake.
+
+    Returns ``{node_id, new_type, carried_properties, dropped_connections}``.
+    """
+    try:
+        return controller.replace_node(node_id, new_type, properties=properties)
+    except KeyError as e:
+        msg = e.args[0] if e.args else str(e)
+        if 'node id' in msg:
+            raise ValueError(
+                f"{msg}. Call describe_graph() to see current node ids.")
+        # unknown type
+        raise ValueError(
+            f"{msg}. Call list_nodes() to see registered types.")

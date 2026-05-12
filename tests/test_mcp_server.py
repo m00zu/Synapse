@@ -1,5 +1,5 @@
 """Smoke test: server starts on a free port, port file is written, and
-the registered tool list contains the 13 v0 tools."""
+the registered tool list contains the 14 v0 tools."""
 import json
 import time
 import socket
@@ -65,7 +65,7 @@ def test_server_registers_v0_tools(qapp, tmp_path, monkeypatch):
         assert set(tools) == {
             'list_nodes', 'describe_node', 'search_nodes',
             'describe_graph',
-            'add_node', 'delete_node', 'set_property',
+            'add_node', 'delete_node', 'replace_node', 'set_property',
             'connect', 'disconnect',
             'create_workflow',
             'run_node', 'get_node_status', 'get_node_output',
