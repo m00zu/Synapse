@@ -15,6 +15,10 @@ on:
         description: 'Build macOS ARM (M-series)'
         type: boolean
         default: true
+      build_macos_intel:
+        description: 'Build macOS Intel (x86_64)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -145,3 +149,80 @@ jobs:
         with:
           tag_name: ${{ inputs.tag }}
           files: dist/*.dmg
+
+  # ── macOS Intel (x86_64) ─────────────────────────────────────────────────
+  # ``macos-15-intel`` is GitHub's standard x86_64-native macOS runner
+  # (replaced macos-13 after the latter was decommissioned).  Other
+  # x86_64 options (``macos-14-large``, ``macos-15-large``) exist on
+  # the larger/paid tier — use those if macos-15-intel queues are slow.
+  #
+  # IMPORTANT: requires x86_64 builds of the rust extensions
+  # (oir_reader_rs, image_process_rs) at the --find-links URL.  Extend
+  # ``build-rust-wheels.yml`` to add ``macos-15-intel`` to its matrix
+  # so x86_64 wheels exist before triggering this job.
+  build-macos-intel:
+    if: inputs.build_macos_intel || github.event_name == 'schedule'
+    runs-on: macos-15-intel
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Verify host arch is x86_64
+        run: |
+          arch=$(uname -m)
+          echo "Host arch: $arch"
+          if [ "$arch" != "x86_64" ]; then
+            echo "Expected x86_64 runner; got $arch."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: |
+          pip install .
+          pip install nuitka ordered-set zstandard
+          # Rust extensions — must have x86_64 wheels at this URL.
+          pip install oir_reader_rs image_process_rs --find-links https://github.com/m00zu/Synapse/releases/expanded_assets/rust-v0.1.1
+
+      - name: Build macOS app bundle
+        env:
+          PYTHONPATH: ./util
+        run: |
+          python -m nuitka --show-progress --show-scons --macos-create-app-bundle --macos-app-name="Synapse" --macos-app-icon=synapse/icons/synapse_icon.png --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename="Synapse" --output-dir=dist --jobs=8 --include-package=synapse --include-package=NodeGraphQt --include-module=oir_reader_rs --include-module=image_process_rs --include-module=matplotlib.backends.backend_svg --include-module=PySide6.QtOpenGL --include-module=PySide6.QtOpenGLWidgets --include-module=synapse.plugin_imports --include-data-files="synapse/llm_node_schema.json=llm_node_schema.json" --include-data-dir="./workflows=workflows" --include-raw-dir="./synapse/site=site" --nofollow-import-to=tkinter --nofollow-import-to=test --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=huggingface_hub --nofollow-import-to=sympy --nofollow-import-to=dask --product-version="0.1.2" main.py
+
+      - name: Rename app bundle
+        run: |
+          mv dist/main.app dist/Synapse.app
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg || true
+          create-dmg \
+            --volname "Synapse" \
+            --window-size 600 400 \
+            --icon "Synapse.app" 150 200 \
+            --app-drop-link 450 200 \
+            "dist/Synapse-macOS-x86_64.dmg" \
+            "dist/Synapse.app/" || \
+          hdiutil create -volname "Synapse" -srcfolder "dist/Synapse.app" -ov -format UDZO "dist/Synapse-macOS-x86_64.dmg"
+
+      - name: Clean temp DMGs
+        run: |
+          find dist -name "rw.*.dmg" -delete 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Synapse-macOS-x86_64
+          path: dist/Synapse-macOS-x86_64.dmg
+          if-no-files-found: error
+
+      - name: Upload to release
+        if: inputs.tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: dist/Synapse-macOS-x86_64.dmg
