@@ -6,29 +6,35 @@ the bridge: launched by Claude Desktop as a subprocess, it runs an
 stdio MCP server locally that forwards every call to Synapse over HTTP
 via the official ``mcp`` SDK client.
 
-Setup (one-time):
+Setup: use ``Help → AI Connection (MCP) → Auto-configure Claude Desktop``
+inside Synapse.  It writes a ``claude_desktop_config.json`` entry that
+launches this file by absolute path — robust against cwd quirks and
+``synapse``-name collisions with unrelated PyPI packages.
 
-    Edit ~/Library/Application Support/Claude/claude_desktop_config.json::
+The script self-inserts the Synapse repo root into ``sys.path`` (see
+below) so ``import synapse.mcp.logger`` resolves before any conflicting
+site-packages copy.
 
-        {
-          "mcpServers": {
-            "synapse": {
-              "command": "python",
-              "args": ["-m", "synapse.mcp.bridge_stdio"]
-            }
-          }
-        }
-
-Then restart Claude Desktop.  Synapse must already be running when
-Claude Desktop launches the bridge; the bridge reads the live port
-from ``~/.synapse/mcp-port``.
+Synapse must already be running when Claude Desktop launches the
+bridge; the live port is read from ``~/.synapse/mcp-port``.
 """
 from __future__ import annotations
 
-import asyncio
-import json
 import sys
 from pathlib import Path
+
+# ── sys.path self-fix ────────────────────────────────────────────────────────
+# When launched as a standalone script (the path-based launch pattern Claude
+# Desktop uses), Python adds this file's own directory to sys.path — which
+# is ``.../synapse/mcp/``, NOT the repo root.  Insert the repo root (parent
+# of the ``synapse`` package) so ``import synapse.mcp.logger`` resolves
+# regardless of cwd or any conflicting ``synapse`` package in site-packages.
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+import asyncio
+import json
 from typing import Any
 
 # ── locate Synapse ──────────────────────────────────────────────────────────

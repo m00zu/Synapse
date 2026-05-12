@@ -88,21 +88,25 @@ def claude_desktop_entry(python_path: str | None = None,
             },
         }
 
-    # Source case: invoke via python -m.
+    # Source case: launch the bridge script by absolute path.  The
+    # script itself fixes up sys.path to find the ``synapse`` package,
+    # so this works regardless of cwd, PYTHONPATH, or whether site-
+    # packages happens to have an unrelated ``synapse`` package on it.
     try:
         import synapse as _synapse_pkg
-        synapse_parent: str | None = str(
-            Path(_synapse_pkg.__file__).parent.parent)
+        bridge_path = (Path(_synapse_pkg.__file__).parent
+                       / 'mcp' / 'bridge_stdio.py')
     except Exception:
-        synapse_parent = None
+        # Fallback shouldn't happen — synapse is importable since
+        # we're running inside it — but be defensive.
+        bridge_path = Path('synapse/mcp/bridge_stdio.py')
 
-    entry: dict = {
-        'command': python_path or sys.executable,
-        'args': ['-m', 'synapse.mcp.bridge_stdio'],
+    return {
+        server_name: {
+            'command': python_path or sys.executable,
+            'args': [str(bridge_path)],
+        },
     }
-    if synapse_parent:
-        entry['cwd'] = synapse_parent
-    return {server_name: entry}
 
 
 def write_claude_desktop_config(

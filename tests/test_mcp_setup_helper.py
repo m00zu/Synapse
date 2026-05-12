@@ -36,7 +36,12 @@ def test_claude_desktop_entry_uses_sys_executable_by_default():
     import sys
     entry = claude_desktop_entry()
     assert entry['synapse']['command'] == sys.executable
-    assert entry['synapse']['args'] == ['-m', 'synapse.mcp.bridge_stdio']
+    # The bridge is launched by absolute script path (more robust than
+    # -m which depends on cwd/sys.path subprocess quirks).
+    args = entry['synapse']['args']
+    assert len(args) == 1
+    assert args[0].endswith('synapse/mcp/bridge_stdio.py') \
+        or args[0].endswith('synapse\\mcp\\bridge_stdio.py')   # Windows
 
 
 def test_claude_desktop_entry_respects_override():
@@ -51,9 +56,9 @@ def test_write_creates_file_when_missing(tmp_path):
     data = json.loads(cfg.read_text())
     entry = data['mcpServers']['synapse']
     assert entry['command'] == '/x/python'
-    assert entry['args'] == ['-m', 'synapse.mcp.bridge_stdio']
-    # cwd is set so the bridge subprocess can find the synapse package.
-    assert 'cwd' in entry
+    # args is a single absolute path to bridge_stdio.py.
+    assert len(entry['args']) == 1
+    assert 'bridge_stdio.py' in entry['args'][0]
     assert result['config_path'] == str(cfg)
     assert result['replaced'] is False
     assert result['other_servers'] == []
