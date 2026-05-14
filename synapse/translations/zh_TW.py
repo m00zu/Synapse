@@ -56,15 +56,15 @@ STRINGS: dict[str, str] = {
     # ── Menu / toolbar actions ───────────────────────────────────────────────
     "&Copy Nodes":              "&複製節點",
     "&Paste Nodes":             "&貼上節點",
-    "&Save Workflow...":        "&儲存工作流程…",
-    "&Open Workflow...":        "&開啟工作流程…",
-    "Append Workflow...":       "附加工作流程…",
+    "&Save Workflow...":        "&儲存工作流程...",
+    "&Open Workflow...":        "&開啟工作流程...",
+    "Append Workflow...":       "附加工作流程...",
     "Autosave Now":             "立即自動儲存",
     "Reopen Last Workflow":     "重新開啟上次工作流程",
-    "Install Plugin...":        "安裝外掛程式…",
+    "Install Plugin...":        "安裝外掛程式...",
     "Reload Plugins":           "重新載入外掛程式",
-    "Plugin Manager...":        "外掛程式管理員…",
-    "Pipe Style...":            "連線樣式…",
+    "Plugin Manager...":        "外掛程式管理員...",
+    "Pipe Style...":            "連線樣式...",
     "Select &All Nodes":        "選取全部節點(&A)",
     "&Focus Node Search":       "聚焦節點搜尋(&F)",
     "Minimap":                  "小地圖",
@@ -87,18 +87,18 @@ STRINGS: dict[str, str] = {
 
     # ── Status bar (static messages only) ───────────────────────────────────
     "Ready":                            "就緒",
-    "Executing graph...":               "正在執行圖形…",
-    "Stopping execution...":            "正在停止執行…",
+    "Executing graph...":               "正在執行圖形...",
+    "Stopping execution...":            "正在停止執行...",
     "Execution failed.":                "執行失敗。",
     "No nodes selected to clear.":      "未選取任何節點以清除。",
     "All node caches cleared.":         "所有節點快取已清除。",
     "Autosave snapshot created.":       "自動儲存快照已建立。",
     "Autosave skipped (graph is empty).": "自動儲存已跳過（圖形為空）。",
-    "Starting batch execution...":      "正在開始批次執行…",
+    "Starting batch execution...":      "正在開始批次執行...",
     "Error: circular connection detected. Remove the cycle and try again.":
         "錯誤：偵測到循環連線。請移除迴圈後再試一次。",
-    "Stop requested — waiting for current node to finish.":
-        "已請求停止 — 等待目前節點完成。",
+    "Stop requested -- waiting for current node to finish.":
+        "已請求停止 -- 等待目前節點完成。",
     "Batch stopped by user.":           "使用者已停止批次執行。",
     "Execution stopped by user.":       "使用者已停止執行。",
     "Script exported to":               "腳本已匯出至",
@@ -144,9 +144,9 @@ STRINGS: dict[str, str] = {
 
     # ── nodes/base.py widget labels ─────────────────────────────────────────
     "Select Dot Color":     "選取點的顏色",
-    "Select file...":       "選取檔案…",
+    "Select file...":       "選取檔案...",
     "Select File":          "選取檔案",
-    "Select directory...":  "選取目錄…",
+    "Select directory...":  "選取目錄...",
     "Select Directory":     "選取目錄",
     "Progress":             "進度",
     "No Preview":           "無預覽",

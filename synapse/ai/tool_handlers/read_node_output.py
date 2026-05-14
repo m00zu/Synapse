@@ -1,4 +1,4 @@
-"""read_node_output tool handler — compact peek at one or many nodes' last outputs."""
+"""read_node_output tool handler -- compact peek at one or many nodes' last outputs."""
 from __future__ import annotations
 
 import base64
@@ -73,7 +73,7 @@ def _classify(unwrapped) -> str:
 
 def _read_single_port(unwrapped, include_thumbnail: bool) -> dict:
     """Build a {kind, metadata, text_preview, thumbnail?} dict for ONE port's
-    unwrapped payload. No node_id — caller decides how to wrap."""
+    unwrapped payload. No node_id -- caller decides how to wrap."""
     if unwrapped is None:
         return {"kind": "empty"}
 
@@ -146,7 +146,7 @@ def _read_one(node, include_thumbnail: bool, port_filter: str | None = None) -> 
 
     # Default: read every port. For backward-compat, a single-port node
     # returns the flat shape {kind, node_id, metadata, text_preview, ...}
-    # — same as Phase 2a. Multi-port nodes (e.g. OutlierDetectionNode with
+    # -- same as Phase 2a. Multi-port nodes (e.g. OutlierDetectionNode with
     # kept/removed) return {kind: "multi"|..., node_id, ports: {port_name: {...}}}.
     if len(port_names) == 1:
         p = port_names[0]
@@ -205,7 +205,7 @@ def make_read_node_output_handler(
         if not single_id and not batch_ids:
             return {"error": "read_node_output: requires 'node_id' or 'node_ids'."}
 
-        # Single-node path — returns per-port data by default; caller can
+        # Single-node path -- returns per-port data by default; caller can
         # target a specific port via `port`.
         if single_id:
             node = _lookup(single_id)
@@ -256,7 +256,7 @@ def make_read_node_output_handler(
             else:
                 results.append(_read_one(node, include_thumbnail=include_thumb,
                                           port_filter=port_filter))
-            # Budget check — trim trailing thumbnails, then trailing text_preview,
+            # Budget check -- trim trailing thumbnails, then trailing text_preview,
             # then mark truncated and stop adding to the list.
             approx = estimate_tokens(json.dumps({"results": results}))
             if approx > token_cap:
@@ -272,7 +272,7 @@ def make_read_node_output_handler(
                     approx = estimate_tokens(json.dumps({"results": results}))
                 if approx > token_cap and len(results) > 1:
                     # Keep at least one result so the model has something to work
-                    # with, even if it overshoots — never return an empty list.
+                    # with, even if it overshoots -- never return an empty list.
                     results.pop()
                     truncated = True
                     break

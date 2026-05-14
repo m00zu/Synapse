@@ -90,7 +90,7 @@ def _extract_nodes(filepath):
                                         elif key.value == "outputs":
                                             info["outputs"] = [(n, n) for n in names]
 
-            # __init__ method — look for add_input, add_output, _add_*_spinbox, etc.
+            # __init__ method -- look for add_input, add_output, _add_*_spinbox, etc.
             if isinstance(stmt, ast.FunctionDef) and stmt.name == "__init__":
                 for node in ast.walk(stmt):
                     if not isinstance(node, ast.Call):
@@ -156,7 +156,7 @@ def _extract_nodes(filepath):
                             info["properties"].append(node.args[1].value)
 
         # If __init__ add_input/add_output calls found real port names (name != type),
-        # those are authoritative — drop the PORT_SPEC placeholder entries (name == type).
+        # those are authoritative -- drop the PORT_SPEC placeholder entries (name == type).
         for direction in ("inputs", "outputs"):
             real = [(n, t) for n, t in info[direction] if n != t]
             if real:
@@ -194,8 +194,8 @@ def _node_to_md(info):
                     is_bullet = stripped.startswith("- ") or stripped.startswith("* ")
                     is_empty = not stripped
 
-                    # Convert standalone **param** — lines to bullet items
-                    if (stripped.startswith("**") and "—" in stripped
+                    # Convert standalone **param** -- lines to bullet items
+                    if (stripped.startswith("**") and "--" in stripped
                             and not stripped.startswith("- ")):
                         stripped = f"- {stripped}"
                         is_bullet = True

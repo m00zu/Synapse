@@ -1,4 +1,4 @@
-"""inspect_canvas tool handler — read-only canvas dump with a token cap."""
+"""inspect_canvas tool handler -- read-only canvas dump with a token cap."""
 from __future__ import annotations
 
 import json
@@ -47,7 +47,7 @@ def make_inspect_canvas_handler(graph, token_cap: int = DEFAULT_TOKEN_CAP) -> Ca
                         if (src_id in keep and dst_id in keep) or node_id_filter is None:
                             edges_out.append([src_id, dst_id])
 
-        # Token cap — serialise, trim nodes until under budget.
+        # Token cap -- serialise, trim nodes until under budget.
         result = {"nodes": nodes_out, "edges": edges_out, "truncated": False}
         approx = estimate_tokens(json.dumps(result))
         while approx > token_cap and nodes_out:

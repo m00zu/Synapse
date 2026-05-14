@@ -1,4 +1,4 @@
-"""WebChatSession — drive the ChatOrchestrator on a background thread and
+"""WebChatSession -- drive the ChatOrchestrator on a background thread and
 emit its OrchestratorEvent stream as WS events via the session's EventBus.
 
 This is the web-side analogue of desktop's ChatStreamWorker
@@ -21,7 +21,7 @@ from typing import Any, Optional
 class _LoopDispatchProxy:
     """Marshal ``dispatch(name, input)`` onto the asyncio event-loop thread.
 
-    Mirrors desktop's ``_MainThreadDispatchProxy`` — the loop thread is
+    Mirrors desktop's ``_MainThreadDispatchProxy`` -- the loop thread is
     where the QApplication was constructed, so it's safe to build Qt
     widgets there. Fast-path when the caller already IS on the loop
     thread (tests that drive dispatch synchronously).
@@ -70,7 +70,7 @@ class WebChatSession:
     def start_turn(self, user_text: str, client, dispatcher, history: list) -> str:
         """Run one turn on a daemon thread; publish events via session.bus.
         Returns a turn_id that the stop route can target (Phase 1e has at
-        most one in-flight turn per session — the stop route just flips
+        most one in-flight turn per session -- the stop route just flips
         self._cancel)."""
         if self._thread and self._thread.is_alive():
             raise RuntimeError("A turn is already in flight. Call stop() first.")
@@ -119,12 +119,12 @@ class WebChatSession:
                 ws_ev = self._to_ws(ev, bubble_id)
                 if ws_ev is not None:
                     self._emit(ws_ev)
-        except Exception as exc:  # noqa: BLE001 — surface any crash as chat_error
+        except Exception as exc:  # noqa: BLE001 -- surface any crash as chat_error
             self._emit({"kind": "chat_error", "bubble_id": bubble_id, "error": str(exc)})
         finally:
             # Persist only the final assistant prose back to session history.
             # The orchestrator's internal tool_use / tool_result blocks stay
-            # local to this turn's working copy — carrying them across turns
+            # local to this turn's working copy -- carrying them across turns
             # under different providers would cause 400s / misbehavior.
             final = "".join(assistant_text).strip()
             if final:
@@ -138,13 +138,13 @@ class WebChatSession:
 
         Note: ``generate_workflow`` returns the condensed
         ``{"nodes": [...], "edges": [...]}`` format, NOT NodeGraphQt's
-        ``serialize_session()`` output — so ``graph.import_`` (which
+        ``serialize_session()`` output -- so ``graph.import_`` (which
         calls ``deserialize_session``) would fail with
         ``'list' object has no attribute 'items'``. Use ``WorkflowLoader``
         (same path desktop uses in ``_apply_workflow_from_orchestrator``).
 
         ``WorkflowLoader.build`` constructs Qt widgets, so marshal to the
-        loop thread — same reason tool dispatches route through
+        loop thread -- same reason tool dispatches route through
         ``_LoopDispatchProxy``. Logs on failure instead of raising so a
         broken workflow never kills the turn.
         """
@@ -156,7 +156,7 @@ class WebChatSession:
                 loader = WorkflowLoader(self._session.graph.node_graph)
                 loader.build(workflow)
                 result_box["ok"] = True
-            except Exception as exc:  # noqa: BLE001 — best-effort
+            except Exception as exc:  # noqa: BLE001 -- best-effort
                 import logging
                 logging.getLogger(__name__).warning(
                     "auto-apply generate_workflow failed: %s", exc,
@@ -178,7 +178,7 @@ class WebChatSession:
             done.wait()
 
         # The frontend keeps its own shadow of the graph and doesn't poll
-        # /api/graph — broadcast the fresh compact snapshot so it can
+        # /api/graph -- broadcast the fresh compact snapshot so it can
         # mirror the just-added nodes. Without this the UI shows
         # "Applied" but the canvas stays empty.
         if result_box["ok"]:
@@ -204,7 +204,7 @@ class WebChatSession:
                     if k in _IGNORE_PROPS or k.startswith("_"):
                         continue
                     # Strip values we can't JSON-serialize (numpy arrays,
-                    # Qt objects, etc.) — the shadow only needs scalars /
+                    # Qt objects, etc.) -- the shadow only needs scalars /
                     # plain containers.
                     try:
                         import json as _json
@@ -249,7 +249,7 @@ class WebChatSession:
             result = ev.tool_result or {}
             # Emit a workflow preview event when generate_workflow completes.
             if ev.tool_name == "generate_workflow" and result:
-                # On an empty canvas, desktop auto-applies the workflow —
+                # On an empty canvas, desktop auto-applies the workflow --
                 # match that behavior on the server side by importing the
                 # workflow JSON into the session graph. Without this, the UI
                 # shows "Applied" but the canvas stays empty (silent lie).
@@ -287,4 +287,4 @@ class WebChatSession:
                 fut.result(timeout=1.0)
             except Exception:
                 pass
-        # No loop available — best-effort dropped. Tests use inline runs.
+        # No loop available -- best-effort dropped. Tests use inline runs.

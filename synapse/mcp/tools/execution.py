@@ -141,7 +141,7 @@ def get_node_output(controller: GraphController,
 
       - ``'preview'``  (default): shape + dtypes + first 10 rows / image
         stats / model summary / scalar value.
-      - ``'describe'``: ``df.describe(include='all')`` — per-column stats.
+      - ``'describe'``: ``df.describe(include='all')`` -- per-column stats.
       - ``'range'``:    rows ``[start:end]`` (capped at 500).
       - ``'columns'``:  project to ``columns`` then sample (capped at 500).
       - ``'filter'``:   rows matching pandas ``df.query(query)`` (capped 200).
@@ -221,7 +221,7 @@ def get_node_output(controller: GraphController,
 
 def _summarize(value: Any, port_name: str) -> dict[str, Any]:
     """Convert any node output into a JSON-safe preview dict."""
-    # Unwrap typed-data containers (TableData, ImageData, etc.) — their
+    # Unwrap typed-data containers (TableData, ImageData, etc.) -- their
     # actual content lives on .payload by Synapse convention.
     payload = getattr(value, 'payload', value)
 
@@ -256,7 +256,7 @@ def _summarize(value: Any, port_name: str) -> dict[str, Any]:
                 'shape': list(arr.shape),
                 'dtype': str(arr.dtype),
             })
-            # Basic stats (best effort — strings/objects don't cooperate)
+            # Basic stats (best effort -- strings/objects don't cooperate)
             try:
                 out['min'] = float(arr.min())
                 out['max'] = float(arr.max())

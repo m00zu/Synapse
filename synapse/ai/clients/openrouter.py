@@ -1,6 +1,6 @@
-"""OpenRouter client — OpenAI-compatible gateway with free-tier models.
+"""OpenRouter client -- OpenAI-compatible gateway with free-tier models.
 
-OpenRouter proxies many providers (OpenAI, Anthropic, Meta, Google, …) behind
+OpenRouter proxies many providers (OpenAI, Anthropic, Meta, Google, ...) behind
 an OpenAI-shaped API. Free-tier models are tagged with the ``:free`` suffix,
 e.g. ``meta-llama/llama-3.3-70b-instruct:free``. The wire protocol is
 effectively identical to ``OpenAIClient``, so this client mirrors that class
@@ -26,14 +26,14 @@ from synapse.ai.clients.base import LLMClient, StreamEvent
 _REFERER = "https://github.com/m00zu/Synapse"
 _TITLE = "Synapse"
 
-# 429 retry policy — total wait at most ~10 seconds before giving up.
+# 429 retry policy -- total wait at most ~10 seconds before giving up.
 _RETRY_DELAYS = (2.0, 5.0)
 
 
 def _post_with_retry(url: str, *, headers: dict, json_payload: dict,
                      stream: bool, timeout: float):
     """POST with retry-on-429 backoff. Returns the final Response object
-    (which may still be non-200 — caller decides whether to raise)."""
+    (which may still be non-200 -- caller decides whether to raise)."""
     last = None
     for attempt in range(len(_RETRY_DELAYS) + 1):
         resp = requests.post(url, headers=headers, json=json_payload,
@@ -92,7 +92,7 @@ class OpenRouterClient(LLMClient):
 
     # ------------------------------------------------------------------
     def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        """Legacy non-streaming single-turn — mirrors OpenAIClient.chat."""
+        """Legacy non-streaming single-turn -- mirrors OpenAIClient.chat."""
         if images:
             user_content: list | str = [{"type": "text", "text": user}]
             for b64 in images:

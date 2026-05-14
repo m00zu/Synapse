@@ -3,7 +3,7 @@ orchestrator event so the chat panel can update the UI on the main thread.
 
 Tool dispatches that mutate the NodeGraphQt canvas (modify_workflow,
 write_python_script, generate_workflow's Apply path) must run on the Qt
-main thread — creating NodeGraphQt widgets from a worker thread crashes
+main thread -- creating NodeGraphQt widgets from a worker thread crashes
 on macOS with ``NSWindow should only be instantiated on the main thread!``.
 
 To handle that safely we wrap the provided ``ToolDispatcher`` in a
@@ -27,7 +27,7 @@ class _MainThreadDispatchProxy(QtCore.QObject):
     _dispatch_request = QtCore.Signal(str, object, object)
 
     def __init__(self, real_dispatcher):
-        # parent=None — this proxy lives on whatever thread constructs it
+        # parent=None -- this proxy lives on whatever thread constructs it
         # (ChatStreamWorker is constructed on the main thread BEFORE the
         # worker is moved to its QThread, so this proxy stays on main).
         super().__init__()
@@ -66,7 +66,7 @@ class ChatStreamWorker(QtCore.QObject):
     tool_call_started = QtCore.Signal(str, dict)      # name, input
     tool_call_finished = QtCore.Signal(str, dict)     # name, result
     cap_exceeded = QtCore.Signal(str)                 # tool name at which cap hit
-    # Workflow preview — emitted after generate_workflow tool_call_finished.
+    # Workflow preview -- emitted after generate_workflow tool_call_finished.
     workflow_preview = QtCore.Signal(dict)
     # Terminal.
     turn_finished = QtCore.Signal()
@@ -88,7 +88,7 @@ class ChatStreamWorker(QtCore.QObject):
 
     @QtCore.Slot()
     def run(self) -> None:
-        """Thread entrypoint — connect QThread.started to this slot."""
+        """Thread entrypoint -- connect QThread.started to this slot."""
         self._run_once()
 
     def request_cancel(self) -> None:

@@ -57,7 +57,7 @@ async def upload(file: UploadFile = File(...)) -> dict:
 async def browse(request: Request, path: str = "") -> dict:
     """Directory listing, rooted at $HOME (or --allow-path). Path-traversal guarded.
 
-    Empty path / "/" / "~" are sugar for "start at the allowed root" — the
+    Empty path / "/" / "~" are sugar for "start at the allowed root" -- the
     frontend has no way to know the server's $HOME ahead of time, so it
     asks for "" and we resolve it here.
 

@@ -1,4 +1,4 @@
-# Nuitka runtime patch — fixes regionprops KeyError in frozen builds.
+# Nuitka runtime patch -- fixes regionprops KeyError in frozen builds.
 # Package bundling is handled by --include-package flags in the build command.
 if "__compiled__" in globals():
     from . import skimage_nuitka_compat  # noqa: F401
@@ -148,7 +148,7 @@ class BatchGraphWorker(QtCore.QObject):
         BaseExecutionNode.request_cancel()
 
     def _run_downstream_only(self):
-        """Skip the batch loop — just propagate from accumulators and
+        """Skip the batch loop -- just propagate from accumulators and
         evaluate only nodes downstream of accumulators.
         Returns True if stopped early."""
         # Collect nodes that are downstream of (or are) accumulators
@@ -228,11 +228,11 @@ class BatchGraphWorker(QtCore.QObject):
                 if hasattr(node, 'on_batch_start'):
                     node.on_batch_start()
 
-            # Pre-compute nodes DOWNSTREAM of accumulators — these must
+            # Pre-compute nodes DOWNSTREAM of accumulators -- these must
             # NOT run during per-file iterations (accumulators defer
             # their merged output to on_batch_end).
             # Note: accumulators themselves ARE evaluated each iteration
-            # (to collect values) — only nodes after them are deferred.
+            # (to collect values) -- only nodes after them are deferred.
             _accumulator_ids = set()
             _post_batch_ids = set()
             for node in self.sorted_nodes:
@@ -406,7 +406,7 @@ def _build_interpolated_stylesheet(t: float) -> str:
     for name, vals in _THEME_COLORS.items():
         c[name] = _lerp_hex(vals[:3], vals[3:], t)
 
-    # path button uses rgba — interpolate opacity direction
+    # path button uses rgba -- interpolate opacity direction
     path_hov_a = 0.08 + (0.06 - 0.08) * t
     path_prs_a = 0.14 + (0.10 - 0.14) * t
     path_rgba_hov = f"rgba({'255,255,255' if t < 0.5 else '0,0,0'}, {path_hov_a:.2f})"
@@ -630,7 +630,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.graph.node_factory.clear_registered_nodes()
         self._register_core_nodes()
 
-        # Load plugins — must happen before NodesTreeWidget is constructed so
+        # Load plugins -- must happen before NodesTreeWidget is constructed so
         # that plugin nodes appear in the Node Explorer tree automatically.
         from .plugin_loader import load_plugins, get_plugin_dir
         self._plugin_results = load_plugins(
@@ -809,7 +809,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 
         # Handle macOS Backspace for node deletion + pipe right-click context menu
         self.graph.viewer().installEventFilter(self)
-        # ContextMenu events go to the viewport widget, not the view — intercept both
+        # ContextMenu events go to the viewport widget, not the view -- intercept both
         self.graph.viewer().viewport().installEventFilter(self)
         # Re-apply per-pipe widths after any selection change (pipe.reset() hardcodes width=2)
         self.graph.viewer().scene().selectionChanged.connect(
@@ -1079,7 +1079,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             CollectNode, SelectCollectionNode, PopCollectionNode,
     SplitCollectionNode, SaveCollectionNode,
     RenameCollectionNode, CollectionInfoNode, FilterCollectionNode, MapNamesNode,
-            # DataFrame operations — moved to data_processing plugin
+            # DataFrame operations -- moved to data_processing plugin
         ):
             self.graph.register_node(node_cls)
 
@@ -1132,7 +1132,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                      and i not in (viewer._LIVE_PIPE, viewer._SLICER_PIPE)]
             if pipes:
                 self._show_pipe_context_menu(pipes[0], event.globalPos())
-                return True   # consume — don't open the normal graph context menu
+                return True   # consume -- don't open the normal graph context menu
 
         if obj is viewer and event.type() == QtCore.QEvent.KeyPress:
             if event.key() in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
@@ -1147,7 +1147,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                         item = item.parentItem()
                     # Focus is inside an unselected node's widget.
                     # Only treat as stale when there are selected nodes to delete;
-                    # otherwise the user is just editing that field — pass through.
+                    # otherwise the user is just editing that field -- pass through.
                     if not selected_views:
                         return False
                     self.graph.scene().clearFocus()
@@ -1187,7 +1187,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         toolbar = self.addToolBar(tr("Execution"))
         toolbar.setMovable(False)
 
-        # Run Graph — green
+        # Run Graph -- green
         self._run_btn = self._make_toolbar_button(
             tr("Run"), tr("Run Graph") + "  [Ctrl+W]",
             bg="#238636", bg_hover="#2ea043", icon_char="▶")
@@ -1199,7 +1199,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.btn_run.triggered.connect(self.execute_graph)
         self.addAction(self.btn_run)
 
-        # Batch Run — blue
+        # Batch Run -- blue
         self._batch_btn = self._make_toolbar_button(
             tr("Batch"), tr("Batch Run") + "  [Ctrl+B]",
             bg="#1f6feb", bg_hover="#388bfd", icon_char="⟳")
@@ -1210,7 +1210,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.btn_batch.triggered.connect(self.execute_batch)
         self.addAction(self.btn_batch)
 
-        # Stop — red
+        # Stop -- red
         self._stop_btn = self._make_toolbar_button(
             tr("Stop"), tr("Stop execution"),
             bg="#da3633", bg_hover="#f85149", icon_char="■")
@@ -1227,7 +1227,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 
         toolbar.addSeparator()
 
-        # Clear caches — subtle
+        # Clear caches -- subtle
         self._clear_sel_btn = self._make_toolbar_button(
             tr("Clear Selected"), tr("Clear caches for selected nodes"),
             bg="#30363d", bg_hover="#484f58")
@@ -1246,7 +1246,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 
         toolbar.addSeparator()
 
-        # Theme toggle — subtle with icon
+        # Theme toggle -- subtle with icon
         self._theme_btn = self._make_toolbar_button(
             tr("Light Mode"), "Toggle light / dark theme",
             bg="#30363d", bg_hover="#484f58", icon_char="◑")
@@ -1285,7 +1285,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self._theme_btn.setText(f"◑  {tr('Light Mode') if is_dark else tr('Dark Mode')}")
 
     def _on_theme_started(self, is_dark: bool):
-        """Called once when theme toggle begins — store from/to colors."""
+        """Called once when theme toggle begins -- store from/to colors."""
         self._theme_target_dark = is_dark
         # Snapshot current canvas colors as "from"
         scene = self.graph.scene()
@@ -1296,7 +1296,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self._canvas_to_grid = target[1]
 
     def _on_theme_step(self, t: float):
-        """Called at each animation frame (0.0→1.0) — interpolate everything."""
+        """Called at each animation frame (0.0→1.0) -- interpolate everything."""
         # Interpolate canvas colors
         scene = self.graph.scene()
         scene.background_color = tuple(
@@ -1463,11 +1463,11 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         help_menu.addAction(open_online_action)
 
         # MCP / AI connection setup
-        ai_conn_action = QtGui.QAction(tr("AI Connection (MCP)…"), self)
+        ai_conn_action = QtGui.QAction(tr("AI Connection (MCP)..."), self)
         ai_conn_action.triggered.connect(self._open_mcp_setup_dialog)
         help_menu.addAction(ai_conn_action)
 
-        mcp_log_action = QtGui.QAction(tr("MCP Call Log…"), self)
+        mcp_log_action = QtGui.QAction(tr("MCP Call Log..."), self)
         mcp_log_action.triggered.connect(self._open_mcp_log_dialog)
         help_menu.addAction(mcp_log_action)
 
@@ -1497,7 +1497,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 url = QtCore.QUrl.fromLocalFile(os.path.abspath(site_index))
                 QtGui.QDesktopServices.openUrl(url)
                 return
-        # No bundled docs — fall back to online
+        # No bundled docs -- fall back to online
         self._open_online_manual()
 
     def _open_mcp_setup_dialog(self) -> None:
@@ -1603,7 +1603,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 if rest:
                     parts.append(f"<p>{_inline(rest)}</p>")
                 continue
-            # Normal paragraph — apply inline formatting
+            # Normal paragraph -- apply inline formatting
             text = ' '.join(l.strip() for l in lines)
             parts.append(f"<p>{_inline(text)}</p>")
         return '\n'.join(parts)
@@ -1638,7 +1638,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             # Convert markdown-ish docstring to HTML
             html_parts.append(self._docstring_to_html(doc))
 
-        # Ports — show name + data type (reverse-mapped from port color)
+        # Ports -- show name + data type (reverse-mapped from port color)
         from .nodes.base import PORT_COLORS
         _color_to_type = {}
         for tname, rgb in PORT_COLORS.items():
@@ -1759,7 +1759,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         if installed:
             names = ', '.join(installed)
             self.statusBar().showMessage(
-                f"Installed: {names} — restart to activate.", 8000
+                f"Installed: {names} -- restart to activate.", 8000
             )
 
     def _show_plugin_manager(self):
@@ -1849,7 +1849,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         has_override = bool(key and key in self._per_pipe_settings)
 
         menu         = QtWidgets.QMenu(self)
-        act_style    = menu.addAction("Style This Pipe…")
+        act_style    = menu.addAction("Style This Pipe...")
         act_reset    = menu.addAction("Reset to Global Style")
         act_reset.setEnabled(has_override)
 
@@ -1976,7 +1976,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         sel_pipes = viewer.selected_pipes()
 
         dlg = QtWidgets.QDialog(self)
-        dlg.setWindowTitle(tr("Pipe Style...").rstrip('.…'))
+        dlg.setWindowTitle(tr("Pipe Style...").rstrip('....'))
         dlg.setMinimumWidth(360)
 
         outer = QtWidgets.QVBoxLayout(dlg)
@@ -2005,7 +2005,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         form.setSpacing(10)
         outer.addLayout(form)
 
-        # Shape (global only — disabled in "selected" mode)
+        # Shape (global only -- disabled in "selected" mode)
         combo_layout = QtWidgets.QComboBox()
         combo_layout.addItems(["Straight", "Curved", "Angled"])
         combo_layout.setCurrentIndex(int(self._pipe_settings.get('layout', 1)))
@@ -2406,7 +2406,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 return
         except RuntimeError:
             pass
-        # Warn if a FolderIteratorNode is present — user may have meant Batch Run
+        # Warn if a FolderIteratorNode is present -- user may have meant Batch Run
         # But skip the warning if all accumulators already have cached results
         # (the batch loop will be skipped anyway).
         for node in self.graph.all_nodes():
@@ -2417,7 +2417,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                                 and all(getattr(a, '_batch_complete', False)
                                         for a in accumulators))
                 if all_complete:
-                    # Batch already done — silently use batch path which
+                    # Batch already done -- silently use batch path which
                     # will skip the loop and only run downstream nodes.
                     self.execute_batch()
                     return
@@ -2645,11 +2645,11 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             thread_running = False
         if thread_running:
             # Mark the thread as a daemon-like object: when the process
-            # exits the OS will clean it up.  Do NOT call terminate() —
+            # exits the OS will clean it up.  Do NOT call terminate() --
             # it kills the thread mid-C-extension (numpy/PIL) and causes
             # a segfault.  A short wait gives cooperative stop a chance.
             if not self.worker_thread.wait(200):
-                # Thread still running — detach so it won't block exit.
+                # Thread still running -- detach so it won't block exit.
                 # The process exit will clean up the thread.
                 self.worker_thread.finished.disconnect()
         event.accept()
@@ -2662,7 +2662,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             self.btn_stop.setEnabled(False)
             # The worker will emit finished (which re-enables buttons) once
             # the current node completes. But if it takes too long, ensure
-            # the UI doesn't stay stuck — schedule a safety reset.
+            # the UI doesn't stay stuck -- schedule a safety reset.
             QtCore.QTimer.singleShot(5000, self._safety_reset_ui)
 
     def _safety_reset_ui(self):
@@ -2681,7 +2681,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 self._is_batch_running = False
                 self._set_batch_progress_visible(False)
             self.statusBar().showMessage(
-                tr("Stop requested — waiting for current node to finish."), 5000)
+                tr("Stop requested -- waiting for current node to finish."), 5000)
 
     def _on_execution_finished(self):
         self.btn_run.setEnabled(True)
@@ -2864,7 +2864,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 def main(splash=None, on_status=None):
     """Launch the Synapse GUI.
 
-    ``splash`` (optional): a QSplashScreen already shown by the wrapper —
+    ``splash`` (optional): a QSplashScreen already shown by the wrapper --
         will be auto-closed once the main window appears.
     ``on_status`` (optional): callable ``(text: str) -> None`` for splash
         message updates.  Used both directly (phase changes) and indirectly
@@ -2890,21 +2890,21 @@ def main(splash=None, on_status=None):
         app.setWindowIcon(QtGui.QIcon(str(_icon_path)))
 
     if on_status:
-        on_status("Initializing UI…")
+        on_status("Initializing UI...")
 
     # ThemeManager applies the initial dark palette and owns all theme transitions
     theme_manager = ThemeManager(app)
 
     def _plugin_step(name, current, total):
         if on_status:
-            on_status(f"Loading plugins… ({current}/{total}) {name}")
+            on_status(f"Loading plugins... ({current}/{total}) {name}")
 
     window = NodeExecutionWindow(theme_manager=theme_manager,
                                  on_plugin_step=_plugin_step)
     window.show()
 
     # Start MCP server so external chat clients can drive Synapse.
-    # Failure here is non-fatal — Synapse keeps working without it.
+    # Failure here is non-fatal -- Synapse keeps working without it.
     try:
         from synapse.mcp import start_server as _mcp_start
         _mcp_port = _mcp_start(window)

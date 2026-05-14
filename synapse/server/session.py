@@ -23,7 +23,7 @@ class NodeGraphHeadless:
     """Thin façade over NodeGraphQt.NodeGraph exposing only server operations.
 
     The underlying ``NodeGraph`` instance is reachable via ``.node_graph``
-    for callers that need the full NodeGraphQt surface — specifically the
+    for callers that need the full NodeGraphQt surface -- specifically the
     chat tool-dispatcher, whose handlers (``generate_workflow``,
     ``modify_workflow``) call ``create_node`` / ``registered_nodes`` /
     ``remove_node(node_obj)`` directly.
@@ -49,7 +49,7 @@ class NodeGraphHeadless:
     @property
     def node_graph(self):
         """The underlying NodeGraphQt NodeGraph. Exposed for callers that
-        need the full API — the chat tool-dispatcher is the main client."""
+        need the full API -- the chat tool-dispatcher is the main client."""
         return self._g
 
     # ---- CRUD ----
@@ -139,8 +139,8 @@ class SessionState:
         self.bus = EventBus()
         self.executor = None
         self._closed = False
-        # Chat slot — lazily attached by routes_chat.start_turn. History persists
-        # for the session's lifetime (not across server restarts — Phase 2+).
+        # Chat slot -- lazily attached by routes_chat.start_turn. History persists
+        # for the session's lifetime (not across server restarts -- Phase 2+).
         self.chat_session = None  # type: Optional[Any]
         self.chat_history: list[dict] = []
 

@@ -1,4 +1,4 @@
-"""write_python_script tool handler — generate Python for a PythonScriptNode."""
+"""write_python_script tool handler -- generate Python for a PythonScriptNode."""
 from __future__ import annotations
 
 import re

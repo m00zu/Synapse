@@ -1,6 +1,6 @@
 """Pure-Python bubble state dataclasses + HTML renderer + anchor-URL parser.
 
-No Qt imports — this module can be imported and tested without a display.
+No Qt imports -- this module can be imported and tested without a display.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ _CODE_TAG = re.compile(r"<code(\s[^>]*)?>", re.IGNORECASE)
 def _style_code_blocks(body_html: str, colors: dict) -> str:
     """Inject inline styles into <pre> and <code> tags so code blocks blend
     with the bubble theme. Pygments' default style leaves <pre> transparent,
-    which renders white on QTextBrowser — this fixes that for dark themes."""
+    which renders white on QTextBrowser -- this fixes that for dark themes."""
     code_bg = colors.get("code_bg") or colors.get("ai_bg", "#161b22")
     code_fg = colors.get("code_fg") or colors.get("ai_fg", "#c9d1d9")
     border = colors.get("ai_border", "#30363d")
@@ -151,7 +151,7 @@ def render_bubble_html(state: _BubbleState, colors: dict) -> str:
         )
 
     # ------------------------------------------------------------------
-    # Assistant bubble — new layout
+    # Assistant bubble -- new layout
     # ------------------------------------------------------------------
     parts: list[str] = []
 
@@ -170,7 +170,7 @@ def render_bubble_html(state: _BubbleState, colors: dict) -> str:
             glyph = _STATUS_GLYPH.get(chip.status, "?")
             label_name = html.escape(chip.name)
             label_preview = html.escape(chip.input_preview)
-            label_result = html.escape(chip.result_summary) if chip.result_summary else "…"
+            label_result = html.escape(chip.result_summary) if chip.result_summary else "..."
             pill_style = (
                 "display:inline-block; padding:2px 8px; margin:2px 4px 2px 0; "
                 "border-radius:10px; font-size:11px; text-decoration:none; "
@@ -302,7 +302,7 @@ def parse_anchor(url: str) -> tuple[str, str, Optional[str]]:
         )
 
     if scheme == "chip":
-        # chip://<bubble_id>/<chip_id>  — exactly two non-empty segments
+        # chip://<bubble_id>/<chip_id>  -- exactly two non-empty segments
         segments = rest.split("/")
         if len(segments) != 2:
             raise ValueError(

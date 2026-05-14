@@ -8,7 +8,7 @@ via the official ``mcp`` SDK client.
 
 Setup: use ``Help → AI Connection (MCP) → Auto-configure Claude Desktop``
 inside Synapse.  It writes a ``claude_desktop_config.json`` entry that
-launches this file by absolute path — robust against cwd quirks and
+launches this file by absolute path -- robust against cwd quirks and
 ``synapse``-name collisions with unrelated PyPI packages.
 
 The script self-inserts the Synapse repo root into ``sys.path`` (see
@@ -25,7 +25,7 @@ from pathlib import Path
 
 # ── sys.path self-fix ────────────────────────────────────────────────────────
 # When launched as a standalone script (the path-based launch pattern Claude
-# Desktop uses), Python adds this file's own directory to sys.path — which
+# Desktop uses), Python adds this file's own directory to sys.path -- which
 # is ``.../synapse/mcp/``, NOT the repo root.  Insert the repo root (parent
 # of the ``synapse`` package) so ``import synapse.mcp.logger`` resolves
 # regardless of cwd or any conflicting ``synapse`` package in site-packages.
@@ -83,7 +83,7 @@ async def _run() -> None:
 
             # call_tool decorator calls func(tool_name, arguments).
             # We return a CallToolResult directly so the SDK forwards
-            # structuredContent unchanged — required when the upstream tool
+            # structuredContent unchanged -- required when the upstream tool
             # declares outputSchema (FastMCP auto-generates these from typed
             # return annotations).  Claude Desktop validates structuredContent
             # against outputSchema; dropping it causes:

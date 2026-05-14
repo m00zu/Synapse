@@ -5,7 +5,7 @@ that contains a JSON object. Emits ``("text", chunk)`` for everything outside
 the markers, ``("tool_call", dict)`` when a complete span is parsed, or
 ``("error", message)`` when JSON decoding fails.
 
-Once a tool_call is emitted, subsequent input is discarded — the protocol says
+Once a tool_call is emitted, subsequent input is discarded -- the protocol says
 the model stops after the marker. The orchestrator will dispatch the tool,
 send the result back, and start a fresh parser for the next turn.
 """
@@ -70,7 +70,7 @@ class StreamedToolCallParser:
 
     def finish(self) -> List[Tuple[str, object]]:
         """Called at end-of-stream. Returns any remaining buffered events.
-        Currently returns an empty list — partial tool_calls are abandoned."""
+        Currently returns an empty list -- partial tool_calls are abandoned."""
         return []
 
 

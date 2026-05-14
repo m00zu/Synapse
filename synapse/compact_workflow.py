@@ -6,7 +6,7 @@ Compact workflow format for small LLMs.
 Instead of generating full JSON with port names and properties, the LLM
 produces a lightweight two-line format:
 
-    Line 1: space-separated node class names (positional IDs: 1, 2, 3, …)
+    Line 1: space-separated node class names (positional IDs: 1, 2, 3, ...)
     Line 2: space-separated edge pairs as src>dst (integer IDs)
 
 Example:
@@ -113,7 +113,7 @@ def parse_compact(text: str) -> tuple[list[str], list[tuple[int, int]]]:
     Parse compact format text into (node_types, edge_pairs).
 
     Args:
-        text: Two-line format — line 1 is node names, line 2 is edge pairs.
+        text: Two-line format -- line 1 is node names, line 2 is edge pairs.
               Can also be a single line (nodes only, no edges).
 
     Returns:
@@ -169,7 +169,7 @@ def _resolve_edge(
     Args:
         src_info:  {"inputs": [...], "outputs": [...]} for source node
         dst_info:  {"inputs": [...], "outputs": [...]} for destination node
-        src_used_outputs: {port_name: use_count} — tracks how many times
+        src_used_outputs: {port_name: use_count} -- tracks how many times
                           each output port of this source has been wired
         dst_used_inputs:  set of input port names already connected on dst
 

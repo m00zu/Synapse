@@ -171,7 +171,7 @@ class FakeGraphController:
         if key not in self._outputs:
             raise KeyError(
                 f"node {node_id!r} has no output value on port "
-                f"{port_name!r} — run the node first")
+                f"{port_name!r} -- run the node first")
         return self._outputs[key]
 
     def set_output(self, node_id: str, port_name: str, value: Any) -> None:
@@ -400,7 +400,7 @@ class NodeGraphController:
 
         ``node.properties()`` includes 'inputs', 'outputs', 'pos', etc. with
         values that contain ``PortModel`` instances and aren't JSON-serializable.
-        ``node.model.custom_properties`` is the right surface — exactly the
+        ``node.model.custom_properties`` is the right surface -- exactly the
         spinboxes/combos/checkboxes the user defined.
         """
         custom = getattr(node.model, 'custom_properties', {}) or {}
@@ -604,7 +604,7 @@ class NodeGraphController:
         new_node = self._graph.create_node(new_type_id)
         if new_node is None:
             raise RuntimeError(
-                f"create_node({new_type_id!r}) returned None — "
+                f"create_node({new_type_id!r}) returned None -- "
                 f"the replacement was not registered.")
         new_id = new_node.id
         if old_pos is not None:
@@ -667,7 +667,7 @@ class NodeGraphController:
         if port_name not in outputs:
             raise KeyError(
                 f"node {node_id!r} has no value on output port "
-                f"{port_name!r} — run the node first (current ports: "
+                f"{port_name!r} -- run the node first (current ports: "
                 f"{list(outputs.keys())})")
         return outputs[port_name]
 
@@ -770,7 +770,7 @@ class NodeGraphController:
                 success = bool(success)
             except Exception as exc:
                 # If the failing node IS the target, that's what we report.
-                # Otherwise the target depends on a broken upstream — surface
+                # Otherwise the target depends on a broken upstream -- surface
                 # that as the target's failure too.
                 err_text = f'{type(exc).__name__}: {exc}'
                 if hasattr(n, 'mark_error'):
@@ -781,7 +781,7 @@ class NodeGraphController:
                 if n is target:
                     return {'success': False, 'message': err_text,
                             'duration_ms': (time.perf_counter() - t0) * 1000.0}
-                # Upstream raised — short-circuit and report.
+                # Upstream raised -- short-circuit and report.
                 return {'success': False,
                         'message': (f"upstream node {n.name()!r} failed: "
                                      f"{err_text}"),
@@ -797,7 +797,7 @@ class NodeGraphController:
                     target_success = False
                     target_message = msg
                     break
-                # Upstream returned False — report as target failure.
+                # Upstream returned False -- report as target failure.
                 return {'success': False,
                         'message': (f"upstream node {n.name()!r} failed: "
                                      f"{msg}"),

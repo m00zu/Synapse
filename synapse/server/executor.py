@@ -1,4 +1,4 @@
-"""Graph executor — topological run, cancel flag, event emission.
+"""Graph executor -- topological run, cancel flag, event emission.
 
 Reuses desktop BatchGraphWorker's node-order logic (synapse/app.py) so the
 execution semantics match what the user sees in the desktop app.
@@ -35,7 +35,7 @@ class Executor:
                     written = await asyncio.to_thread(
                         write_previews, node.id, output_values, self._s.preview_dir,
                     )
-                except Exception as exc:  # defensive — preview failures must not kill the run
+                except Exception as exc:  # defensive -- preview failures must not kill the run
                     written = []
                     import logging; logging.getLogger(__name__).warning(
                         "preview write failed for %s: %s", node.id, exc,

@@ -1,5 +1,5 @@
 """
-llm_assistant.py — Local SLM integration for Synapse via Ollama.
+llm_assistant.py -- Local SLM integration for Synapse via Ollama.
 
 Provides:
   - OllamaClient       : HTTP client for the local Ollama API
@@ -81,7 +81,7 @@ def _retrieve_api_key(provider: str, json_fallback: str = "") -> str:
 from PySide6 import QtCore, QtGui, QtWidgets
 
 # ---------------------------------------------------------------------------
-# Schema path — check multiple locations for compatibility across:
+# Schema path -- check multiple locations for compatibility across:
 #   pip install (site-packages/synapse/), source run, Nuitka frozen build
 # ---------------------------------------------------------------------------
 def _find_schema() -> Path:
@@ -108,27 +108,27 @@ def _find_schema() -> Path:
 
 _SCHEMA_PATH = _find_schema()
 
-# Short system prompt for fine-tuned models (no catalog needed — knowledge is in weights)
+# Short system prompt for fine-tuned models (no catalog needed -- knowledge is in weights)
 _FINETUNE_SYS_PROMPT = (
     "You are a workflow assistant for Synapse, a scientific node-graph editor.\n"
     "Respond with ONLY a JSON object. No markdown, no explanation.\n\n"
     "Output format:\n"
     '{"nodes": [{"id": 1, "type": "ClassName"}, {"id": 2, "type": "...", "props": {"key": "val"}}], "edges": [[1,2], [2,3]]}\n\n'
     "Rules:\n"
-    "- \"id\": sequential integers (1, 2, 3, …)\n"
+    "- \"id\": sequential integers (1, 2, 3, ...)\n"
     "- \"type\": exact node class name\n"
     "- \"props\": optional, only when non-default values needed\n"
-    "- \"edges\": [[src, dst], ...] — ports auto-resolved by type. "
+    "- \"edges\": [[src, dst], ...] -- ports auto-resolved by type. "
     "For multi-output nodes, add port hint: [src, dst, \"port_name\"] e.g. [2, 3, \"red\"]\n"
     "- <image> ≠ <mask>: always threshold first\n"
     "- Terminal nodes: table→DataTableCellNode, image→ImageCellNode, figure→DataFigureCellNode\n"
     "- After thresholding, consider FillHolesNode + RemoveSmallObjectsNode\n"
-    "- WatershedNode outputs table + label_image — never add ParticlePropsNode after it\n"
+    "- WatershedNode outputs table + label_image -- never add ParticlePropsNode after it\n"
     "- Plot nodes use 'data' as table input port"
 )
 
 # ---------------------------------------------------------------------------
-# Response schema — sent as Ollama's `format` parameter.
+# Response schema -- sent as Ollama's `format` parameter.
 # Stripped of allOf rules; only describes the required output shape.
 # ---------------------------------------------------------------------------
 _NODE_SELECTION_SCHEMA: dict = {
@@ -247,7 +247,7 @@ class _BubbleLog:
     def update(self, bubble_id: str, mutator: Callable[[_BubbleState], None]) -> None:
         """Apply *mutator* to the state then re-render from *bubble_id* onward.
 
-        If the mutator raises, the state may be partially mutated — we still
+        If the mutator raises, the state may be partially mutated -- we still
         re-render afterward so the on-screen HTML matches the in-memory state,
         then re-raise so the caller is informed.
         """
@@ -258,7 +258,7 @@ class _BubbleLog:
         try:
             mutator(state)
         finally:
-            # Always re-render — keeps on-screen consistent with in-memory
+            # Always re-render -- keeps on-screen consistent with in-memory
             # state even if the mutator partially ran before raising.
             pos = self._positions[bubble_id]
             self._browser.rewrite_from(pos)
@@ -297,7 +297,7 @@ def _load_class_docs() -> dict[str, str]:
         return {}
 
     docs: dict[str, str] = {}
-    # Walk all subclasses (core + plugins — all loaded at this point)
+    # Walk all subclasses (core + plugins -- all loaded at this point)
     for cls in BaseExecutionNode.__subclasses_recursive__() if hasattr(
         BaseExecutionNode, '__subclasses_recursive__'
     ) else _iter_all_subclasses(BaseExecutionNode):
@@ -369,7 +369,7 @@ def build_condensed_catalog(
                 parts.append(f"{p['name']}<{ptype}>")
             else:
                 parts.append(str(p))
-        return ", ".join(parts) or "—"
+        return ", ".join(parts) or "--"
 
     # Properties that are frequently needed by the LLM
     _KEY_PROPS = {
@@ -424,7 +424,7 @@ def build_condensed_catalog(
         from .plugin_loader import get_plugin_catalog_entries
         for entry in get_plugin_catalog_entries():
             if entry['class_name'] in catalog:
-                continue  # already in schema — skip to avoid duplicates
+                continue  # already in schema -- skip to avoid duplicates
             ins  = _fmt_ports(entry['inputs'])
             outs = _fmt_ports(entry['outputs'])
             # Build props string from configurable_properties (same format as schema entries)
@@ -562,14 +562,14 @@ def build_system_prompt(catalog_text: str) -> str:
         "Respond with ONLY a JSON object: {\"nodes\": [...], \"edges\": [...]}.\n\n"
         "FORMAT:\n"
         "- nodes: [{\"id\": 1, \"type\": \"ClassName\"}, {\"id\": 2, \"type\": \"...\", \"props\": {\"key\": val}}]\n"
-        "- edges: [[src_id, dst_id], ...] — ports are auto-resolved by type matching. "
+        "- edges: [[src_id, dst_id], ...] -- ports are auto-resolved by type matching. "
         "For multi-output nodes (e.g. SplitRGBNode), add port hint: [src, dst, \"port_name\"] e.g. [2, 3, \"red\"]\n"
-        "- 'props' is optional — only include when the user specifies non-default values.\n"
-        "- IDs are integers: 1, 2, 3, …\n\n"
+        "- 'props' is optional -- only include when the user specifies non-default values.\n"
+        "- IDs are integers: 1, 2, 3, ...\n\n"
         "RULES:\n"
         "1. Use ONLY class names from the catalog below.\n"
         "2. Port types must match: <image>≠<mask>. Always threshold first: image→BinaryThresholdNode→mask.\n"
-        "3. WatershedNode outputs table+label_image — never add ParticlePropsNode after it.\n"
+        "3. WatershedNode outputs table+label_image -- never add ParticlePropsNode after it.\n"
         "4. Plot nodes use 'data' as table input. Terminal nodes: table→DataTableCellNode, image→ImageCellNode, figure→DataFigureCellNode.\n"
         "5. SplitRGBNode for channels; ColorDeconvolutionNode ONLY for named stains (H&E, DAB, etc.).\n"
         "6. After thresholding, consider FillHolesNode + RemoveSmallObjectsNode before measurement.\n"
@@ -585,18 +585,18 @@ def build_system_prompt(catalog_text: str) -> str:
         "11. For multi-input nodes, add input port hint as 4th element: [src, dst, \"out_port\", \"in_port\"]. "
         "Use \"\" for output hint if only input needs disambiguation: [src, dst, \"\", \"in_port\"].\n"
         "12. Port-hint names must exist on the source/target node. For SplitRGBNode the source ports are "
-        "\"red\", \"green\", \"blue\" — never \"image\". When a channel-splitting node fans out to multiple "
+        "\"red\", \"green\", \"blue\" -- never \"image\". When a channel-splitting node fans out to multiple "
         "downstream nodes, use the SAME channel on every branch unless the user explicitly asked for "
         "different channels per branch (e.g. colocalization). If analyzing the green channel, every edge "
         "out of SplitRGBNode should be \"green\".\n"
         "13. JSON only: true/false/null. No markdown fences.\n\n"
-        f"Example 1 — CSV → stats → bar plot (fan-out: node 2→3 and 2→4):\n{example_stats}\n\n"
-        f"Example 2 — mask pipeline with fan-out (node 1→2 and 1→6):\n{example_mask}\n\n"
-        f"Example 3 — nucleus segmentation (fan-out: node 7→8 and 7→9):\n{example_nuclei}\n\n"
-        f"Example 4 — batch colocalization (SplitRGB fan-out + accumulator):\n{example_batch_coloc}\n\n"
-        f"Example 5 — plate reader analysis (data cleaning + stats → plot with significance):\n{example_plate_reader}\n\n"
-        f"Example 6 — standard curve (two inputs, regression + predict fan-out):\n{example_std_curve}\n\n"
-        f"Example 7 — batch particle analysis (folder → threshold → measure → accumulate):\n{example_batch_particle}\n\n"
+        f"Example 1 -- CSV → stats → bar plot (fan-out: node 2→3 and 2→4):\n{example_stats}\n\n"
+        f"Example 2 -- mask pipeline with fan-out (node 1→2 and 1→6):\n{example_mask}\n\n"
+        f"Example 3 -- nucleus segmentation (fan-out: node 7→8 and 7→9):\n{example_nuclei}\n\n"
+        f"Example 4 -- batch colocalization (SplitRGB fan-out + accumulator):\n{example_batch_coloc}\n\n"
+        f"Example 5 -- plate reader analysis (data cleaning + stats → plot with significance):\n{example_plate_reader}\n\n"
+        f"Example 6 -- standard curve (two inputs, regression + predict fan-out):\n{example_std_curve}\n\n"
+        f"Example 7 -- batch particle analysis (folder → threshold → measure → accumulate):\n{example_batch_particle}\n\n"
         "Node catalog:\n"
         f"{catalog_text}"
     )
@@ -615,7 +615,7 @@ def build_selection_prompt(catalog_text: str) -> str:
         "You are a node selector for Synapse, a scientific node-graph editor.\n"
         "Given the user's request, select ALL node class names from the catalog "
         "that could be needed to build the workflow.\n\n"
-        "IMPORTANT: Be generous — select 15-25 nodes. It is much better to "
+        "IMPORTANT: Be generous -- select 15-25 nodes. It is much better to "
         "include a node that might not be needed than to miss one that is. "
         "Include nodes for every plausible interpretation of the request.\n\n"
         "Always include:\n"
@@ -679,7 +679,7 @@ def build_detailed_cards(
             for p in outputs:
                 if isinstance(p, dict):
                     cols = p.get("columns")
-                    col_str = f" — columns: [{', '.join(cols)}]" if cols else ""
+                    col_str = f" -- columns: [{', '.join(cols)}]" if cols else ""
                     lines.append(
                         f"  Output '{p['name']}' <{p.get('type', 'any')}>{col_str}"
                     )
@@ -703,7 +703,7 @@ def build_detailed_cards(
                     def_str = f'"{default}"' if isinstance(default, str) else str(default)
                     detail_parts.append(f"default={def_str}")
                 if pdesc:
-                    detail_parts.append(f"— {pdesc}")
+                    detail_parts.append(f"-- {pdesc}")
 
                 lines.append(f"    {pname}: {', '.join(detail_parts)}")
 
@@ -713,50 +713,50 @@ def build_detailed_cards(
 
 
 # ---------------------------------------------------------------------------
-# Ollama HTTP client — moved to synapse/ai/clients/ollama.py
+# Ollama HTTP client -- moved to synapse/ai/clients/ollama.py
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.ollama import OllamaClient  # re-export
 
 # ---------------------------------------------------------------------------
-# OpenAI client — moved to synapse/ai/clients/openai.py
+# OpenAI client -- moved to synapse/ai/clients/openai.py
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.openai import OpenAIClient  # re-export
 
 # ---------------------------------------------------------------------------
-# LlamaCpp client — moved to synapse/ai/clients/llamacpp.py
+# LlamaCpp client -- moved to synapse/ai/clients/llamacpp.py
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.llamacpp import LlamaCppClient  # re-export
 
 
 # ---------------------------------------------------------------------------
-# Groq client — moved to synapse/ai/clients/groq.py
+# Groq client -- moved to synapse/ai/clients/groq.py
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.groq import GroqClient  # re-export
 
 # ---------------------------------------------------------------------------
-# Gemini client — moved to synapse/ai/clients/gemini.py
+# Gemini client -- moved to synapse/ai/clients/gemini.py
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.gemini import GeminiClient  # re-export
 
 # ---------------------------------------------------------------------------
-# Claude client — moved to synapse/ai/clients/claude.py
+# Claude client -- moved to synapse/ai/clients/claude.py
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.claude import ClaudeClient  # re-export
 
 # ---------------------------------------------------------------------------
-# RunPod client — moved to synapse/ai/clients/runpod.py
+# RunPod client -- moved to synapse/ai/clients/runpod.py
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.runpod import RunPodClient  # re-export
 
 # ---------------------------------------------------------------------------
-# OpenRouter client — OpenAI-compatible gateway (free-tier models)
+# OpenRouter client -- OpenAI-compatible gateway (free-tier models)
 # ---------------------------------------------------------------------------
 
 from synapse.ai.clients.openrouter import OpenRouterClient  # re-export
@@ -923,7 +923,7 @@ def serialize_graph(graph) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# WorkflowLoader — builds nodes + edges in the NodeGraph
+# WorkflowLoader -- builds nodes + edges in the NodeGraph
 # ---------------------------------------------------------------------------
 
 class WorkflowLoader:
@@ -964,8 +964,8 @@ class WorkflowLoader:
         """Resolve a port hint to an actual port, using fuzzy matching.
 
         Tries in order:
-          1. Exact match  — e.g. "A (image/mask)"
-          2. Prefix match — e.g. "A" matches "A (image/mask)"
+          1. Exact match  -- e.g. "A (image/mask)"
+          2. Prefix match -- e.g. "A" matches "A (image/mask)"
           3. Case-insensitive prefix match
         Returns the port object, or None.
         """
@@ -1031,8 +1031,8 @@ class WorkflowLoader:
         Creates nodes and edges described by *workflow*.
 
         Supports two edge formats:
-        - Compact: [[1, 2], [2, 3]] — ports auto-resolved by type matching
-        - Verbose: [{"from_node_id": "n1", "from_port": "out", ...}] — legacy
+        - Compact: [[1, 2], [2, 3]] -- ports auto-resolved by type matching
+        - Verbose: [{"from_node_id": "n1", "from_port": "out", ...}] -- legacy
 
         Returns (success, message).
         """
@@ -1049,7 +1049,7 @@ class WorkflowLoader:
 
             identifier = self._find_identifier(class_name)
             if identifier is None:
-                warnings.append(f"Unknown node type '{class_name}' — skipped.")
+                warnings.append(f"Unknown node type '{class_name}' -- skipped.")
                 continue
 
             node = self.graph.create_node(identifier, push_undo=True)
@@ -1206,9 +1206,9 @@ class WorkflowLoader:
         for edge in workflow.get("edges", []):
             if isinstance(edge, list):
                 # Compact format:
-                #   [src_id, dst_id]                  — auto-wire by type
-                #   [src_id, dst_id, "out_port"]      — hint source port
-                #   [src_id, dst_id, "out", "in"]     — hint both ports
+                #   [src_id, dst_id]                  -- auto-wire by type
+                #   [src_id, dst_id, "out_port"]      -- hint source port
+                #   [src_id, dst_id, "out", "in"]     -- hint both ports
                 src_id, dst_id = edge[0], edge[1]
                 hint_out = edge[2] if len(edge) > 2 and isinstance(edge[2], str) else None
                 hint_in  = edge[3] if len(edge) > 3 and isinstance(edge[3], str) else None
@@ -1217,7 +1217,7 @@ class WorkflowLoader:
                 dst_node = node_map.get(dst_id) or node_map.get(str(dst_id))
 
                 if src_node is None or dst_node is None:
-                    warnings.append(f"Edge {edge}: node not found — skipped.")
+                    warnings.append(f"Edge {edge}: node not found -- skipped.")
                     continue
 
                 # If port hints provided, use them directly
@@ -1274,13 +1274,13 @@ class WorkflowLoader:
                         used.add((out_port.name(), in_port.name()))
 
                 if out_port is None or in_port is None:
-                    warnings.append(f"Edge {edge}: no compatible ports — skipped.")
+                    warnings.append(f"Edge {edge}: no compatible ports -- skipped.")
                     continue
 
                 try:
                     out_port.connect_to(in_port)
                 except Exception as exc:
-                    warnings.append(f"Edge {edge}: connect failed ({exc}) — skipped.")
+                    warnings.append(f"Edge {edge}: connect failed ({exc}) -- skipped.")
 
             elif isinstance(edge, dict):
                 # Legacy verbose format
@@ -1293,20 +1293,20 @@ class WorkflowLoader:
                 dst_node = node_map.get(dst_id)
 
                 if src_node is None or dst_node is None:
-                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: node not found — skipped.")
+                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: node not found -- skipped.")
                     continue
 
                 out_port = src_node.get_output(src_port)
                 in_port  = dst_node.get_input(dst_port)
 
                 if out_port is None or in_port is None:
-                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: port not found — skipped.")
+                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: port not found -- skipped.")
                     continue
 
                 try:
                     out_port.connect_to(in_port)
                 except Exception as exc:
-                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: connect failed ({exc}) — skipped.")
+                    warnings.append(f"Edge {src_id}.{src_port} → {dst_id}.{dst_port}: connect failed ({exc}) -- skipped.")
 
         if warnings:
             return True, "Workflow loaded with warnings:\n" + "\n".join(f"  • {w}" for w in warnings)
@@ -1322,7 +1322,7 @@ class WorkflowLoader:
 
 
 # ---------------------------------------------------------------------------
-# LLMWorker — runs the blocking Ollama HTTP call on a background QThread
+# LLMWorker -- runs the blocking Ollama HTTP call on a background QThread
 # ---------------------------------------------------------------------------
 
 class LLMWorker(QtCore.QObject):
@@ -1348,11 +1348,11 @@ class LLMWorker(QtCore.QObject):
         except requests.exceptions.Timeout:
             self.error.emit(
                 "Request timed out (>120 s).\n"
-                "The model may be too slow — try a smaller/faster model."
+                "The model may be too slow -- try a smaller/faster model."
             )
         except requests.exceptions.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else "?"
-            # Include the response body — Gemini/Groq put helpful detail there
+            # Include the response body -- Gemini/Groq put helpful detail there
             try:
                 detail = exc.response.json()
             except Exception:
@@ -1375,15 +1375,15 @@ class LLMWorker(QtCore.QObject):
 
 
 # ---------------------------------------------------------------------------
-# TwoPassLLMWorker — Pass 1: select nodes, Pass 2: generate with detail
+# TwoPassLLMWorker -- Pass 1: select nodes, Pass 2: generate with detail
 # ---------------------------------------------------------------------------
 
 class TwoPassLLMWorker(QtCore.QObject):
     """
     Two-pass workflow generation:
-      Pass 1 — Send compact catalog + user question to the LLM and ask it to
+      Pass 1 -- Send compact catalog + user question to the LLM and ask it to
                pick relevant node class names.  (cheap: small prompt, tiny output)
-      Pass 2 — Build an enriched system prompt with detailed cards for only the
+      Pass 2 -- Build an enriched system prompt with detailed cards for only the
                selected nodes, then ask the LLM to generate the full workflow.
     """
     result   = QtCore.Signal(str)   # emits the raw JSON workflow string
@@ -1400,7 +1400,7 @@ class TwoPassLLMWorker(QtCore.QObject):
     def run(self):
         try:
             # --- Pass 1: node selection ----------------------------------
-            self.progress.emit("Pass 1/2 — selecting relevant nodes…")
+            self.progress.emit("Pass 1/2 -- selecting relevant nodes...")
             sel_system = build_selection_prompt(self._catalog_text)
             sel_raw = self._client.chat(sel_system, self._user)
 
@@ -1423,7 +1423,7 @@ class TwoPassLLMWorker(QtCore.QObject):
             # nodes that Pass 1 missed, just without detailed guidance).
             if selected:
                 self.progress.emit(
-                    f"Pass 2/2 — generating workflow ({len(selected)} nodes selected)…"
+                    f"Pass 2/2 -- generating workflow ({len(selected)} nodes selected)..."
                 )
                 detail = build_detailed_cards(selected)
 
@@ -1440,7 +1440,7 @@ class TwoPassLLMWorker(QtCore.QObject):
 
                 gen_system = build_system_prompt(detail + fallback)
             else:
-                self.progress.emit("Pass 2/2 — generating workflow (using full catalog)…")
+                self.progress.emit("Pass 2/2 -- generating workflow (using full catalog)...")
                 gen_system = build_system_prompt(self._catalog_text)
             json_str = self._client.chat(gen_system, self._user)
 
@@ -1454,7 +1454,7 @@ class TwoPassLLMWorker(QtCore.QObject):
         except requests.exceptions.Timeout:
             self.error.emit(
                 "Request timed out (>120 s).\n"
-                "The model may be too slow — try a smaller/faster model."
+                "The model may be too slow -- try a smaller/faster model."
             )
         except requests.exceptions.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else "?"
@@ -1480,7 +1480,7 @@ class TwoPassLLMWorker(QtCore.QObject):
 
 
 # ---------------------------------------------------------------------------
-# LLMAssistantPanel — dock-widget content
+# LLMAssistantPanel -- dock-widget content
 # ---------------------------------------------------------------------------
 
 class LLMAssistantPanel(QtWidgets.QWidget):
@@ -1548,7 +1548,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         self._gguf_edit = QtWidgets.QLineEdit()
         self._gguf_edit.setPlaceholderText("Path to .gguf file")
         gguf_row.addWidget(self._gguf_edit)
-        gguf_browse_btn = QtWidgets.QPushButton("…")
+        gguf_browse_btn = QtWidgets.QPushButton("...")
         gguf_browse_btn.setFixedWidth(36)
         gguf_browse_btn.setToolTip("Browse for a .gguf model file")
         gguf_browse_btn.clicked.connect(self._browse_gguf)
@@ -1567,7 +1567,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         self._endpoint_widget.setVisible(False)
         layout.addWidget(self._endpoint_widget)
 
-        # --- Model row (hidden for RunPod — model is fixed at deployment) ---
+        # --- Model row (hidden for RunPod -- model is fixed at deployment) ---
         self._model_widget = QtWidgets.QWidget()
         model_row = QtWidgets.QHBoxLayout(self._model_widget)
         model_row.setContentsMargins(0, 0, 0, 0)
@@ -1796,47 +1796,47 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             self._client = OpenAIClient(api_key=api_key)
             default_model = OpenAIClient.DEFAULT_MODEL
             no_model_msg  = (
-                "No models returned — check your OpenAI API key and click ⟳.\n"
+                "No models returned -- check your OpenAI API key and click ⟳.\n"
                 "Get a key at platform.openai.com/api-keys"
             )
         elif provider == "Groq":
             self._client = GroqClient(api_key=api_key)
             default_model = GroqClient.DEFAULT_MODEL
             no_model_msg  = (
-                "No models returned — check your Groq API key and click ⟳.\n"
+                "No models returned -- check your Groq API key and click ⟳.\n"
                 "Get a free key at console.groq.com"
             )
         elif provider == "Gemini":
             self._client = GeminiClient(api_key=api_key)
             default_model = GeminiClient.DEFAULT_MODEL
             no_model_msg  = (
-                "No models returned — check your Gemini API key and click ⟳.\n"
+                "No models returned -- check your Gemini API key and click ⟳.\n"
                 "Get a free key at aistudio.google.com"
             )
         elif provider == "Claude":
             self._client = ClaudeClient(api_key=api_key)
             default_model = ClaudeClient.DEFAULT_MODEL
             no_model_msg  = (
-                "No models returned — check your Anthropic API key and click ⟳.\n"
+                "No models returned -- check your Anthropic API key and click ⟳.\n"
                 "Get a key at console.anthropic.com"
             )
         elif provider == "OpenRouter":
             self._client = OpenRouterClient(api_key=api_key)
             default_model = OpenRouterClient.DEFAULT_MODEL
             no_model_msg  = (
-                "No models returned — check your OpenRouter key and click ⟳.\n"
+                "No models returned -- check your OpenRouter key and click ⟳.\n"
                 "Free-tier models (tagged ':free') listed first. Get a key at openrouter.ai"
             )
         elif provider == "RunPod":
             endpoint_id   = self._endpoint_edit.text().strip() if hasattr(self, "_endpoint_edit") else ""
             self._client  = RunPodClient(api_key=api_key, endpoint_id=endpoint_id)
             default_model = ""
-            no_model_msg  = "Ready — enter your API key and Endpoint ID, then click Generate."
+            no_model_msg  = "Ready -- enter your API key and Endpoint ID, then click Generate."
         elif provider == "Ollama Cloud":
             self._client  = OllamaClient(base_url=OllamaClient.CLOUD_BASE_URL, api_key=api_key)
             default_model = "gpt-oss:120b"
             no_model_msg  = (
-                "No models returned — run 'ollama signin' then paste your key and click ⟳.\n"
+                "No models returned -- run 'ollama signin' then paste your key and click ⟳.\n"
                 "Get an account at ollama.com"
             )
         elif provider == "Synapse Fine-tune":
@@ -1870,7 +1870,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
                 elif _q8.exists():
                     _gguf = _q8
                 else:
-                    # Prompt user to download — don't block the UI
+                    # Prompt user to download -- don't block the UI
                     self._status_label.setText(
                         "No GGUF model found. Click 'Download Model' or\n"
                         "set the path manually and click ⟳."
@@ -1891,7 +1891,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             if hasattr(self, '_dl_btn'):
                 self._dl_btn.setVisible(False)
 
-            self._status_label.setText(f"Loading model: {_gguf.name}…")
+            self._status_label.setText(f"Loading model: {_gguf.name}...")
             QtWidgets.QApplication.processEvents()
             try:
                 self._client = LlamaCppClient(str(_gguf), n_ctx=4096, n_gpu_layers=-1)
@@ -1908,16 +1908,16 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             self._client = OllamaClient()
             default_model = OllamaClient.DEFAULT_MODEL
             no_model_msg  = (
-                "Ollama not detected — start Ollama and click ⟳.\n"
+                "Ollama not detected -- start Ollama and click ⟳.\n"
                 "Default model set; generation will fail until Ollama is running."
             )
 
-        self._status_label.setText(f"Connecting to {provider}…")
+        self._status_label.setText(f"Connecting to {provider}...")
         QtWidgets.QApplication.processEvents()
 
         # Prefer config-saved model, fall back to whatever was shown before
         restore_target = self._config_model or self._model_combo.currentText()
-        self._config_model = ""  # consume — only used once per load/switch
+        self._config_model = ""  # consume -- only used once per load/switch
         models = self._client.list_models()
 
         self._model_combo.blockSignals(True)
@@ -1959,8 +1959,8 @@ class LLMAssistantPanel(QtWidgets.QWidget):
     def _download_gguf(self, url: str, filename: str):
         """Download GGUF model in a background thread."""
         self._dl_btn.setEnabled(False)
-        self._dl_btn.setText("Downloading…")
-        self._status_label.setText("Downloading model (503 MB)… This may take a few minutes.")
+        self._dl_btn.setText("Downloading...")
+        self._status_label.setText("Downloading model (503 MB)... This may take a few minutes.")
 
         class _DLWorker(QtCore.QObject):
             finished = QtCore.Signal(str)  # path on success, empty on error
@@ -2011,7 +2011,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
 
         For web UIs (ChatGPT, Claude.ai, Gemini) context windows are huge and
         there is no per-token API cost, so we build a verbose prompt with full
-        docstrings for all nodes — giving the model the richest possible context.
+        docstrings for all nodes -- giving the model the richest possible context.
         """
         question = self._question_edit.toPlainText().strip()
         if not question:
@@ -2032,7 +2032,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             prompt_parts.append(
                 "Here is the user's CURRENT workflow (JSON):\n"
                 f"{json.dumps(current_wf, indent=2)}\n\n"
-                "Return the COMPLETE updated workflow — include ALL existing nodes "
+                "Return the COMPLETE updated workflow -- include ALL existing nodes "
                 "plus any new or modified nodes.\n"
             )
         prompt_parts.append(f"User request: {question}\n")
@@ -2085,7 +2085,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         # Persist current settings (captures API key even if user didn't click Refresh)
         self._save_config()
 
-        # Build the user message — optionally prepend the current canvas
+        # Build the user message -- optionally prepend the current canvas
         use_context = (
             self._ctx_check.isChecked() and bool(self.graph.all_nodes())
         )
@@ -2095,7 +2095,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
                 "Here is the user's CURRENT workflow (JSON):\n"
                 f"{json.dumps(current_wf, indent=2)}\n\n"
                 f"User request: {question}\n\n"
-                "Return the COMPLETE updated workflow — include ALL existing nodes "
+                "Return the COMPLETE updated workflow -- include ALL existing nodes "
                 "(preserving their types and custom properties) plus any new or "
                 "modified nodes. Re-number all node IDs sequentially from n1."
             )
@@ -2108,7 +2108,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         self._replace_btn.setVisible(False)
         self._preview_edit.setPlainText("")
         self._generate_btn.setEnabled(False)
-        self._status_label.setText("Generating… (this may take up to 60 s)")
+        self._status_label.setText("Generating... (this may take up to 60 s)")
 
         # Use short system prompt for fine-tuned model (catalog baked into weights)
         provider = self._provider_combo.currentText()
@@ -2119,7 +2119,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         else:
             # Two-pass: select relevant nodes → generate with enriched detail
             self._status_label.setText(
-                "Pass 1/2 — selecting relevant nodes…"
+                "Pass 1/2 -- selecting relevant nodes..."
             )
             self._worker = TwoPassLLMWorker(
                 self._client, self._catalog, user_msg
@@ -2152,7 +2152,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
             n_nodes = len(workflow.get("nodes", []))
             n_edges = len(workflow.get("edges", []))
             self._status_label.setText(
-                f"Done — {n_nodes} node(s), {n_edges} edge(s). "
+                f"Done -- {n_nodes} node(s), {n_edges} edge(s). "
                 f"Review the JSON above, then load it into the canvas."
             )
             self._load_btn.setVisible(True)
@@ -2193,7 +2193,7 @@ class LLMAssistantPanel(QtWidgets.QWidget):
         if not success:
             QtWidgets.QMessageBox.critical(self, "Load Error", message)
         elif "warning" in message.lower():
-            # Warnings mean some edges failed — show them prominently so the
+            # Warnings mean some edges failed -- show them prominently so the
             # user can see exactly which port names caused the mismatch.
             self._status_label.setText(message)
             QtWidgets.QMessageBox.warning(self, "Workflow Loaded with Warnings", message)
@@ -2246,7 +2246,7 @@ def _make_separator() -> QtWidgets.QFrame:
 
 
 # ---------------------------------------------------------------------------
-# AIChatPanel — conversational workflow refinement
+# AIChatPanel -- conversational workflow refinement
 # ---------------------------------------------------------------------------
 
 class AIChatPanel(QtWidgets.QWidget):
@@ -2444,7 +2444,7 @@ class AIChatPanel(QtWidgets.QWidget):
         self._chat_display.anchorClicked.connect(self._on_anchor_clicked)
         layout.addWidget(self._chat_display, stretch=1)
 
-        # Bubble log — wraps the text browser for in-place updates
+        # Bubble log -- wraps the text browser for in-place updates
         self._bubble_log = _BubbleLog(
             _QtTextBrowserAdapter(self._chat_display),
             colors_getter=lambda: self._bubble_colors,
@@ -2452,7 +2452,7 @@ class AIChatPanel(QtWidgets.QWidget):
 
         # --- Input area -----------------------------------------------
         self._input_edit = QtWidgets.QPlainTextEdit()
-        self._input_edit.setPlaceholderText("Ask me to build or modify a workflow…")
+        self._input_edit.setPlaceholderText("Ask me to build or modify a workflow...")
         self._input_edit.setMaximumHeight(64)
         layout.addWidget(self._input_edit)
 
@@ -2706,8 +2706,8 @@ class AIChatPanel(QtWidgets.QWidget):
         llm_messages.extend(self._messages)
 
         self._send_btn.setEnabled(False)
-        self._send_btn.setText("…")
-        self._status.setText("Thinking…")
+        self._send_btn.setText("...")
+        self._status.setText("Thinking...")
 
         self._worker = _ChatWorker(self._client, self._system, llm_messages)
         self._thread = QtCore.QThread()
@@ -2732,7 +2732,7 @@ class AIChatPanel(QtWidgets.QWidget):
         self._send_btn.setEnabled(False)
         self._stop_btn.setVisible(True)
         self._stop_btn.setEnabled(True)
-        self._status.setText("Thinking…")
+        self._status.setText("Thinking...")
 
         self._orch_stream_buffer = ""
         self._pending_token_buffer = ""
@@ -2864,7 +2864,7 @@ class AIChatPanel(QtWidgets.QWidget):
     def _on_orch_tool_started(self, name: str, inp: dict):
         # Defensive guard: Clear-mid-turn is a user-reachable path, not a dev
         # bug. If the current bubble was cleared out from under us, silently
-        # drop the event — the orchestrator is being cancelled anyway.
+        # drop the event -- the orchestrator is being cancelled anyway.
         if not self._current_bubble_id:
             return
         try:
@@ -2887,7 +2887,7 @@ class AIChatPanel(QtWidgets.QWidget):
         self._last_chip_id = chip_id
 
     def _on_orch_tool_finished(self, name: str, result: dict):
-        # Defensive guard — same rationale as _on_orch_tool_started.
+        # Defensive guard -- same rationale as _on_orch_tool_started.
         if not self._current_bubble_id:
             return
         try:
@@ -2968,13 +2968,13 @@ class AIChatPanel(QtWidgets.QWidget):
             _BubbleState(
                 bubble_id="",
                 role="system",
-                text=f"[tool budget exhausted at `{tool_name}` — answering with what I have]",
+                text=f"[tool budget exhausted at `{tool_name}` -- answering with what I have]",
             )
         )
 
     def _on_orch_error(self, msg: str):
         self._bubble_log.add(_BubbleState(bubble_id="", role="error", text=msg))
-        # Pop the user message that was just added — otherwise it lingers in
+        # Pop the user message that was just added -- otherwise it lingers in
         # history and gets re-sent on the next turn, which can compound
         # failures on some providers.
         if self._messages and self._messages[-1].get("role") == "user":
@@ -3037,7 +3037,7 @@ class AIChatPanel(QtWidgets.QWidget):
                     f"Click 'Load into Canvas' or 'Replace Canvas'.")
                 self._load_btn.setEnabled(True)
                 self._replace_btn.setEnabled(True)
-                self._status.setText(f"Workflow ready — {n} nodes")
+                self._status.setText(f"Workflow ready -- {n} nodes")
                 return
         except (json.JSONDecodeError, TypeError):
             pass
@@ -3081,7 +3081,7 @@ class AIChatPanel(QtWidgets.QWidget):
 
     def _on_clear(self):
         self._messages.clear()
-        # Cancel any in-flight orchestrator before wiping the bubble log —
+        # Cancel any in-flight orchestrator before wiping the bubble log --
         # otherwise tool-call signals arriving after Clear will reference a
         # bubble-id that no longer exists in the log. The worker will still
         # emit `cancelled` + `turn_finished`, which restore the buttons.
@@ -3094,7 +3094,7 @@ class AIChatPanel(QtWidgets.QWidget):
         self._stop_btn.setVisible(False)
         self._stop_btn.setEnabled(False)
         self._bubble_log.clear()
-        # Reset streaming state — otherwise clicking Clear mid-turn leaves a
+        # Reset streaming state -- otherwise clicking Clear mid-turn leaves a
         # stale _current_bubble_id, causing subsequent tool slots to KeyError
         # on _bubble_log.get(stale_id).
         if self._token_flush_timer.isActive():
@@ -3111,7 +3111,7 @@ class AIChatPanel(QtWidgets.QWidget):
 
     # ------------------------------------------------------------------
     def _append_bubble(self, role: str, text: str):
-        """Compatibility wrapper — delegates to _bubble_log.add(_BubbleState(...)).
+        """Compatibility wrapper -- delegates to _bubble_log.add(_BubbleState(...)).
 
         All call sites (legacy _ChatWorker path, _on_load, _on_replace, etc.)
         continue to work unchanged via this wrapper.

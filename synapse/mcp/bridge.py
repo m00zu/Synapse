@@ -5,7 +5,7 @@ background asyncio/HTTP thread.  ``ThreadHop.call(fn, *args, **kwargs)``
 schedules ``fn`` on the main thread, blocks the caller, and returns the
 result (or re-raises the exception).
 
-If called from the main thread, ``fn`` runs inline — no event loop needed.
+If called from the main thread, ``fn`` runs inline -- no event loop needed.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ class _Hopper(QtCore.QObject):
         done: threading.Event = payload['done']
         try:
             payload['result'] = fn(*args, **kwargs)
-        except BaseException as exc:  # noqa: BLE001 — re-raised in caller
+        except BaseException as exc:  # noqa: BLE001 -- re-raised in caller
             payload['error'] = exc
         finally:
             done.set()

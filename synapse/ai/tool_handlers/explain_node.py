@@ -1,4 +1,4 @@
-"""explain_node tool handler — return the catalog card for a node class."""
+"""explain_node tool handler -- return the catalog card for a node class."""
 from __future__ import annotations
 
 

@@ -1,11 +1,11 @@
 """
-token_estimate.py — Lightweight token estimator and per-model context-window lookup.
+token_estimate.py -- Lightweight token estimator and per-model context-window lookup.
 
 This is a display utility for the token-meter UI gauge; it is NOT a real
 tokenizer. Rule of thumb: ~4 characters per token. Phase 4 will replace the
 estimator with a real tokenizer + rollup, but the API surface stays the same.
 
-No Qt, no network, no LLM SDK — pure Python only.
+No Qt, no network, no LLM SDK -- pure Python only.
 """
 
 from __future__ import annotations
@@ -87,7 +87,7 @@ _CONTEXT_TABLE: list[tuple[str, str, int]] = [
     # --- Groq (hosts Llama variants; 32k is a safe underestimate) ---
     ("groq",    "",                 32_000),
 
-    # NOTE: "ollama cloud" rows must come before "ollama" rows below — both match
+    # NOTE: "ollama cloud" rows must come before "ollama" rows below -- both match
     # .startswith("ollama") so order is load-bearing. Do not resort alphabetically.
     # --- Ollama Cloud (free-tier cloud-hosted models, genuinely served at 128k) ---
     ("ollama cloud", "gemma3:",     128_000),
@@ -112,7 +112,7 @@ def model_context_window(provider: str, model: str) -> int:
     """Return a best-guess context window (in tokens) for *provider* + *model*.
 
     Matching is case-insensitive prefix matching on both the provider and the
-    model name.  Falls back to 8 192 when no entry matches — an intentional
+    model name.  Falls back to 8 192 when no entry matches -- an intentional
     underestimate so the UI errs toward "near budget" rather than hiding a
     real overflow.
     """

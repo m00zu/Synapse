@@ -56,7 +56,7 @@ Example:
 
 After a tool call, wait for the user message containing the result, then
 continue. If you do not need to call a tool, just reply normally in markdown.
-Never emit <tool_call>...</tool_call> as part of a larger explanation — the
+Never emit <tool_call>...</tool_call> as part of a larger explanation -- the
 line must stand alone.
 
 Available tools:

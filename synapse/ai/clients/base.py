@@ -30,7 +30,7 @@ class StreamEvent:
 
 
 # Hardcoded vision-capable model substrings. Matched case-insensitively as a
-# substring of the model name. Conservative — prefer false-negative over
+# substring of the model name. Conservative -- prefer false-negative over
 # false-positive (text-only fallback is always safe).
 VISION_MODELS: tuple[str, ...] = (
     # Anthropic
@@ -48,7 +48,7 @@ def is_vision_model(model: str) -> bool:
     """True if model name matches a known vision-capable family.
 
     Case-insensitive substring match against :data:`VISION_MODELS`. Returns
-    False for empty / None / unknown models — callers fall back to text-only,
+    False for empty / None / unknown models -- callers fall back to text-only,
     which is always safe.
     """
     m = (model or "").lower()
@@ -59,11 +59,11 @@ class LLMClient(ABC):
     """Abstract base for all Synapse LLM clients.
 
     Concrete subclasses must set an instance attribute ``self.model`` in
-    ``__init__`` — it is used by :attr:`supports_vision` to detect vision
+    ``__init__`` -- it is used by :attr:`supports_vision` to detect vision
     capability.
 
     Existing sync methods `chat()` and `chat_multi()` are kept on concrete
-    subclasses for backward compatibility but are not part of this ABC —
+    subclasses for backward compatibility but are not part of this ABC --
     they have provider-specific image handling and will be folded into the
     streaming interface in a later phase.
     """

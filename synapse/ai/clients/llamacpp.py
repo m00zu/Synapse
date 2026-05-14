@@ -76,7 +76,7 @@ class LlamaCppClient(LLMClient):
         """
         Runs inference and returns the raw JSON string.
         Raises FileNotFoundError if the GGUF file is missing.
-        Note: images are ignored — GGUF models don't support vision.
+        Note: images are ignored -- GGUF models don't support vision.
         """
         self._load()
         response = self._llm.create_chat_completion(

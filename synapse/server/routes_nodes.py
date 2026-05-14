@@ -56,7 +56,7 @@ def _subcategory_for(identifier: str) -> str:
         key = ".".join(parts[:n])
         if key in _CATEGORY_MAP:
             remainder = parts[n:]
-            # 'plugins.Plugins.Report' — the 'Plugins' segment after the
+            # 'plugins.Plugins.Report' -- the 'Plugins' segment after the
             # 'plugins' namespace is redundant noise; strip it so the sub-
             # category is just 'Report'.
             if remainder and remainder[0] == "Plugins":
@@ -67,7 +67,7 @@ def _subcategory_for(identifier: str) -> str:
 
 @router.get("/nodes")
 async def get_nodes(request: Request) -> dict:
-    """Return the widget catalog — {class_name: [spec_dict, ...]}.
+    """Return the widget catalog -- {class_name: [spec_dict, ...]}.
 
     Lazily built on first call; the catalog construction instantiates every
     registered node class, which is expensive (~3s) and crashes some Qt
@@ -113,7 +113,7 @@ def _port_list(cls, instance, side: str) -> list[dict]:
                 t = types_in_order[i]
             result.append({"name": name, "type": t or "any"})
         return result
-    # No instance — just emit what PORT_SPEC declared.
+    # No instance -- just emit what PORT_SPEC declared.
     return [{"name": n, "type": t or "any"} for n, t in named.items()]
 
 

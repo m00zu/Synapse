@@ -100,7 +100,7 @@ def export_schema():
                         "properties": {
                             "id": {
                                 "type": "integer",
-                                "description": "Sequential integer ID (1, 2, 3, …)."
+                                "description": "Sequential integer ID (1, 2, 3, ...)."
                             },
                             "type": {
                                 "type": "string",
@@ -250,7 +250,7 @@ def export_schema():
     # 5. Save the output
     import os
     out_file = os.path.join(os.path.dirname(__file__), 'llm_node_schema.json')
-    # In frozen (Nuitka onefile) mode, the bundled dir is temp — write to persistent location
+    # In frozen (Nuitka onefile) mode, the bundled dir is temp -- write to persistent location
     if getattr(sys, 'frozen', False):
         persistent = _get_persistent_schema_path()
         if persistent:
@@ -282,7 +282,7 @@ def _get_persistent_schema_path():
 
 
 def _is_schema_stale() -> bool:
-    """Quick mtime check — returns True if any node .py is newer than the schema."""
+    """Quick mtime check -- returns True if any node .py is newer than the schema."""
     import pathlib
     # In frozen mode, check persistent path first; otherwise check bundled path
     schema_path = pathlib.Path(__file__).parent / 'llm_node_schema.json'
@@ -312,7 +312,7 @@ def _is_schema_stale() -> bool:
             continue
         for f in d.rglob('*.py'):
             if f.stat().st_mtime > schema_mtime:
-                print(f"[schema] {f.name} changed — will regenerate in background")
+                print(f"[schema] {f.name} changed -- will regenerate in background")
                 return True
     return False
 
@@ -328,7 +328,7 @@ def auto_regenerate_if_stale():
         return
 
     import subprocess
-    print("[schema] node files changed — regenerating in background…")
+    print("[schema] node files changed -- regenerating in background...")
     # Run export_node_schema.py as a subprocess (it has __main__ support)
     subprocess.Popen(
         [sys.executable, "-m", "synapse.export_node_schema"],

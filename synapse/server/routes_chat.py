@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-# Desktop's list of providers — keep in sync with synapse/llm_assistant.py's
+# Desktop's list of providers -- keep in sync with synapse/llm_assistant.py's
 # AIChatPanel._PROVIDERS.
 _PROVIDERS = ("Ollama", "Ollama Cloud", "OpenRouter", "OpenAI", "Claude",
               "Groq", "Gemini")
@@ -70,7 +70,7 @@ async def start_turn(request: Request, body: TurnReq) -> dict:
     if client is None:
         raise HTTPException(status_code=400, detail=f"unknown provider: {body.provider}")
     # Tool handlers (modify_workflow, generate_workflow, write_python_script)
-    # expect the full NodeGraphQt NodeGraph surface — create_node,
+    # expect the full NodeGraphQt NodeGraph surface -- create_node,
     # registered_nodes, remove_node(node_obj). Pass the underlying
     # NodeGraph rather than the NodeGraphHeadless façade.
     dispatcher = _build_dispatcher_for_graph(session.graph.node_graph, client=client)

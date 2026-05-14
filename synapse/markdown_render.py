@@ -38,7 +38,7 @@ class _SanitizePostprocessor(Postprocessor):
 
 # Reusable Markdown instance with the extensions we need. codehilite with
 # inline_css=True embeds Pygments styles directly into generated <span>s, so
-# no external stylesheet is needed — important for QTextBrowser.
+# no external stylesheet is needed -- important for QTextBrowser.
 _RENDERER = _md.Markdown(
     extensions=["fenced_code", "tables", "codehilite"],
     extension_configs={
@@ -52,7 +52,7 @@ _RENDERER = _md.Markdown(
 )
 
 # Register sanitizer at priority 5 (runs after RawHtmlPostprocessor at 30,
-# AndSubstitutePostprocessor at 20 — so this is last).
+# AndSubstitutePostprocessor at 20 -- so this is last).
 _RENDERER.postprocessors.register(_SanitizePostprocessor(_RENDERER), 'sanitize', 5)
 
 

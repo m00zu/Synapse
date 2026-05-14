@@ -10,7 +10,7 @@ def list_nodes(controller: GraphController) -> list[dict[str, Any]]:
     """Return the catalog of all registered node types.
 
     Each entry has ``{name, type, category, summary}``.  Designed to fit
-    into a single chat-context block (~5–15 KB at current Synapse scale).
+    into a single chat-context block (~5-15 KB at current Synapse scale).
     Use ``describe_node`` for full port/property details on a specific
     type before calling ``add_node``.
     """
@@ -42,7 +42,7 @@ def describe_node(controller: GraphController,
         }
 
     **Use the ``options`` field for combo properties when calling
-    ``set_property`` — the values must match exactly (case-sensitive).**
+    ``set_property`` -- the values must match exactly (case-sensitive).**
     """
     try:
         info: NodeInfo = controller.describe_registered(node_type)

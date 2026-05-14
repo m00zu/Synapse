@@ -17,10 +17,10 @@ class DisplayNode(BaseExecutionNode):
     Takes any input and pops up a preview window to inspect it.
 
     Supported data types:
-    - *DataFrame* — shown as an editable table dialog
-    - *Figure* — rendered to PNG and shown in a scrollable image dialog
-    - *Image* — displayed as a scrollable PIL image dialog
-    - *Other* — shown as a plain text message box
+    - *DataFrame* -- shown as an editable table dialog
+    - *Figure* -- rendered to PNG and shown in a scrollable image dialog
+    - *Image* -- displayed as a scrollable PIL image dialog
+    - *Other* -- shown as a plain text message box
 
     Keywords: preview, inspect output, quick view, popup, debug display, 顯示, 預覽, 彈出視窗, 偵錯, 檢視
     """
@@ -228,7 +228,7 @@ class DataTableCellNode(BaseExecutionNode):
         self.set_display(data)
         # Route the received table through a virtual "out" port so the web
         # preview pipeline (synapse.server.previews.write_previews) has
-        # something to serialize. Desktop ignores this — only the web
+        # something to serialize. Desktop ignores this -- only the web
         # catalog's auto-Preview reader and the DataTableCell React
         # component consume it.
         if isinstance(data, pd.DataFrame):
@@ -242,7 +242,7 @@ class DataTableCellNode(BaseExecutionNode):
         """Updates the embedded table widget (Main Thread only)."""
         from PySide6 import QtWidgets
         if isinstance(data, pd.DataFrame):
-            # Display NaN as empty string — keep underlying data intact
+            # Display NaN as empty string -- keep underlying data intact
             self._table_widget.set_value(data.fillna(''))
             self.view.draw_node()
         else:
@@ -268,7 +268,7 @@ class DataFigureCellNode(BaseExecutionNode):
         self._figure_widget = NodeImageWidget(self.view)
         self.add_custom_widget(self._figure_widget, tab='View')
         # Web: mirror the figure on a virtual output preview. PORT_SPEC has
-        # no outputs, so the auto-Preview resolver won't help — emit it
+        # no outputs, so the auto-Preview resolver won't help -- emit it
         # directly. evaluate() populates output_values['out'].
         from synapse.widgets.spec import Preview as _Preview
         self._spec_builder.append(_Preview(
@@ -367,9 +367,9 @@ class ImageCellNode(BaseExecutionNode):
     Displays a PIL Image directly on the node surface for quick inline inspection.
 
     Accepted input types:
-    - *ImageData* — unwraps the payload
-    - *LabelData* — uses the pre-generated colored visualization
-    - *Raw PIL Image* — displayed as-is
+    - *ImageData* -- unwraps the payload
+    - *LabelData* -- uses the pre-generated colored visualization
+    - *Raw PIL Image* -- displayed as-is
 
     Keywords: image viewer, inline image, photo preview, mask preview, quick inspect, 影像, 顯示, 預覽, 遮罩, 內嵌
     """

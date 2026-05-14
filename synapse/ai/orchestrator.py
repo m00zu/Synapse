@@ -1,4 +1,4 @@
-"""ChatOrchestrator — per-turn agent loop that runs a streaming LLM turn,
+"""ChatOrchestrator -- per-turn agent loop that runs a streaming LLM turn,
 dispatches tool calls, and yields normalized events for the UI layer."""
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ class ChatOrchestrator:
 
     Invariants:
       - Exactly one call to ``run_turn(user_text)`` per user message.
-      - ``run_turn`` is a generator — pull events and forward them to the UI.
+      - ``run_turn`` is a generator -- pull events and forward them to the UI.
       - ``cancel()`` is safe from any thread; it sets a flag that is checked
         between stream events and between tool-call rounds.
 
@@ -45,7 +45,7 @@ class ChatOrchestrator:
     in-place while looping (appending tool_use + tool_result messages), but
     those mutations are discarded when ``run_turn`` completes. Only the final
     assistant text is persisted back to the panel's history. This is a
-    deliberate Phase 2b trade-off — the LLM sees a clean conversation of
+    deliberate Phase 2b trade-off -- the LLM sees a clean conversation of
     user/assistant turns and does not see prior tool-use rounds. Phase 3 may
     revisit this if chained tool reasoning across user turns becomes important.
     """
@@ -77,7 +77,7 @@ class ChatOrchestrator:
         # doesn't load a catalog the way generate_workflow's two-pass does).
         # Without this the model falls back to PythonScriptNode because
         # that's the only node it's aware of from the base prompt.
-        # Catalog is ~6k tokens — rebuilt each turn but never lost to
+        # Catalog is ~6k tokens -- rebuilt each turn but never lost to
         # history trimming since it lives in the system slot.
         try:
             from synapse.llm_assistant import build_condensed_catalog
@@ -139,7 +139,7 @@ class ChatOrchestrator:
                 "content": content,
             })
         else:
-            # Gemini / Ollama / Groq fallback — inline as a user message.
+            # Gemini / Ollama / Groq fallback -- inline as a user message.
             self.history.append({
                 "role": "user",
                 "content": f"Tool result for `{tool_name}`:\n```json\n{content}\n```",
@@ -224,7 +224,7 @@ class ChatOrchestrator:
                     )
                     # Short-circuit: generate_workflow is normally terminal.
                     # Once the workflow is applied (or queued for user
-                    # approval), the turn should end — weaker models tend to
+                    # approval), the turn should end -- weaker models tend to
                     # follow up with inspect_canvas / read_node_output on
                     # nodes that haven't even been evaluated, which is pure
                     # noise. Exception: when the tool reports warnings (e.g.

@@ -76,5 +76,5 @@ __all__ = [
     'CollectNode', 'SelectCollectionNode', 'PopCollectionNode',
     'SplitCollectionNode', 'SaveCollectionNode',
     'RenameCollectionNode', 'CollectionInfoNode', 'FilterCollectionNode', 'MapNamesNode',
-    # DataFrame Operations — moved to data_processing plugin
+    # DataFrame Operations -- moved to data_processing plugin
 ]

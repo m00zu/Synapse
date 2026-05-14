@@ -27,7 +27,7 @@ def _normalize_to_float(arr, bit_depth=None):
     """Normalize any-depth integer array to float32 [0, 1].
     If already float, pass through. Preserves shape."""
     if arr.dtype in (np.float32, np.float64):
-        # Already float — ensure float32
+        # Already float -- ensure float32
         if arr.max() > 1.0:
             # Likely unnormalized float (e.g. from some readers)
             max_val = float((1 << bit_depth) - 1) if bit_depth and bit_depth > 8 else 255.0
@@ -56,7 +56,7 @@ def _guess_bit_depth(arr):
     if arr.dtype == np.float32 or arr.dtype == np.float64:
         max_val = float(arr.max())
         if max_val <= 1.0:
-            return 8  # likely normalized 0–1
+            return 8  # likely normalized 0-1
         elif max_val <= 255:
             return 8
         elif max_val <= 4095:
@@ -95,8 +95,8 @@ class FileReadNode(BaseExecutionNode):
     """
     Reads a tabular file (CSV, TSV) using pandas and outputs a DataFrame.
 
-    **file_path** — path to the input file (widget or upstream port).
-    **separator** — column delimiter (default: `,`).
+    **file_path** -- path to the input file (widget or upstream port).
+    **separator** -- column delimiter (default: `,`).
 
     Keywords: csv, tsv, read, load, import, 讀取, 匯入, 檔案, 資料表, 載入
     """
@@ -168,9 +168,9 @@ class FolderIteratorNode(BaseExecutionNode):
 
     The actual looping is managed by the Batch Runner in `main.py`.
 
-    **folder_path** — directory to iterate over.
-    **pattern** — glob pattern for matching files (default: `*.csv`).
-    **iterate_mode** — iterate over *Files* or *Subdirectories*.
+    **folder_path** -- directory to iterate over.
+    **pattern** -- glob pattern for matching files (default: `*.csv`).
+    **iterate_mode** -- iterate over *Files* or *Subdirectories*.
 
     Keywords: batch, loop, directory, folder, glob, 批次, 資料夾, 疊代, 迴圈, 目錄
     """
@@ -196,7 +196,7 @@ class FolderIteratorNode(BaseExecutionNode):
     def evaluate(self):
         file_path = self.get_property('current_file')
         if not file_path:
-            # Not in batch mode — output the first matching file as preview
+            # Not in batch mode -- output the first matching file as preview
             import re
             from pathlib import Path
             folder = self.get_property('folder_path') or ''
@@ -217,7 +217,7 @@ class FolderIteratorNode(BaseExecutionNode):
 class _RangeSlider(QtWidgets.QWidget):
     """Dual-handle range slider for selecting start/end within a range."""
 
-    range_changed = QtCore.Signal(int, int)  # (low, high) — 0-based
+    range_changed = QtCore.Signal(int, int)  # (low, high) -- 0-based
 
     _TRACK_H  = 4
     _HANDLE_W = 10
@@ -391,7 +391,7 @@ class _VideoWidget(NodeBaseWidget):
         self._start_spin.setStyleSheet("font-size:10px;")
         self._start_spin.setToolTip("Batch start frame")
         range_row.addWidget(self._start_spin)
-        dash = QtWidgets.QLabel("–")
+        dash = QtWidgets.QLabel("-")
         dash.setFixedWidth(8)
         dash.setStyleSheet("font-size:10px;")
         range_row.addWidget(dash)
@@ -619,7 +619,7 @@ class VideoIteratorNode(BaseExecutionNode):
     with the dual-handle range slider, then use Batch Run to process
     each frame through the downstream graph.
 
-    **video_path** — path to the video file.
+    **video_path** -- path to the video file.
 
     Keywords: video, frames, batch, loop, mp4, avi, timelapse, preview, 影片, 視頻, 幀, 批次, 預覽
     """
@@ -847,7 +847,7 @@ class BatchAccumulatorNode(BaseExecutionNode):
                 value.source_path = batch_file
             self._collected.append(value)
 
-        # During batch run, output is not set yet — deferred to on_batch_end
+        # During batch run, output is not set yet -- deferred to on_batch_end
         self.mark_clean()
         return True, None
 
@@ -971,7 +971,7 @@ def _py_read_oir_frames(path, size_x, size_y, n_ch, line_rate, bit_depth):
                 s = s[n_ch:] if s.size >= n_ch else np.array([], dtype=np.int64)
         starts_per_div.append(s)
 
-    # Keep raw values as uint16 — no normalization to 8-bit
+    # Keep raw values as uint16 -- no normalization to 8-bit
     image = np.zeros((size_y, size_x, n_ch), dtype=np.uint16)
 
     for ch in range(n_ch):
@@ -1100,9 +1100,9 @@ class ImageReadNode(BaseExecutionNode):
 
     Supported formats:
 
-    - *Standard* — JPEG, PNG, BMP, and other PIL-supported formats (8-bit)
-    - *TIFF* — 8/12/14/16-bit microscopy TIFFs (bit depth preserved). Multi-page TIFFs output a CollectionData with one ImageData per page.
-    - *OIR* — Olympus .oir files (Rust accelerated, with Python fallback)
+    - *Standard* -- JPEG, PNG, BMP, and other PIL-supported formats (8-bit)
+    - *TIFF* -- 8/12/14/16-bit microscopy TIFFs (bit depth preserved). Multi-page TIFFs output a CollectionData with one ImageData per page.
+    - *OIR* -- Olympus .oir files (Rust accelerated, with Python fallback)
 
     The original bit depth is stored as metadata for downstream nodes
     (threshold sliders, histogram, save). All processing uses float32 [0,1]
@@ -1110,7 +1110,7 @@ class ImageReadNode(BaseExecutionNode):
 
     Options:
 
-    - **channels** — comma-separated channel numbers (0-4, where 0 = black/pad).
+    - **channels** -- comma-separated channel numbers (0-4, where 0 = black/pad).
       `2` for single grayscale channel,
       `1,2,3` for RGB,
       `2,3,4` to map channels 2/3/4 as R/G/B,
@@ -1354,11 +1354,11 @@ class SaveNode(BaseExecutionNode):
     Saves incoming data to a file on disk.
 
     Supported output types:
-    - *DataFrame* — saved as CSV, TSV, or `.pzfx` (GraphPad Prism)
-    - *Figure* — saved as an image at the figure's native DPI
-    - *Image* — saved via PIL in any format matching the file extension
+    - *DataFrame* -- saved as CSV, TSV, or `.pzfx` (GraphPad Prism)
+    - *Figure* -- saved as an image at the figure's native DPI
+    - *Image* -- saved via PIL in any format matching the file extension
 
-    **file_path** — destination path (widget or upstream port).
+    **file_path** -- destination path (widget or upstream port).
 
     Keywords: save, write, export, csv, tsv, 儲存, 寫入, 匯出, 檔案, 輸出
     """
@@ -1458,7 +1458,7 @@ class SaveNode(BaseExecutionNode):
                     else:
                         tifffile.imwrite(file_path, out_arr)
                 else:
-                    # PNG/JPEG/BMP — always 8-bit
+                    # PNG/JPEG/BMP -- always 8-bit
                     out_arr = _denormalize_from_float(data, 8)
                     from PIL import Image as _PILImage
                     pil = _PILImage.fromarray(out_arr)
@@ -1484,7 +1484,7 @@ class SaveNode(BaseExecutionNode):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# BatchGateNode  — pauses the batch loop after each iteration for user review
+# BatchGateNode  -- pauses the batch loop after each iteration for user review
 # ─────────────────────────────────────────────────────────────────────────────
 
 class _BatchGateWidget(NodeBaseWidget):
@@ -1505,7 +1505,7 @@ class _BatchGateWidget(NodeBaseWidget):
         container = QtWidgets.QWidget()
         container.setLayout(root)
 
-        self._status_lbl = QtWidgets.QLabel('Idle — not in a batch run')
+        self._status_lbl = QtWidgets.QLabel('Idle -- not in a batch run')
         self._status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._status_lbl.setStyleSheet('color:#aaa; font-size:10px; padding:2px;')
         self._status_lbl.setWordWrap(True)
@@ -1562,7 +1562,7 @@ class _BatchGateWidget(NodeBaseWidget):
             parts = info.split('|', 2)
             i, total = int(parts[0]), int(parts[1])
             name = parts[2] if len(parts) > 2 else ''
-            self._status_lbl.setText(f'⏸  Paused  —  item {i} / {total}\n{name}')
+            self._status_lbl.setText(f'⏸  Paused  --  item {i} / {total}\n{name}')
             self._status_lbl.setStyleSheet(
                 'color:#ffdd55; font-size:10px; font-weight:bold; padding:2px;')
             self._progress.setRange(0, total)
@@ -1575,7 +1575,7 @@ class _BatchGateWidget(NodeBaseWidget):
             self._refresh_btn.setStyleSheet(
                 'background:#3a5a8a; color:white; font-weight:bold; border-radius:4px;')
         else:
-            self._status_lbl.setText('Idle — not in a batch run')
+            self._status_lbl.setText('Idle -- not in a batch run')
             self._status_lbl.setStyleSheet('color:#aaa; font-size:10px; padding:2px;')
             self._progress.setRange(0, 1)
             self._progress.setValue(0)
@@ -1595,9 +1595,9 @@ class BatchGateNode(BaseExecutionNode):
     independently at their own step in the topological evaluation order.
 
     Controls:
-    - *Next* — let this iteration continue past the gate
-    - *Refresh* — re-evaluate upstream nodes and update previews
-    - *Pass All* — stop pausing for the rest of this batch run
+    - *Next* -- let this iteration continue past the gate
+    - *Refresh* -- re-evaluate upstream nodes and update previews
+    - *Pass All* -- stop pausing for the rest of this batch run
 
     Keywords: batch, pause, gate, review, step, 批次, 暫停, 閘門, 審查, 逐步
     """
@@ -1692,7 +1692,7 @@ class BatchGateNode(BaseExecutionNode):
         """Re-evaluate all upstream nodes so their previews update,
         then re-read the input value.
 
-        Skip other BatchGateNode instances — they've already passed through
+        Skip other BatchGateNode instances -- they've already passed through
         earlier in the topological evaluation order, so re-entering their
         evaluate() would just pause them again, blocking this refresh until
         the user clicks Next on the upstream gate too.

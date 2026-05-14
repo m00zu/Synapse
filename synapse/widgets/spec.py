@@ -1,4 +1,4 @@
-"""Widget-spec dataclasses — Qt-free, JSON-serializable.
+"""Widget-spec dataclasses -- Qt-free, JSON-serializable.
 
 A WidgetSpec describes a single node's UI shape once. Two renderers consume it:
   - synapse/widgets/pyside_renderer.py (Phase 1b) builds a QWidget tree
@@ -30,7 +30,7 @@ class WidgetSpec:
 
 
 # ---------------------------------------------------------------------------
-# Leaf widgets — one property, one input surface
+# Leaf widgets -- one property, one input surface
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -111,7 +111,7 @@ class Preview(WidgetSpec):
 
 @dataclass
 class Custom(WidgetSpec):
-    """Escape hatch — component_id names a hand-written widget on each side."""
+    """Escape hatch -- component_id names a hand-written widget on each side."""
     component_id: str
     props: dict[str, Any] = field(default_factory=dict)
     kind: str = field(default="Custom", init=False)

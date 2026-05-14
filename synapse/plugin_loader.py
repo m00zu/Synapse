@@ -4,7 +4,7 @@ plugin_loader.py
 Dynamic plugin system for Synapse.
 
 Users drop a .py file into the plugin directory and new nodes appear in the
-Node Explorer on the next launch — no recompilation required.
+Node Explorer on the next launch -- no recompilation required.
 
 Plugin directory locations
 --------------------------
@@ -113,8 +113,8 @@ def load_plugins(graph, on_step=None) -> list[dict]:
 
     Supports two plugin formats:
 
-    * **Flat file** – a single ``.py`` file in the plugin directory.
-    * **Package directory** – a sub-folder containing ``__init__.py``.
+    * **Flat file** - a single ``.py`` file in the plugin directory.
+    * **Package directory** - a sub-folder containing ``__init__.py``.
       If the folder also contains a ``vendor/`` sub-directory, that path is
       prepended to ``sys.path`` before the package is imported, so vendored
       third-party wheels (e.g. ``vendor/rdkit/``) are importable without any
@@ -153,7 +153,7 @@ def load_plugins(graph, on_step=None) -> list[dict]:
                 and obj is not BaseExecutionNode
                 and getattr(obj, '__identifier__', '') not in _LIBRARY_IDENTIFIERS
                 and hasattr(obj, 'NODE_NAME')
-                and obj.NODE_NAME != 'Node'   # library default — never a real node
+                and obj.NODE_NAME != 'Node'   # library default -- never a real node
             ):
                 continue
             if obj.type_ in loaded_types:
@@ -269,7 +269,7 @@ def get_plugin_catalog_entries() -> list[dict]:
     """Return rich LLM-catalog entries for all loaded plugin classes.
 
     Each entry includes port types and configurable properties with
-    enum options — the same quality as ``export_node_schema.py``.
+    enum options -- the same quality as ``export_node_schema.py``.
     Falls back to PORT_SPEC if the node cannot be instantiated.
     """
     from .nodes.base import PORT_COLORS
@@ -467,13 +467,13 @@ def install_plugin_package(src_zip: Path, plugin_dir: Path,
 class PluginManagerDialog(QtWidgets.QDialog):
     """Full plugin management UI: install, status, uninstall, and browse online."""
 
-    # Columns — Installed tab
+    # Columns -- Installed tab
     _COL_FILE   = 0
     _COL_NODES  = 1
     _COL_STATUS = 2
     _COL_ACTION = 3
 
-    # Columns — Browse tab
+    # Columns -- Browse tab
     _BR_COL_NAME   = 0
     _BR_COL_SIZE   = 1
     _BR_COL_ACTION = 2
@@ -672,7 +672,7 @@ class PluginManagerDialog(QtWidgets.QDialog):
             self._table.setItem(i, self._COL_FILE,
                                 QtWidgets.QTableWidgetItem(row['file']))
 
-            nodes_text = ', '.join(row['nodes']) or '—'
+            nodes_text = ', '.join(row['nodes']) or '--'
             nodes_item = QtWidgets.QTableWidgetItem(nodes_text)
             if row['nodes']:
                 nodes_item.setToolTip('\n'.join(row['nodes']))
@@ -750,7 +750,7 @@ class PluginManagerDialog(QtWidgets.QDialog):
             src = Path(path_str)
 
             if src.suffix.lower() == '.synpkg':
-                # .synpkg — zstd-compressed tar plugin package
+                # .synpkg -- zstd-compressed tar plugin package
                 pkg_name = src.stem.split('-')[0]  # e.g. rdkit_nodes-darwin-... → rdkit_nodes
                 dst = self._plugin_dir / pkg_name
                 if dst.exists():
@@ -765,7 +765,7 @@ class PluginManagerDialog(QtWidgets.QDialog):
                         continue
                 ok, msg = install_synpkg(src, self._plugin_dir, overwrite=True)
             elif src.suffix.lower() == '.zip':
-                # Plugin package zip — peek to find the package name for overwrite check
+                # Plugin package zip -- peek to find the package name for overwrite check
                 import zipfile
                 try:
                     with zipfile.ZipFile(src) as zf:
@@ -919,7 +919,7 @@ class PluginManagerDialog(QtWidgets.QDialog):
             name = a['name']
             if not name.endswith('.synpkg'):
                 continue
-            # "slim" packages are pure Python — always compatible
+            # "slim" packages are pure Python -- always compatible
             if '-slim' in name:
                 result.append(a)
                 continue

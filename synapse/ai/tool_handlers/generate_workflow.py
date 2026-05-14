@@ -1,4 +1,4 @@
-"""generate_workflow tool handler — two-pass workflow generation from a goal."""
+"""generate_workflow tool handler -- two-pass workflow generation from a goal."""
 from __future__ import annotations
 
 import json
@@ -33,7 +33,7 @@ def _validate_port_hints(workflow: dict) -> list[str]:
     """Return a list of human-readable warnings for edges whose port hints do
     not match the source/target node's schema.
 
-    Only fires when the hint is non-empty — the loader auto-wires by type when
+    Only fires when the hint is non-empty -- the loader auto-wires by type when
     no hint is given, and that's fine. The warning value is to catch cases
     like SplitRGBNode with src_port='image' (hallucinated) that the loader
     silently auto-resolves to the first compatible output (e.g. 'red'),
@@ -67,7 +67,7 @@ def _validate_port_hints(workflow: dict) -> list[str]:
                 warnings.append(
                     f"Edge {src_id}->{dst_id}: source port {src_hint!r} not found on "
                     f"{src_type}. Valid outputs: {outs}. The loader auto-wired to "
-                    f"'{outs[0]}' — if that's wrong, call modify_workflow to "
+                    f"'{outs[0]}' -- if that's wrong, call modify_workflow to "
                     f"disconnect and reconnect with the right src_port."
                 )
         if dst_hint and dst_type and dst_type in schema:
@@ -91,7 +91,7 @@ def _coerce_json(raw: str) -> dict:
       3. first `{...}` span (greedy outer-brace match)
     """
     s = (raw or "").strip()
-    # Happy path — parses directly.
+    # Happy path -- parses directly.
     try:
         return json.loads(s)
     except json.JSONDecodeError:
@@ -111,7 +111,7 @@ def _coerce_json(raw: str) -> dict:
             return json.loads(s[first:last + 1])
         except json.JSONDecodeError:
             pass
-    # Give up — re-raise the original exception with the raw text prefix so
+    # Give up -- re-raise the original exception with the raw text prefix so
     # the caller can see what the model actually said.
     raise json.JSONDecodeError(
         f"could not extract JSON from model output (first 200 chars): {s[:200]!r}",
@@ -136,13 +136,13 @@ def make_generate_workflow_handler(graph, client):
         # Guard: refuse on a populated canvas unless the caller explicitly
         # overrides. Building a fresh standalone pipeline when the user
         # already has one typically means duplicated nodes and wasted
-        # cached evaluations — extension via modify_workflow is the right
+        # cached evaluations -- extension via modify_workflow is the right
         # path. The LLM sees this error, then follows the prompt's
         # "Extending an existing canvas" rubric.
         if len(list(graph.all_nodes())) > 0 and not force_overwrite:
             return {"error": (
                 "Canvas is not empty. Do NOT call generate_workflow to add to "
-                "an existing pipeline — that would create a disconnected or "
+                "an existing pipeline -- that would create a disconnected or "
                 "duplicated workflow. Instead: call inspect_canvas to see the "
                 "existing nodes, then call modify_workflow ONCE with all "
                 "add_node + set_prop + connect ops needed, using the real "
@@ -151,7 +151,7 @@ def make_generate_workflow_handler(graph, client):
                 "pipeline from scratch, retry with force_overwrite=true."
             )}
 
-        # Import lazily — llm_assistant is heavy.
+        # Import lazily -- llm_assistant is heavy.
         from synapse.llm_assistant import (
             build_condensed_catalog,
             build_selection_prompt,
@@ -201,7 +201,7 @@ def make_generate_workflow_handler(graph, client):
             "applied": canvas_was_empty,
             "hint": (
                 "Workflow has been applied to the canvas. Do NOT call "
-                "modify_workflow to add the same nodes again — they are "
+                "modify_workflow to add the same nodes again -- they are "
                 "already there. If you want to tweak or extend the workflow "
                 "(add/remove/wire nodes, set properties), use modify_workflow."
                 if canvas_was_empty else

@@ -24,14 +24,14 @@ def get_node_image(controller: GraphController,
                    node_id: str,
                    port_name: str | None = None,
                    max_dim: int = 1024) -> list:
-    """**Use this whenever the user wants to SEE a figure or image** —
+    """**Use this whenever the user wants to SEE a figure or image** --
     plots, masks, thresholded images, anything visual.  The output is
     embedded as an MCP ImageContent so your vision model receives the
     actual pixels, not metadata.
 
     Prefer this over ``get_node_output`` for any image/figure/mask
     output.  ``get_node_output(mode='preview')`` on a figure only
-    returns width/height/n_axes — useless for actually seeing it.
+    returns width/height/n_axes -- useless for actually seeing it.
 
     Supported payload types:
       - PIL.Image (returned as-is)
@@ -46,7 +46,7 @@ def get_node_image(controller: GraphController,
 
     Returns a list of MCP content blocks (TextContent + ImageContent).
 
-    Errors with a clear message for non-image outputs — fall back to
+    Errors with a clear message for non-image outputs -- fall back to
     ``get_node_output(mode='preview')`` for tables, models, scalars.
     """
     try:
@@ -80,7 +80,7 @@ def get_node_image(controller: GraphController,
     cap = min(int(max_dim), _MAX_DIMENSION) if max_dim else _MAX_DIMENSION
 
     # SVG Editor produces FigureData with `svg_override` set to the
-    # edited SVG bytes — diverges from the underlying matplotlib
+    # edited SVG bytes -- diverges from the underlying matplotlib
     # figure once the user has touched anything.  Render the SVG
     # directly via Qt so edits actually reach the LLM.
     svg_bytes = getattr(value, 'svg_override', None)
@@ -207,7 +207,7 @@ def _svg_to_png(svg_bytes: bytes, max_dim: int) -> bytes:
     """Rasterise SVG bytes to PNG via Qt's built-in QSvgRenderer.
 
     Used for ``FigureData.svg_override`` payloads (the output of the
-    interactive SVG editor node).  Zero new dependencies — PySide6 is
+    interactive SVG editor node).  Zero new dependencies -- PySide6 is
     already in the Synapse stack.
     """
     from PySide6 import QtCore, QtGui, QtSvg

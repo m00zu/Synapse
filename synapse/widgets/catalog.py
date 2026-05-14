@@ -47,7 +47,7 @@ def _auto_preview_for(cls, instance=None) -> list:
     ``['image']`` in PORT_SPEC but actually register a port named ``'out'``.
 
     When no instance is available (instantiation failed) falls back to
-    PORT_SPEC alone — name == type in that case, which may not match the
+    PORT_SPEC alone -- name == type in that case, which may not match the
     executor's preview filenames, but is the best we can do.
     """
     out: list = []
@@ -88,7 +88,7 @@ def _auto_preview_for(cls, instance=None) -> list:
                                         source=f"output:{port_name}"))
             return out
 
-    # No instance (or no real ports found) — fall back to PORT_SPEC alone.
+    # No instance (or no real ports found) -- fall back to PORT_SPEC alone.
     for name, ptype in type_by_spec_name.items():
         preview_kind = _preview_kind_for(ptype)
         if preview_kind:
@@ -107,7 +107,7 @@ def _install_legacy_shims() -> None:
     """Inject module aliases required by plugin files that use bare imports.
 
     Plugins written before the synapse package was created import via bare
-    names like ``from data_models import …`` or ``from nodes.base import …``.
+    names like ``from data_models import ...`` or ``from nodes.base import ...``.
     Registering aliases in sys.modules lets those imports succeed without
     modifying the plugin source files.
     """
@@ -170,7 +170,7 @@ def collect_widget_catalog() -> dict[str, list[dict]]:
             node = cls()
         except Exception as e:
             # A node that can't be bare-instantiated (missing Qt, missing files,
-            # abstract helpers, …) gets an empty entry so the catalog still
+            # abstract helpers, ...) gets an empty entry so the catalog still
             # lists its name. This is preferable to silently omitting it.
             logger.warning(
                 "catalog: %s could not be instantiated: %s",

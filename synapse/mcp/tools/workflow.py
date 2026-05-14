@@ -7,11 +7,11 @@ from ..controller import GraphController
 
 
 def new_workflow(controller: GraphController) -> dict[str, Any]:
-    """**DESTRUCTIVE** — wipes every node and connection from the canvas.
+    """**DESTRUCTIVE** -- wipes every node and connection from the canvas.
 
     Only call this when the user *explicitly* asks to clear, reset,
     start over, or wipe the workflow.  **Never call this as a
-    "convenient reset" before modifying an existing graph** — that
+    "convenient reset" before modifying an existing graph** -- that
     throws away the user's work (node positions, manually-tweaked
     properties, unsaved state).
 
@@ -32,7 +32,7 @@ def save_workflow(controller: GraphController, path: str) -> dict[str, Any]:
     """Serialize the current workflow to a JSON file at ``path``.
 
     Parent directories are created if missing.  Overwrites any existing
-    file at the destination — no prompt.  The file can later be
+    file at the destination -- no prompt.  The file can later be
     restored via ``load_workflow``.
     """
     controller.save_graph(path)

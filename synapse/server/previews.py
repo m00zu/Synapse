@@ -7,7 +7,7 @@ Called by the Executor after each node's evaluate() returns success. Inspects
   - ``TableData``   → JSON ``{columns: [...], rows: [...]}`` of head(50)
   - ``FigureData``  → matplotlib ``savefig(png, dpi=72, bbox_inches='tight')``
 
-Writes are best-effort — a serialization failure must NOT fail the node run.
+Writes are best-effort -- a serialization failure must NOT fail the node run.
 Each write returns a ``{"port": str, "kind": "image"|"table"|"figure"}`` so the
 executor can publish a ``preview_available`` WS event per preview.
 """
@@ -43,7 +43,7 @@ def write_previews(node_id: str, output_values: dict, preview_dir: Path) -> list
             elif kind == "figure":
                 _write_figure(value, out_path)
         except Exception as exc:
-            logger.warning("preview: %s/%s %s — %s",
+            logger.warning("preview: %s/%s %s -- %s",
                            node_id, port, kind, exc)
             continue
         written.append({"port": port, "kind": kind})

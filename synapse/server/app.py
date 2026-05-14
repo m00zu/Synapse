@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
     from PySide6 import QtWidgets
     _qapp = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
-    # Catalog is built lazily on first /api/nodes call — eager build here
+    # Catalog is built lazily on first /api/nodes call -- eager build here
     # double-instantiates every node class (once for spec capture, once for
     # NodeGraphQt registration in SessionState) which crashes Qt on macOS.
     app.state.catalog = None
@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
 
 
 def _get_catalog(app: FastAPI) -> dict:
-    """Lazy catalog accessor — builds on first call, caches on app.state."""
+    """Lazy catalog accessor -- builds on first call, caches on app.state."""
     if app.state.catalog is None:
         from synapse.widgets.catalog import collect_widget_catalog
         app.state.catalog = collect_widget_catalog()

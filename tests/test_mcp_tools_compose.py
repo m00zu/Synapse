@@ -120,3 +120,69 @@ def test_existing_graph_state_unchanged_on_failure(ctl):
     # Original node still there; nothing from the failed batch leaked in.
     assert len(ctl.list_active()) == pre_count
     assert ctl.get_node(pre_id) is not None
+
+
+# ── Partial-success semantics for connections ────────────────────────────
+
+def test_happy_path_reports_connections_made_and_no_failures(ctl):
+    result = create_workflow(ctl, _good_definition())
+    assert len(result['connections_made']) == 2
+    assert result['connections_failed'] == []
+    # Each made connection records resolved port names.
+    for m in result['connections_made']:
+        assert {'src', 'src_port', 'dst', 'dst_port', 'fuzzy_matched'} <= set(m)
+
+
+def test_bad_port_name_does_not_rollback_nodes(ctl):
+    defn = _good_definition()
+    # Typo: 'output' is not a port on the MolTable Reader (it's 'mol_table').
+    defn['connections'][0]['src_port'] = 'output'
+    result = create_workflow(ctl, defn)
+    # All three nodes were still created.
+    assert len(ctl.list_active()) == 3
+    assert set(result['created_ids']) == {'a', 'b', 'c'}
+    # The bad connection is reported in connections_failed, not raised.
+    assert len(result['connections_failed']) == 1
+    failure = result['connections_failed'][0]
+    assert failure['attempted']['src_port'] == 'output'
+    assert 'mol_table' in failure['available_src_ports']
+    # The other (good) connection still succeeded.
+    assert len(result['connections_made']) == 1
+    assert len(ctl.list_connections()) == 1
+
+
+def test_case_insensitive_port_match(ctl):
+    defn = _good_definition()
+    # 'Mol_Table' vs 'mol_table' -- case-insensitive resolution should win.
+    defn['connections'][0]['src_port'] = 'Mol_Table'
+    result = create_workflow(ctl, defn)
+    assert result['connections_failed'] == []
+    assert len(result['connections_made']) == 2
+    # The match is flagged as fuzzy so the LLM knows it wasn't exact.
+    fuzzy = [m for m in result['connections_made'] if m['fuzzy_matched']]
+    assert len(fuzzy) == 1
+    assert fuzzy[0]['src_port'] == 'mol_table'  # resolved to canonical case
+
+
+def test_run_skipped_when_connection_failed(ctl):
+    defn = _good_definition()
+    defn['connections'][0]['src_port'] = 'nonexistent'
+    result = create_workflow(ctl, defn, run=True)
+    # Skip is reported; run_results is absent.
+    assert 'run_skipped' in result
+    assert 'run_results' not in result
+
+
+def test_failed_connection_includes_available_ports_for_both_ends(ctl):
+    defn = _good_definition()
+    # Both src and dst are wrong.
+    defn['connections'][0]['src_port'] = 'bogus_src'
+    defn['connections'][0]['dst_port'] = 'bogus_dst'
+    result = create_workflow(ctl, defn)
+    failure = result['connections_failed'][0]
+    # Both available port lists are present so the LLM can fix the wire
+    # in one follow-up call.
+    assert 'available_src_ports' in failure
+    assert 'available_dst_ports' in failure
+    assert 'mol_table' in failure['available_src_ports']
+    assert 'mol_table' in failure['available_dst_ports']

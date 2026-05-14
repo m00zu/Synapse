@@ -26,7 +26,7 @@ def claude_desktop_config_path() -> Path:
         if appdata:
             return Path(appdata) / 'Claude' / 'claude_desktop_config.json'
         return Path.home() / 'AppData' / 'Roaming' / 'Claude' / 'claude_desktop_config.json'
-    # Linux / other — best effort.
+    # Linux / other -- best effort.
     return Path.home() / '.config' / 'Claude' / 'claude_desktop_config.json'
 
 
@@ -34,7 +34,7 @@ def antigravity_config_path() -> Path:
     """Return the location of Google Antigravity's MCP config file.
 
     Antigravity follows the Gemini-CLI dotfile convention
-    (``~/.gemini/...``) on every platform — same path on macOS,
+    (``~/.gemini/...``) on every platform -- same path on macOS,
     Windows, and Linux.
     """
     return Path.home() / '.gemini' / 'antigravity' / 'mcp_config.json'
@@ -45,7 +45,7 @@ def antigravity_entry(port: int, server_name: str = 'synapse') -> dict:
 
     Antigravity uses an HTTP transport with a ``serverUrl`` field
     rather than the stdio ``{command, args}`` shape Claude Desktop uses
-    — no bridge subprocess needed, the client talks directly to
+    -- no bridge subprocess needed, the client talks directly to
     Synapse's MCP HTTP server.
     """
     return {server_name: {'serverUrl': mcp_url(int(port))}}
@@ -72,7 +72,7 @@ def write_antigravity_config(
 def gemini_cli_config_path() -> Path:
     """Return the location of Gemini CLI's settings file.
 
-    Same path on macOS, Windows, and Linux — Gemini CLI uses a single
+    Same path on macOS, Windows, and Linux -- Gemini CLI uses a single
     top-level settings file under ``~/.gemini/``.
     """
     return Path.home() / '.gemini' / 'settings.json'
@@ -132,7 +132,7 @@ def _write_http_config(
     servers = data.setdefault('mcpServers', {})
     if not isinstance(servers, dict):
         raise ValueError(
-            f"'mcpServers' in {config_path} isn't an object — "
+            f"'mcpServers' in {config_path} isn't an object -- "
             "the file shape is unexpected.")
 
     replaced = server_name in servers
@@ -185,7 +185,7 @@ def claude_desktop_entry(python_path: str | None = None,
     - **Frozen** (Nuitka / PyInstaller bundle): re-launch ``sys.executable``
       with the ``--mcp-bridge`` flag.  ``main.py`` short-circuits to the
       stdio proxy before any Qt imports happen, so the bundle binary
-      acts as both the GUI and the bridge — no extra files to ship.
+      acts as both the GUI and the bridge -- no extra files to ship.
 
     - **Source** (running ``python main.py`` during dev): invoke
       ``python -m synapse.mcp.bridge_stdio`` with ``cwd`` pinned to the
@@ -201,7 +201,7 @@ def claude_desktop_entry(python_path: str | None = None,
         # Nuitka's ``--onefile`` mode may make ``sys.executable`` point
         # at a temp-extracted bootstrap that gets cleaned up.  Nuitka
         # exposes the durable path to the *original* .exe / .app via
-        # the ``NUITKA_ONEFILE_BINARY`` env var — prefer that.
+        # the ``NUITKA_ONEFILE_BINARY`` env var -- prefer that.
         import os as _os
         exe = _os.environ.get('NUITKA_ONEFILE_BINARY') or sys.executable
         return {
@@ -220,8 +220,8 @@ def claude_desktop_entry(python_path: str | None = None,
         bridge_path = (Path(_synapse_pkg.__file__).parent
                        / 'mcp' / 'bridge_stdio.py')
     except Exception:
-        # Fallback shouldn't happen — synapse is importable since
-        # we're running inside it — but be defensive.
+        # Fallback shouldn't happen -- synapse is importable since
+        # we're running inside it -- but be defensive.
         bridge_path = Path('synapse/mcp/bridge_stdio.py')
 
     return {
@@ -253,7 +253,7 @@ def write_claude_desktop_config(
             if not isinstance(data, dict):
                 data = {}
         except json.JSONDecodeError:
-            # Malformed file — refuse to clobber.  Caller surfaces this.
+            # Malformed file -- refuse to clobber.  Caller surfaces this.
             raise ValueError(
                 f"Existing config at {config_path} isn't valid JSON. "
                 "Fix or move it aside first.")
@@ -263,7 +263,7 @@ def write_claude_desktop_config(
     servers = data.setdefault('mcpServers', {})
     if not isinstance(servers, dict):
         raise ValueError(
-            f"'mcpServers' in {config_path} isn't an object — "
+            f"'mcpServers' in {config_path} isn't an object -- "
             "the file shape is unexpected.")
 
     replaced = server_name in servers
@@ -316,14 +316,14 @@ def get_preferred_port() -> int | None:
 def set_preferred_port(port: int) -> Path:
     """Persist the user's preferred port for next-launch use.
 
-    Validates the port is in the usable range (1024–65535 — privileged
+    Validates the port is in the usable range (1024-65535 -- privileged
     ports below 1024 require root on most systems).  Returns the
     written path so callers can show it in a confirmation message.
     """
     port = int(port)
     if not (1024 <= port <= 65535):
         raise ValueError(
-            f"Port {port} out of range — pick a value between 1024 and 65535.")
+            f"Port {port} out of range -- pick a value between 1024 and 65535.")
     _PREF_FILE.parent.mkdir(parents=True, exist_ok=True)
     _PREF_FILE.write_text(json.dumps({'port': port}))
     return _PREF_FILE

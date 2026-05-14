@@ -25,7 +25,7 @@ class CollectionData(NodeData):
     types are allowed.
 
     The auto-loop in BaseExecutionNode transparently unpacks a collection,
-    runs a single-item node on each entry, and repacks the results — so
+    runs a single-item node on each entry, and repacks the results -- so
     every existing node works with collections for free.
     """
     payload: Any   # dict[str, NodeData]
@@ -100,7 +100,7 @@ class StatData(TableData):
 class HtmlData(NodeData):
     """Wraps an HTML string for report output.
 
-    payload: str — self-contained HTML document.
+    payload: str -- self-contained HTML document.
     title:   optional report title.
     """
     payload: str          # HTML content
@@ -126,7 +126,7 @@ class ModelData(NodeData):
 class ImageData(NodeData):
     """Wraps an image as a numpy array with bit-depth and display metadata.
 
-    payload: numpy ndarray — shape (H, W) for grayscale, (H, W, 3) for RGB.
+    payload: numpy ndarray -- shape (H, W) for grayscale, (H, W, 3) for RGB.
              dtype is preserved (uint8, uint16, float32, etc.)
     bit_depth: original source bit depth (8, 12, 14, 16).
     scale_um: micrometers per pixel (None if unknown).

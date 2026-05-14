@@ -32,7 +32,7 @@ _PORT_FILE = Path.home() / '.synapse' / 'mcp-port'
 
 # Stable port that the MCP server tries to bind first, so users only need
 # to run ``claude mcp add`` once per machine.  Picked from the ephemeral
-# range (49152–65535) at a memorable position; falls back to a random
+# range (49152-65535) at a memorable position; falls back to a random
 # port if this one is busy.
 _DEFAULT_PORT = 51780
 
@@ -71,13 +71,13 @@ def _wrap(hop: ThreadHop, controller: GraphController, fn):
             raise
         entry.success = True
         entry.duration_ms = (_time.perf_counter() - t0) * 1000.0
-        # Keep the result summary short — the dialog shows full details
+        # Keep the result summary short -- the dialog shows full details
         # on click, the table row just gets a one-liner.
         try:
             r_str = repr(result)
         except Exception:
             r_str = '<unrepr-able result>'
-        entry.result_summary = r_str[:200] + ('…' if len(r_str) > 200 else '')
+        entry.result_summary = r_str[:200] + ('...' if len(r_str) > 200 else '')
         MCPLogger.instance().log(entry)
         return result
 
@@ -220,7 +220,7 @@ def stop_server(timeout: float = 3.0) -> None:
     if thread is not None and thread.is_alive():
         thread.join(timeout=timeout)
         # If still alive after the join window, the thread keeps running
-        # in the background but we surrender ownership — process exit
+        # in the background but we surrender ownership -- process exit
         # will reap it (daemon=True).
 
     _server_thread = None

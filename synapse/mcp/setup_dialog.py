@@ -1,6 +1,6 @@
 """Qt dialog presenting MCP setup options to end users.
 
-Opened from ``Help → AI Connection (MCP)…``.  Uses the pure-logic
+Opened from ``Help → AI Connection (MCP)...``.  Uses the pure-logic
 helpers in ``setup_helper.py`` for everything stateful so the UI
 itself is just glue.
 """
@@ -12,7 +12,7 @@ from . import setup_helper as _helper
 
 
 class MCPSetupDialog(QtWidgets.QDialog):
-    """Standalone help dialog — non-modal, can stay open while user works."""
+    """Standalone help dialog -- non-modal, can stay open while user works."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -61,11 +61,11 @@ class MCPSetupDialog(QtWidgets.QDialog):
         intro = QtWidgets.QLabel(
             "Connect Claude Code or Claude Desktop to this Synapse "
             "instance so you can build and run workflows by chatting. "
-            "No API key needed — your chat subscription handles auth.")
+            "No API key needed -- your chat subscription handles auth.")
         intro.setWordWrap(True)
         layout.addWidget(intro)
 
-        # Port selector — affects every command/URL shown below.
+        # Port selector -- affects every command/URL shown below.
         layout.addWidget(self._port_section())
 
         # Claude Code section
@@ -114,7 +114,7 @@ class MCPSetupDialog(QtWidgets.QDialog):
             dot.setStyleSheet('color: #d05050; font-size: 18px;')
             msg = QtWidgets.QLabel(
                 "<b>MCP server not running.</b>  "
-                "Restart Synapse — the server starts automatically.")
+                "Restart Synapse -- the server starts automatically.")
         h.addWidget(dot)
         h.addWidget(msg, 1)
         return w
@@ -146,7 +146,7 @@ class MCPSetupDialog(QtWidgets.QDialog):
             "<i>Defaults to the currently-running port.  Changing it "
             "here updates the commands below immediately.  "
             "<b>'Save for next launch'</b> persists the choice so Synapse "
-            "binds the same port on every future start — restart "
+            "binds the same port on every future start -- restart "
             "Synapse after saving for it to take effect.</i>")
         note.setWordWrap(True)
         note.setStyleSheet('color: #888;')
@@ -185,7 +185,7 @@ class MCPSetupDialog(QtWidgets.QDialog):
         )
 
     def _antigravity_section(self) -> QtWidgets.QWidget:
-        """Antigravity uses an HTTP transport (``serverUrl`` field) —
+        """Antigravity uses an HTTP transport (``serverUrl`` field) --
         no stdio bridge needed.  Writes directly to its config file.
         """
         return self._http_client_section(
@@ -200,7 +200,7 @@ class MCPSetupDialog(QtWidgets.QDialog):
         )
 
     def _gemini_cli_section(self) -> QtWidgets.QWidget:
-        """Gemini CLI uses an HTTP transport (``httpUrl`` field) — same
+        """Gemini CLI uses an HTTP transport (``httpUrl`` field) -- same
         pattern as Antigravity but a different config file + key name.
         """
         return self._http_client_section(
@@ -338,7 +338,7 @@ class MCPSetupDialog(QtWidgets.QDialog):
             self, f'{display_name} configured', msg)
 
     def _write_stdio_config(self, config_path, display_name: str) -> None:
-        """Shared handler — write the synapse stdio entry into any
+        """Shared handler -- write the synapse stdio entry into any
         client's MCP config file in the standard ``{command, args, cwd?}``
         shape.  Used by the Claude Desktop and Antigravity buttons.
         """
@@ -361,7 +361,7 @@ class MCPSetupDialog(QtWidgets.QDialog):
             f"Restart {display_name} to pick up the new config.  "
             f"Synapse must be running for the bridge to connect.  "
             f"The bridge auto-discovers the live port from "
-            f"~/.synapse/mcp-port — port changes here don't affect "
+            f"~/.synapse/mcp-port -- port changes here don't affect "
             f"{display_name}.")
         QtWidgets.QMessageBox.information(
             self, f'{display_name} configured', msg)
@@ -404,7 +404,7 @@ class MCPSetupDialog(QtWidgets.QDialog):
         else:
             QtWidgets.QMessageBox.information(
                 self, 'No preference set',
-                "There was no saved preference — already using the "
+                "There was no saved preference -- already using the "
                 "built-in default (51780).")
 
 

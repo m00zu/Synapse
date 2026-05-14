@@ -10,7 +10,7 @@ would not discover their dependencies automatically.
 Importing this module from main.py ensures Nuitka bundles all packages
 that the built-in plugins rely on.
 
-Do NOT remove imports here even if they appear unused — they exist solely
+Do NOT remove imports here even if they appear unused -- they exist solely
 to inform the Nuitka dependency tracer.
 """
 
@@ -33,10 +33,10 @@ import scipy.ndimage                     # noqa: F401
 try:
     import pyqtgraph                     # noqa: F401
 except ImportError:
-    pass  # optional — only needed by volume_nodes plugin
+    pass  # optional -- only needed by volume_nodes plugin
 
 # ── roi_nodes ──────────────────────────────────────────────────────────────
-# (uses PIL, numpy, PySide6 — already covered above / bundled by Qt plugin)
+# (uses PIL, numpy, PySide6 -- already covered above / bundled by Qt plugin)
 
 # ── mask_nodes ────────────────────────────────────────────────────────────
 import skimage.measure                   # noqa: F401
@@ -65,14 +65,14 @@ import matplotlib.backends.backend_agg  # noqa: F401
 import seaborn                       # noqa: F401
 
 # ── filopodia_nodes ───────────────────────────────────────────────────────
-# (uses skimage, numpy, PIL, scipy — all covered above)
+# (uses skimage, numpy, PIL, scipy -- all covered above)
 
 # ── tifffile (used by io_nodes but also image plugins) ────────────────────
 import tifffile                      # noqa: F401
 
 # ── Rust extension modules ─────────────────────────────────────────────────
 # These are compiled .so/.pyd files. Nuitka copies binary extensions it can
-# trace statically — importing them here ensures they're included in the build.
+# trace statically -- importing them here ensures they're included in the build.
 try:
     import oir_reader_rs             # noqa: F401
     import image_process_rs          # noqa: F401

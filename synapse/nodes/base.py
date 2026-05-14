@@ -25,20 +25,20 @@ from ..widgets.spec import (
 # ── Port type color scheme ──────────────────────────────────────────────────
 # All colors are (R, G, B) tuples, accepted by add_input/add_output color arg.
 PORT_COLORS = {
-    'table':    (52,  152, 219),  # Blue       – pandas DataFrame / TableData
-    'stat':     (65,  105, 225),  # RoyalBlue  – StatData
-    'image':    (46,  204, 113),  # Green      – PIL Image / ImageData
-    'mask':     (28, 125, 72),    # Forest Green – Boolean mask ImageData (clearly distinct)
-    'skeleton': (180, 230, 100),  # Yellow-green  – SkeletonData (thinned skeleton mask)
-    'label':       (160, 220,  40),  # Chartreuse – LabelData (integer label array)
-    'label_image': (160, 220,  40),  # Chartreuse alias – port name used in PORT_SPEC
-    'figure':   (155,  89, 182),  # Purple     – matplotlib Figure / FigureData
-    'confocal': (230, 126,  34),  # Orange     – ConfocalDatasetData
-    'path':     (149, 165, 166),  # Grey       – file / folder path string
-    'collection': (230, 180, 50), # Gold       – CollectionData (named bundle)
-    'model':    (255, 140,  66),  # Coral/Orange – fitted model (regression, ML)
-    'html':     (235,  87, 135),  # Rose/Pink  – HtmlData (report content)
-    'any':      ( 95, 106, 106),  # Dark grey  – generic / unknown type
+    'table':    (52,  152, 219),  # Blue       - pandas DataFrame / TableData
+    'stat':     (65,  105, 225),  # RoyalBlue  - StatData
+    'image':    (46,  204, 113),  # Green      - PIL Image / ImageData
+    'mask':     (28, 125, 72),    # Forest Green - Boolean mask ImageData (clearly distinct)
+    'skeleton': (180, 230, 100),  # Yellow-green  - SkeletonData (thinned skeleton mask)
+    'label':       (160, 220,  40),  # Chartreuse - LabelData (integer label array)
+    'label_image': (160, 220,  40),  # Chartreuse alias - port name used in PORT_SPEC
+    'figure':   (155,  89, 182),  # Purple     - matplotlib Figure / FigureData
+    'confocal': (230, 126,  34),  # Orange     - ConfocalDatasetData
+    'path':     (149, 165, 166),  # Grey       - file / folder path string
+    'collection': (230, 180, 50), # Gold       - CollectionData (named bundle)
+    'model':    (255, 140,  66),  # Coral/Orange - fitted model (regression, ML)
+    'html':     (235,  87, 135),  # Rose/Pink  - HtmlData (report content)
+    'any':      ( 95, 106, 106),  # Dark grey  - generic / unknown type
 }
 
 class ColorPickerButtonWidget(QtWidgets.QWidget):
@@ -171,8 +171,8 @@ class NodeColumnSelectorWidget(NodeBaseWidget):
     """Text input with a dropdown button that shows available DataFrame columns.
 
     Modes:
-        'single'  — clicking a column replaces the text field
-        'multi'   — clicking a column toggles it in a comma-separated list
+        'single'  -- clicking a column replaces the text field
+        'multi'   -- clicking a column toggles it in a comma-separated list
 
     Thread safety: set_columns() only stores the list (no Qt calls).
     The QMenu is rebuilt lazily on the main thread when the user clicks ▼.
@@ -214,7 +214,7 @@ class NodeColumnSelectorWidget(NodeBaseWidget):
         self._edit.blockSignals(False)
 
     def set_columns(self, columns: list[str]):
-        """Store column names (thread-safe — no Qt widget calls)."""
+        """Store column names (thread-safe -- no Qt widget calls)."""
         self._columns = list(columns)
 
     def _show_menu(self):
@@ -834,7 +834,7 @@ class NodeImageWidget(NodeBaseWidget):
             QtWidgets.QApplication.processEvents()
 
         elif isinstance(data, bytes):
-            # Raw SVG bytes — load directly into the QSvgWidget
+            # Raw SVG bytes -- load directly into the QSvgWidget
             self._layout_widget.setFixedSize(self._DISPLAY_DEFAULT_W, self._DISPLAY_DEFAULT_H)
             self._svg_widget.load(QtCore.QByteArray(data))
             renderer = self._svg_widget.renderer()
@@ -1023,7 +1023,7 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
     Base node with optional progress bar and dirty-state tracking.
     """
 
-    # Class-level cancellation event — shared by all nodes, set by workers.
+    # Class-level cancellation event -- shared by all nodes, set by workers.
     _cancel_event = threading.Event()
 
     @classmethod
@@ -1043,7 +1043,7 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
 
     def __init__(self, use_progress=True):
         super(BaseExecutionNode, self).__init__()
-        # Widget-spec capture — every _add_* / add_* helper appends here so the
+        # Widget-spec capture -- every _add_* / add_* helper appends here so the
         # web UI can serve a declarative description of this node's widgets.
         self._spec_builder: list[WidgetSpec] = []
         if use_progress:
@@ -1201,7 +1201,7 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
     def add_custom_widget(self, widget, widget_type=None, tab=None):
         """Wrap NodeGraphQt.add_custom_widget to emit a WidgetSpec entry for
         the small set of custom widget classes we know about. Unknown
-        custom widgets fall through to NodeGraphQt unchanged — so the
+        custom widgets fall through to NodeGraphQt unchanged -- so the
         desktop UI is untouched. The _add_* / _tb_* helpers create their
         widgets BEFORE calling this (emitting specs themselves), so we
         skip re-emitting for helper-created widgets by checking class name.
@@ -1235,7 +1235,7 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
             ))
         # Helpers (NodeIntSpinBoxWidget, NodeFloatSpinBoxWidget, NodeRowWidget,
         # NodeColumnSelectorWidget, NodeToolBoxWidget, NodeListWidget) already
-        # emit their own specs from the _add_*/_tb_* helpers — skip here.
+        # emit their own specs from the _add_*/_tb_* helpers -- skip here.
         return result
 
     # ── Public accessor ────────────────────────────────────────────────────
@@ -1400,7 +1400,7 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
     def mark_dirty(self):
         """Marks the node as dirty, cascades the dirty state to all downstream nodes."""
         if self.is_dirty:
-            return  # Already dirty — no need to re-propagate
+            return  # Already dirty -- no need to re-propagate
         self.is_dirty = True
         NODE_SIGNALS.status_updated.emit(self.id, 'dirty')
         # Cascade: any node that depends on our output must also re-evaluate
@@ -1460,13 +1460,13 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         NODE_SIGNALS.status_updated.emit(self.id, 'skipped')
 
     def _mark_skipped_ui(self):
-        """Disabled visual: muted olive — distinct from all execution states."""
+        """Disabled visual: muted olive -- distinct from all execution states."""
         self.set_color(45, 45, 45)         # Very dark grey
         self.view.border_color = (80, 80, 80, 255)  # Dim border
         self.view.update()
 
     def mark_disabled(self):
-        """Explicitly disables this node — it will be skipped on every run."""
+        """Explicitly disables this node -- it will be skipped on every run."""
         self.is_disabled = True
         NODE_SIGNALS.status_updated.emit(self.id, 'disabled')
 
@@ -1621,7 +1621,7 @@ class BaseImageProcessNode(BaseExecutionNode):
                 self._display_ui(self._last_display_data)
         else:
             if name not in self._UI_PROPS and self.get_property('live_preview'):
-                # Capture version before evaluate — if it changes during
+                # Capture version before evaluate -- if it changes during
                 # evaluation (user moved slider again), discard the result
                 ver = self._eval_version
                 col_info = self._check_collection_inputs() if self._collection_aware else None
@@ -1630,7 +1630,7 @@ class BaseImageProcessNode(BaseExecutionNode):
                 else:
                     success, err = self.evaluate()
                 if self._eval_version != ver:
-                    return  # stale — a newer evaluation will follow
+                    return  # stale -- a newer evaluation will follow
                 if success:
                     self.mark_clean()
                 else:

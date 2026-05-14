@@ -19,9 +19,9 @@ class UniversalDataNode(BaseExecutionNode):
     Executes arbitrary Python code to process multiple inputs and push results to outputs.
 
     Available variables in user code:
-    - `inputs` — list of upstream data values
-    - `output` — assign the result here (auto-wrapped into `TableData`, `ImageData`, or `FigureData`)
-    - `pd`, `np`, `plt`, `sns` — pre-imported libraries
+    - `inputs` -- list of upstream data values
+    - `output` -- assign the result here (auto-wrapped into `TableData`, `ImageData`, or `FigureData`)
+    - `pd`, `np`, `plt`, `sns` -- pre-imported libraries
 
     Keywords: script, python, custom logic, arbitrary code, transform, 腳本, 工具, 自訂邏輯, 通用, 轉換
     """
@@ -105,9 +105,9 @@ class PathModifierNode(BaseExecutionNode):
     """
     Takes a file path and modifies it by adding a suffix, changing the extension, or overriding the folder.
 
-    **suffix** — string appended to the file stem (default: `_analyzed`).
-    **ext** — replacement file extension (leave empty to keep original).
-    **folder** — optional folder override for the output path.
+    **suffix** -- string appended to the file stem (default: `_analyzed`).
+    **ext** -- replacement file extension (leave empty to keep original).
+    **folder** -- optional folder override for the output path.
 
     Keywords: path, filename, suffix, extension, rename, 路徑, 檔名, 副檔名, 工具, 重新命名
     """
@@ -174,7 +174,7 @@ class PathModifierNode(BaseExecutionNode):
 
 
 # ===========================================================================
-# Collect — pack multiple data items into a named CollectionData
+# Collect -- pack multiple data items into a named CollectionData
 # ===========================================================================
 
 from PySide6 import QtWidgets, QtCore, QtGui
@@ -228,7 +228,7 @@ class _CollectNamingWidget(NodeBaseWidget):
                         sub.widget().deleteLater()
         self._edits.clear()
 
-        # Create rows — each is: "1. [name_field]"
+        # Create rows -- each is: "1. [name_field]"
         user_names = getattr(self, '_pending_user_names', None)
         self._pending_user_names = None
         for i, upstream_name in enumerate(port_names):
@@ -301,7 +301,7 @@ class CollectNode(BaseExecutionNode):
         self._naming_widget._node = self  # back-reference for node resize
         self._naming_widget.names_changed.connect(self._on_names_changed)
         self.add_custom_widget(self._naming_widget)
-        # Track connection order — connected_ports() doesn't guarantee order
+        # Track connection order -- connected_ports() doesn't guarantee order
         self._connection_order = []  # list of (node_id, port_name) tuples
 
     def on_input_connected(self, in_port, out_port):
@@ -361,7 +361,7 @@ class CollectNode(BaseExecutionNode):
         self._naming_widget.update_connections(port_names, user_names)
 
     def _on_names_changed(self):
-        """User edited a name — re-evaluate to update output."""
+        """User edited a name -- re-evaluate to update output."""
         success, _ = self.evaluate()
         if success:
             self.mark_clean()
@@ -398,7 +398,7 @@ class CollectNode(BaseExecutionNode):
         # Read names from widget (already populated by on_input_connected)
         names = self._naming_widget.get_value()
 
-        # Collect items — if an input is a CollectionData, merge its items in
+        # Collect items -- if an input is a CollectionData, merge its items in
         for i, cp in enumerate(ordered_cps):
             data = cp.node().output_values.get(cp.name())
             if data is None:
@@ -641,7 +641,7 @@ class SelectCollectionNode(BaseExecutionNode):
 
 
 # ===========================================================================
-# Pop Collection — extract one item + output the remainder
+# Pop Collection -- extract one item + output the remainder
 # ===========================================================================
 
 class PopCollectionNode(BaseExecutionNode):
@@ -775,7 +775,7 @@ class SaveCollectionNode(BaseExecutionNode):
     Each item is saved as a separate file using the item name as a suffix.
     Supports images (TIFF, PNG), tables (CSV, TSV), and figures.
 
-    If a path is connected, it is used as the base — the item name is inserted
+    If a path is connected, it is used as the base -- the item name is inserted
     before the extension.  Otherwise the folder + extension fields are used.
 
     Keywords: save, collection, batch save, export, 儲存, 集合, 批次儲存
@@ -927,7 +927,7 @@ class SaveCollectionNode(BaseExecutionNode):
 
 
 # ---------------------------------------------------------------------------
-#  Rename Collection — table-based mapping widget
+#  Rename Collection -- table-based mapping widget
 # ---------------------------------------------------------------------------
 
 from PySide6 import QtCore, QtWidgets, QtGui
@@ -1154,8 +1154,8 @@ class FilterCollectionNode(BaseExecutionNode):
     Multiple patterns separated by | (pipe).
 
     Mode:
-    - *Keep* — only matching items pass through
-    - *Remove* — matching items are excluded
+    - *Keep* -- only matching items pass through
+    - *Remove* -- matching items are excluded
 
     Keywords: filter, collection, pattern, wildcard, keep, remove, 過濾, 集合
     """
@@ -1220,9 +1220,9 @@ class MapNamesNode(BaseExecutionNode):
     """Batch rename collection items using find/replace, prefix, or suffix.
 
     Operations (applied in order):
-    1. Find/Replace — replace substring in all names
-    2. Prefix — add text before each name
-    3. Suffix — add text after each name
+    1. Find/Replace -- replace substring in all names
+    2. Prefix -- add text before each name
+    3. Suffix -- add text after each name
 
     Keywords: map, rename, batch, prefix, suffix, find, replace, 批次重新命名, 集合
     """

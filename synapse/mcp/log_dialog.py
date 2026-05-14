@@ -34,7 +34,7 @@ class MCPLogDialog(QtWidgets.QDialog):
 
         self._build_ui()
         self._populate_initial()
-        # AutoConnection — emitter is on main thread (logger moves itself
+        # AutoConnection -- emitter is on main thread (logger moves itself
         # there), so this is a direct connection.  Calls into log() from
         # the asyncio thread queue automatically through the singleton's
         # owning thread.
@@ -128,7 +128,7 @@ class MCPLogDialog(QtWidgets.QDialog):
             # Monospace for tool / args / result.
             if col in (1, 4, 5):
                 item.setFont(QtGui.QFont('Menlo, Consolas, monospace'))
-            # Tooltip — full text for long values.
+            # Tooltip -- full text for long values.
             item.setToolTip(text)
             self._table.setItem(row, col, item)
 
@@ -139,7 +139,7 @@ class MCPLogDialog(QtWidgets.QDialog):
             s = json.dumps(args, default=str, ensure_ascii=False)
         except Exception:
             s = repr(args)
-        return s if len(s) <= 150 else s[:147] + '…'
+        return s if len(s) <= 150 else s[:147] + '...'
 
     def _update_count(self) -> None:
         n = self._table.rowCount()

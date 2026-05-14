@@ -51,7 +51,7 @@ TOOLS: list[dict] = [
         "name": "modify_workflow",
         "description": (
             "Apply a list of graph operations to the current canvas in a single undo group. "
-            "Partial success is allowed — failed ops are reported, successful ones stay."
+            "Partial success is allowed -- failed ops are reported, successful ones stay."
         ),
         "input_schema": {
             "type": "object",
@@ -160,7 +160,7 @@ TOOLS: list[dict] = [
             "Peek at the last-evaluated output(s) of one or more nodes. Nodes "
             "with multiple output ports (e.g. `OutlierDetectionNode` which "
             "emits BOTH `kept` and `removed` tables) return per-port data in "
-            "a `ports` dict — you see each port's shape, columns, head, "
+            "a `ports` dict -- you see each port's shape, columns, head, "
             "and type individually. Works on ANY evaluated node, not just "
             "terminal ones. "
             "Pass `node_id` for one node, or `node_ids` (up to 8) for a batch. "
@@ -207,8 +207,8 @@ class ToolDispatcher:
     def dispatch(self, name: str, tool_input: dict) -> Any:
         """Call the registered handler and return its result.
 
-        Failure contract: any error — unknown tool name, exception inside the
-        handler, or a non-dict return — is converted to ``{"error": "..."}``.
+        Failure contract: any error -- unknown tool name, exception inside the
+        handler, or a non-dict return -- is converted to ``{"error": "..."}``.
         Handlers should signal failure by returning a dict containing an
         ``"error"`` key rather than raising; both are accepted but returning
         a dict is preferred so tool output stays uniform for the orchestrator.

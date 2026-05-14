@@ -35,7 +35,7 @@ def add_node(controller: GraphController, node_type: str,
     """Create a single new node of ``node_type`` in the current graph.
 
     **For building a workflow from scratch with 2+ nodes, prefer
-    ``create_workflow`` instead** — it batches add+connect into one atomic
+    ``create_workflow`` instead** -- it batches add+connect into one atomic
     call and auto-positions nodes so they don't overlap.
 
     Use ``add_node`` (this tool) only for surgical single-node insertions
@@ -135,7 +135,7 @@ def replace_node(controller: GraphController, node_id: str,
     ``dropped_connections`` (with a per-edge reason).
 
     Use this instead of ``delete_node`` + ``add_node`` + N × ``connect``
-    when the user says "replace X with Y" — same result, one call,
+    when the user says "replace X with Y" -- same result, one call,
     fewer chances to drop wires by mistake.
 
     Returns ``{node_id, new_type, carried_properties, dropped_connections}``.

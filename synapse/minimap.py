@@ -45,7 +45,7 @@ class MinimapWidget(QtWidgets.QFrame):
         # Viewport rect overlay (drawn manually)
         self._vp_rect = QtCore.QRectF()
 
-        # Refresh timer — update the minimap at a modest interval
+        # Refresh timer -- update the minimap at a modest interval
         self._timer = QtCore.QTimer(self)
         self._timer.setInterval(250)  # 4 fps is enough
         self._timer.timeout.connect(self._refresh)

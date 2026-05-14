@@ -1,10 +1,24 @@
-"""Compose tool: atomic one-shot workflow construction.
+"""Compose tool: one-shot workflow construction with partial-success semantics.
 
 ``create_workflow(definition, run=False)`` takes a structured spec of
-nodes + connections, validates all of it up front, then either creates
-everything or rolls back (deleting any nodes it had already created
-during a partial run).  Optional ``run`` flag evaluates the terminal
-nodes (those with no outgoing edges) after construction succeeds.
+nodes + connections, validates the node-level shape up front, then:
+
+  1. Creates every node atomically (rolls back if any node creation
+     fails -- almost never happens since type ids were validated).
+  2. Attempts each connection independently.  A connection failure
+     does NOT roll back -- the node is created, the failure is
+     reported, and the LLM (or human) can fix wiring afterwards via
+     the ``connect`` tool.
+
+Connection failures are reported with the actual port names available
+on the node, so the LLM has enough info to fix the wire in one
+follow-up call without needing a separate ``describe_node``.  Port
+name resolution is case-insensitive: ``src_port='Output'`` will
+silently resolve to ``'output'`` if that's what the node exposes.
+
+Optional ``run`` flag evaluates terminal nodes when ALL connections
+succeed.  If any connection failed, ``run`` is skipped and a
+``run_skipped`` note is included in the response.
 """
 from __future__ import annotations
 
@@ -75,7 +89,7 @@ def _layout_new_nodes(controller: GraphController,
 
     Compute depth via topological levels (roots at depth 0, then +1 per
     edge).  At each depth, stack siblings vertically.  Nodes that fail
-    to set position are skipped silently — layout is cosmetic.
+    to set position are skipped silently -- layout is cosmetic.
     """
     # Skip layout entirely on controllers without a real NodeGraphQt graph
     # (e.g. FakeGraphController in tests).
@@ -198,24 +212,48 @@ def _layout_new_nodes(controller: GraphController,
                 continue
 
 
+def _resolve_port(name: str, available: list[str]) -> str | None:
+    """Pick the best match for a port name; case-insensitive.
+
+    Returns the actual port name to use, or None if no match.
+    """
+    if name in available:
+        return name
+    lower_map = {p.lower(): p for p in available}
+    return lower_map.get(name.lower())
+
+
+def _node_ports(controller: GraphController, node_id: str,
+                ) -> tuple[list[str], list[str]]:
+    """Return (input_ports, output_ports) for a node by id.
+
+    Uses ``get_node`` + ``describe_registered`` so this works against
+    both the live NodeGraphController and FakeGraphController without
+    poking at internals.
+    """
+    record = controller.get_node(node_id)
+    info = controller.describe_registered(record.type_id)
+    return list(info.input_ports), list(info.output_ports)
+
+
 def create_workflow(controller: GraphController,
                     definition: dict,
                     run: bool = False) -> dict[str, Any]:
-    """Build a NEW workflow (or a fresh sub-pipeline) in ONE atomic call.
+    """Build a NEW workflow (or a fresh sub-pipeline) in one call.
 
-    **Use this ONLY for creating fresh nodes** — typically on an empty
+    **Use this ONLY for creating fresh nodes** -- typically on an empty
     canvas, or to add an entirely new sub-pipeline alongside existing
-    work.  One call instead of N × ``add_node`` + M × ``connect``;
-    nodes are auto-laid-out and validation failures roll back cleanly.
+    work.  One call instead of N x ``add_node`` + M x ``connect``;
+    nodes are auto-laid-out.
 
     **Do NOT use this to MODIFY an existing workflow.**  For any change
-    to nodes that already exist — re-wiring, property tweaks, swapping
-    types, deleting branches — use the modify tools instead:
+    to nodes that already exist -- re-wiring, property tweaks, swapping
+    types, deleting branches -- use the modify tools instead:
 
-    - ``connect`` / ``disconnect`` — change wires.
-    - ``set_property`` — change a node's setting.
-    - ``replace_node`` — swap one node's type, preserving compatible wires.
-    - ``delete_node`` / ``add_node`` — surgical insertion or removal.
+    - ``connect`` / ``disconnect`` -- change wires.
+    - ``set_property`` -- change a node's setting.
+    - ``replace_node`` -- swap one node's type, preserving compatible wires.
+    - ``delete_node`` / ``add_node`` -- surgical insertion or removal.
 
     Calling ``create_workflow`` to "rebuild" the graph DUPLICATES the
     existing nodes (it appends; it does not replace).  Always prefer the
@@ -238,51 +276,139 @@ def create_workflow(controller: GraphController,
           ],
         }
 
-    All node types and connection aliases are validated up front.  If
-    any check fails, no nodes are created (any partial creation during
-    this call is rolled back).
+    **Partial-success semantics for connections.**  Node creation is
+    atomic (rolls back if it fails -- almost never happens since
+    type_ids are validated).  But each connection is attempted
+    independently: a failure on connection #5 does NOT delete nodes or
+    drop connections #1-4.  Failed connections are reported with the
+    actual port names available on each end, so the next call can fix
+    the wire without needing ``describe_node`` first.  Port-name
+    matching is case-insensitive.
 
-    With ``run=True``, every just-created node is evaluated in
-    topological order (upstream before downstream) — equivalent to
-    clicking "Run" on the canvas.  Per-alias results land in
-    ``run_results``; evaluation stops at the first failure so a broken
-    upstream node doesn't trigger misleading errors downstream.
+    With ``run=True`` AND all connections succeeding, every just-
+    created node is evaluated in topological order (upstream before
+    downstream) -- equivalent to clicking "Run" on the canvas.  If any
+    connection failed, ``run`` is skipped (the graph is incomplete)
+    and a ``run_skipped`` note is included instead.
 
-    Returns ``{created_ids: {alias: real_id}, run_results?: {...}}``.
+    Returns::
+
+        {
+          "created_ids":        {alias: real_id, ...},
+          "connections_made":   [{src, src_port, dst, dst_port,
+                                  fuzzy_matched: bool}, ...],
+          "connections_failed": [
+            {
+              "attempted": {src, src_port, dst, dst_port},
+              "reason":    "<human-readable error>",
+              "available_src_ports": [...],
+              "available_dst_ports": [...]
+            },
+            ...
+          ],
+          "run_results"?:  {alias: {...}},   # if run=True and clean
+          "run_skipped"?:  "<reason>",       # if run=True but failures
+        }
+
     Pre-existing graph state is never touched.
     """
     nodes, connections = _validate(controller, definition)
 
-    # Begin atomic block.  Track real ids created so we can roll back
-    # if anything later fails.
-    created: dict[str, str] = {}  # alias -> real_id
+    # Phase 1: create nodes (atomic -- rollback if any fails).
+    created: dict[str, str] = {}
     try:
         for n in nodes:
             real_id = controller.add_node(
                 n['type'], properties=n.get('properties'))
             created[n['id']] = real_id
-        for c in connections:
-            controller.connect(created[c['src']], c['src_port'],
-                                created[c['dst']], c['dst_port'])
     except Exception:
-        # Roll back any nodes we created (controller.delete_node also
-        # drops attached edges).
         for real_id in created.values():
             try:
                 controller.delete_node(real_id)
             except Exception:
-                pass  # best-effort cleanup
+                pass
         raise
 
-    # Layout: walk the connection DAG, left-to-right by depth, sibling-stacked.
+    # Phase 2: attempt each connection independently.
+    connections_made: list[dict[str, Any]] = []
+    connections_failed: list[dict[str, Any]] = []
+
+    for c in connections:
+        src_alias = c['src']
+        dst_alias = c['dst']
+        src_id = created[src_alias]
+        dst_id = created[dst_alias]
+        src_port_req = c['src_port']
+        dst_port_req = c['dst_port']
+
+        src_ins, src_outs = _node_ports(controller, src_id)
+        dst_ins, dst_outs = _node_ports(controller, dst_id)
+
+        resolved_src = _resolve_port(src_port_req, src_outs)
+        resolved_dst = _resolve_port(dst_port_req, dst_ins)
+
+        attempted = {
+            'src': src_alias, 'src_port': src_port_req,
+            'dst': dst_alias, 'dst_port': dst_port_req,
+        }
+
+        if resolved_src is None or resolved_dst is None:
+            reasons = []
+            if resolved_src is None:
+                reasons.append(
+                    f"src node {src_alias!r} (type "
+                    f"{controller.get_node(src_id).type_id!r}) "
+                    f"has no output port {src_port_req!r}")
+            if resolved_dst is None:
+                reasons.append(
+                    f"dst node {dst_alias!r} (type "
+                    f"{controller.get_node(dst_id).type_id!r}) "
+                    f"has no input port {dst_port_req!r}")
+            connections_failed.append({
+                'attempted': attempted,
+                'reason': '; '.join(reasons),
+                'available_src_ports': src_outs,
+                'available_dst_ports': dst_ins,
+            })
+            continue
+
+        try:
+            controller.connect(src_id, resolved_src, dst_id, resolved_dst)
+        except Exception as exc:
+            connections_failed.append({
+                'attempted': attempted,
+                'reason': f"{type(exc).__name__}: {exc}",
+                'available_src_ports': src_outs,
+                'available_dst_ports': dst_ins,
+            })
+            continue
+
+        connections_made.append({
+            'src': src_alias, 'src_port': resolved_src,
+            'dst': dst_alias, 'dst_port': resolved_dst,
+            'fuzzy_matched': (resolved_src != src_port_req
+                              or resolved_dst != dst_port_req),
+        })
+
+    # Phase 3: layout (do this even when some connections failed --
+    # the partial wiring is still useful information for the user).
     _layout_new_nodes(controller, nodes, connections, created)
 
-    result: dict[str, Any] = {'created_ids': dict(created)}
+    result: dict[str, Any] = {
+        'created_ids': dict(created),
+        'connections_made': connections_made,
+        'connections_failed': connections_failed,
+    }
 
-    if run:
-        # Each run_node call now walks upstream automatically (mirrors
-        # Synapse's "Run" button), so we only need to invoke the
-        # terminals — they'll drag their dependencies through.
+    # Phase 4: optionally run.  Skip if any connection failed -- the
+    # graph is incomplete and running terminals would produce
+    # misleading errors.
+    if run and connections_failed:
+        result['run_skipped'] = (
+            f"Skipped run: {len(connections_failed)} connection(s) "
+            f"failed; fix them via 'connect' first, then 'run_node' "
+            f"the terminals.")
+    elif run:
         run_results: dict[str, dict] = {}
         terminals = [n['id'] for n in nodes
                      if n['id'] not in {c['src'] for c in connections}]

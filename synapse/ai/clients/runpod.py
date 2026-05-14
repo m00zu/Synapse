@@ -11,11 +11,11 @@ class RunPodClient(LLMClient):
     """
     Client for RunPod serverless vLLM endpoints using the synchronous runsync API.
 
-    Uses raw prompt completion (not OpenAI chat format) — the actual output format is:
+    Uses raw prompt completion (not OpenAI chat format) -- the actual output format is:
       {"output": [{"choices": [{"tokens": ["..."]}], "usage": {...}}], "status": "COMPLETED"}
 
     System + user message are combined using the ChatML template (Qwen2.5 / instruct models).
-    No model field is needed — the model is fixed by the RunPod deployment.
+    No model field is needed -- the model is fixed by the RunPod deployment.
     """
     BASE_URL = "https://api.runpod.ai/v2"
     # Sentinel attributes so _on_model_changed doesn't crash; not used in requests
@@ -33,7 +33,7 @@ class RunPodClient(LLMClient):
         }
 
     def list_models(self) -> list[str]:
-        """No model list for RunPod — model is fixed at deployment."""
+        """No model list for RunPod -- model is fixed at deployment."""
         return []
 
     def chat(self, system: str, user: str, images: list[str] | None = None) -> str:

@@ -20,7 +20,7 @@ _UA = (
 )
 
 # Ollama Cloud's free-tier inference nodes return transient 500s at large
-# system prompts — same request often succeeds on a retry. Back off briefly
+# system prompts -- same request often succeeds on a retry. Back off briefly
 # and try twice before giving up.
 _RETRY_DELAYS = (1.5, 4.0)
 
@@ -74,7 +74,7 @@ class OllamaClient(LLMClient):
             return []
 
     def chat(self, system: str, user: str, images: list[str] | None = None) -> str:
-        """Legacy non-streaming single-turn (kept for backward compat — JSON format)."""
+        """Legacy non-streaming single-turn (kept for backward compat -- JSON format)."""
         user_msg: dict = {"role": "user", "content": user}
         if images:
             user_msg["images"] = images

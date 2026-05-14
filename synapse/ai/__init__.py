@@ -1,4 +1,4 @@
-"""Synapse AI package — clients, tools, orchestrator (Phase 2b)."""
+"""Synapse AI package -- clients, tools, orchestrator (Phase 2b)."""
 from synapse.ai.feature_flags import get_use_orchestrator
 from synapse.ai.prompts import BASE_SYSTEM_PROMPT, WRITE_PYTHON_SCRIPT_SUBPROMPT
 from synapse.ai.context import graph_summary, estimate_tokens, HistoryRoller

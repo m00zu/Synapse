@@ -53,7 +53,7 @@ def run(argv: list[str] | None = None) -> None:
 
 def _pick_free_port(host: str) -> int:
     """Ask the OS for a free port on *host*. Closes the socket before
-    uvicorn binds — small window but acceptable for single-user local."""
+    uvicorn binds -- small window but acceptable for single-user local."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, 0))
         return s.getsockname()[1]

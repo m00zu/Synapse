@@ -1,9 +1,9 @@
 """Per-turn context helpers for the AI chat orchestrator.
 
 Phase 2a implements:
-  * graph_summary(graph) -> str   — cheap one-line canvas description
-  * estimate_tokens(text) -> int  — conservative char/4 heuristic
-  * HistoryRoller                 — window + tool-result truncation (no LLM yet)
+  * graph_summary(graph) -> str   -- cheap one-line canvas description
+  * estimate_tokens(text) -> int  -- conservative char/4 heuristic
+  * HistoryRoller                 -- window + tool-result truncation (no LLM yet)
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ def graph_summary(graph) -> str:
     if chain is not None and 1 <= n <= 8:
         if n == 1:
             return f"Canvas: 1 node ({chain[0]})."
-        return f"Canvas: {n} nodes — " + " → ".join(chain) + "."
+        return f"Canvas: {n} nodes -- " + " → ".join(chain) + "."
 
     from collections import Counter
     type_counts = Counter(_node_type(node) for node in nodes)
@@ -107,7 +107,7 @@ def _count_connected_components(nodes: list) -> int:
 
 
 def estimate_tokens(text: str | None) -> int:
-    """Conservative char/4 approximation — good enough for budget checks.
+    """Conservative char/4 approximation -- good enough for budget checks.
 
     # TODO Phase 4: consolidate with synapse.ai.token_estimate.estimate_tokens
     # (semantics differ slightly: this one returns max(1, ...) for non-empty
@@ -147,7 +147,7 @@ class HistoryRoller:
         # Truncate tool results that are at least TOOL_RESULT_TRUNCATE_AFTER_TURNS
         # user turns in the past. Walking backwards, we increment the counter
         # when we cross a user message. A tool whose counter is already >= the
-        # threshold lived that many user turns ago — it's stale enough to drop.
+        # threshold lived that many user turns ago -- it's stale enough to drop.
         user_turns_so_far = 0
         out_reversed = list(reversed(out))
         for idx, m in enumerate(out_reversed):

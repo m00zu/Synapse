@@ -22,7 +22,7 @@ def _sanitize(name: str) -> str:
 
 
 def _topo_sort(nodes):
-    """Topological sort — same DFS approach used by the graph executor."""
+    """Topological sort -- same DFS approach used by the graph executor."""
     visited = set()
     order = []
 
@@ -128,7 +128,7 @@ def export_graph_to_script(graph) -> str:
     """
     all_nodes = graph.all_nodes()
     if not all_nodes:
-        return "# Empty graph — nothing to export.\n"
+        return "# Empty graph -- nothing to export.\n"
 
     sorted_nodes = _topo_sort(all_nodes)
 
@@ -200,7 +200,7 @@ def export_graph_to_script(graph) -> str:
             for line in code:
                 body_lines.append(f'    {line}')
         else:
-            body_lines.append(f'    # TODO: {cls_name} — manual translation needed')
+            body_lines.append(f'    # TODO: {cls_name} -- manual translation needed')
             if props:
                 body_lines.append(f'    # Properties: {props}')
             if input_map:
@@ -227,15 +227,15 @@ def export_graph_to_script(graph) -> str:
             elif cls_name == 'SaveNode':
                 pass  # already handled by save call
             elif has_tables or 'table' in str(list(node.outputs().keys())).lower():
-                body_lines.append(f'    # Terminal output — preview:')
+                body_lines.append(f'    # Terminal output -- preview:')
                 body_lines.append(f'    if {var} is not None:')
                 body_lines.append(f'        if hasattr({var}, "to_string"):')
                 body_lines.append(f'            print({var}.to_string())')
                 body_lines.append(f'        else:')
                 body_lines.append(f'            print(type({var}), {var})')
             else:
-                # Image or mask terminal — save it
-                body_lines.append(f'    # Terminal output — save result:')
+                # Image or mask terminal -- save it
+                body_lines.append(f'    # Terminal output -- save result:')
                 body_lines.append(f'    if {var} is not None and isinstance({var}, np.ndarray):')
                 body_lines.append(f'        Image.fromarray({var}).save(os.path.join(output_dir, "{var}.png"))')
                 body_lines.append(f'        print(f"  saved: {{os.path.join(output_dir, \\"{var}.png\\")}}")')
@@ -257,7 +257,7 @@ def export_graph_to_script(graph) -> str:
         '',
     ]
 
-    # Imports — group by stdlib / third-party
+    # Imports -- group by stdlib / third-party
     stdlib = sorted(i for i in imports if i.startswith('import ') and
                     i.split()[1].split('.')[0] in ('os', 'sys', 'time', 'pathlib', 'glob', 'json'))
     third_party = sorted(i for i in imports if i not in stdlib)
@@ -270,7 +270,7 @@ def export_graph_to_script(graph) -> str:
     # Configuration section
     header.append('')
     header.append('# ═══════════════════════════════════════════════════════════════')
-    header.append('#  Configuration — edit these before running')
+    header.append('#  Configuration -- edit these before running')
     header.append('# ═══════════════════════════════════════════════════════════════')
     header.append('')
 
@@ -294,7 +294,7 @@ def export_graph_to_script(graph) -> str:
             file_params.append((var, f'{var.upper()}_FOLDER'))
 
     if not file_params:
-        header.append('# (no file paths detected — add your input/output paths here)')
+        header.append('# (no file paths detected -- add your input/output paths here)')
 
     header.append('')
     header.append('OUTPUT_DIR = "output"')
@@ -378,7 +378,7 @@ def export_graph_to_script(graph) -> str:
     final_header.extend(third_party)
     final_header.extend(header[9 + len(stdlib) + len(third_party) + (1 if stdlib and third_party else 0):])
 
-    # Actually — simpler: just rebuild cleanly
+    # Actually -- simpler: just rebuild cleanly
     out = []
     out.extend([
         '#!/usr/bin/env python3',
@@ -404,7 +404,7 @@ def export_graph_to_script(graph) -> str:
     # Config section
     out.append('')
     out.append('# ═══════════════════════════════════════════════════════════════')
-    out.append('#  Configuration — edit these before running')
+    out.append('#  Configuration -- edit these before running')
     out.append('# ═══════════════════════════════════════════════════════════════')
     out.append('')
 
@@ -1019,7 +1019,7 @@ def _gen_xy_line_plot(var, props, inputs, imports):
 def _gen_crop(var, props, inputs, imports):
     in_var = inputs.get('image', 'image')
     return [
-        f'# CropNode — requires ROI coordinates; adjust slicing manually',
+        f'# CropNode -- requires ROI coordinates; adjust slicing manually',
         f'# Example: {var} = {in_var}[y1:y2, x1:x2]',
         f'{var} = {in_var}  # TODO: add crop coordinates',
     ]
@@ -1239,7 +1239,7 @@ def _gen_outlier_detection(var, props, inputs, imports):
             f'print(f"  kept {{len({var})}} / {{len({in_var})}} rows")',
         ])
     else:
-        lines.append(f'# Method "{method}" — implement manually')
+        lines.append(f'# Method "{method}" -- implement manually')
     return lines
 
 

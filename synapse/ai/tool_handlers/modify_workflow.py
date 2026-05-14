@@ -1,4 +1,4 @@
-"""modify_workflow tool handler — apply a batch of graph operations."""
+"""modify_workflow tool handler -- apply a batch of graph operations."""
 from __future__ import annotations
 
 from typing import Callable
@@ -126,7 +126,7 @@ def _auto_layout_new_nodes(graph, applied: list[dict], lookup: Callable):
             return None
         return _try_get_pos(n)
 
-    # Fixed-point iteration — placement can cascade (A→B→C, both new).
+    # Fixed-point iteration -- placement can cascade (A→B→C, both new).
     progressed = True
     while progressed:
         progressed = False
@@ -200,7 +200,7 @@ def make_modify_workflow_handler(graph, node_factory: Callable[[str, str], objec
                 node = node_factory(op["type"], op["id"])
             except Exception as e:
                 return False, f"{type(e).__name__}: {e}", None
-            # Factory is responsible for adding to the graph — NodeGraphQt's
+            # Factory is responsible for adding to the graph -- NodeGraphQt's
             # create_node already registers the node; calling graph.add_node
             # again would double-register and corrupt internal bookkeeping
             # (seen as ``KeyError: '_TEMP_property_widget_types'`` on real
@@ -236,7 +236,7 @@ def make_modify_workflow_handler(graph, node_factory: Callable[[str, str], objec
             dst_hint = op.get("dst_port") or ""
             sport = _resolve_port(src.outputs(), src_hint) if src_hint else None
             dport = _resolve_port(dst.inputs(), dst_hint) if dst_hint else None
-            # If a hint was given and didn't match, refuse — do NOT create a
+            # If a hint was given and didn't match, refuse -- do NOT create a
             # new port on the fly. That used to silently hallucinate ports
             # like "A" and "B" on ImageMathNode when the LLM got the name
             # wrong. Surface the valid names so the LLM can retry.
@@ -252,7 +252,7 @@ def make_modify_workflow_handler(graph, node_factory: Callable[[str, str], objec
                     f"dst_port {dst_hint!r} not on {_type_name(dst)}; "
                     f"valid inputs: {valid}"
                 ), None
-            # No hint on one/both sides — fall back to type-based auto-wire.
+            # No hint on one/both sides -- fall back to type-based auto-wire.
             if sport is None or dport is None:
                 auto_s, auto_d = _auto_wire(src, dst)
                 sport = sport or auto_s

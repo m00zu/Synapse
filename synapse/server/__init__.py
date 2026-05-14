@@ -1,1 +1,1 @@
-"""synapse.server — FastAPI backend for `synapse serve`."""
+"""synapse.server -- FastAPI backend for `synapse serve`."""
