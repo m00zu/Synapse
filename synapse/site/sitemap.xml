@@ -2,150 +2,246 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://m00zu.github.io/Synapse/index.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/shortcuts.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/ai/index.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/concepts/batch-processing.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/concepts/data-types.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/concepts/nodes-and-connections.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/developing/creating-plugins.html</loc>
-         <lastmod>2026-04-05</lastmod>
-    </url>
-    <url>
-         <loc>https://m00zu.github.io/Synapse/getting-started/ai-assistant.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/examples.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/installation.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/interface.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/plugins.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/getting-started/quick-start.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/nodes/io-display.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/mcp/index.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/nodes/data-tables/combine.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/nodes/analysis.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/nodes/data-tables/compute.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/nodes/collection.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/nodes/data-tables/filter.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/nodes/data.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/nodes/data-tables/transform.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/nodes/display.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/nodes/data-tables/util.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/nodes/io.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/cellpose.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/nodes/plotting.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/cheminformatics.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/nodes/utility.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/figure-plotting.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/nodes/cheminformatics/batch.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/cheminformatics/convert.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/cheminformatics/docking.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/cheminformatics/io.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/cheminformatics/mol.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/cheminformatics/protein.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/cheminformatics/viewer.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/dataframe/combine.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/dataframe/compute.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/dataframe/filter.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/dataframe/io.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/dataframe/transform.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/dataframe/util.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/image_process/color.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/image_process/exposure.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/image_process/filter.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/image_process/io.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/image_process/measure.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/image_process/morphology.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/image_process/transform.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/image_process/visualize.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/volume/color.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/volume/display.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/volume/exposure.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/volume/filters.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/volume/io.html</loc>
+         <lastmod>2026-05-15</lastmod>
+    </url>
+    <url>
+         <loc>https://m00zu.github.io/Synapse/nodes/volume/morphology.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/filopodia.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/plugins/report.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/sam2.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/segmentation.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/video-tracking.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/video_analysis.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/volume.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/ml/classification.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/color.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/ml/clustering.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/exposure.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/ml/embedding.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/filters.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/ml/evaluation.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/measurement.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/ml/io.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/morphology.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/ml/preprocessing.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/roi-drawing.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/ml/regression.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/image-analysis/transform.html</loc>
-         <lastmod>2026-04-05</lastmod>
-    </url>
-    <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/statistical-analysis/descriptive.html</loc>
-         <lastmod>2026-04-05</lastmod>
-    </url>
-    <url>
-         <loc>https://m00zu.github.io/Synapse/plugins/statistical-analysis/regression.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <loc>https://m00zu.github.io/Synapse/plugins/ml/visualization.html</loc>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/workflows/batch-analysis.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
     <url>
          <loc>https://m00zu.github.io/Synapse/workflows/cell-counting.html</loc>
-         <lastmod>2026-04-05</lastmod>
+         <lastmod>2026-05-15</lastmod>
     </url>
 </urlset>

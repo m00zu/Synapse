@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://creativecommons.org/licenses/by-nc/4.0/"><img src="https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue.svg" alt="License"></a>
+  <a href="https://polyformproject.org/licenses/noncommercial/1.0.0/"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/python-3.13%20%7C%203.14-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg" alt="Platform">
 </p>
@@ -25,10 +25,15 @@ Connect processing steps on a canvas to build full analysis pipelines, from load
 ## What it does
 
 - **Visual pipeline builder**: connect nodes on a canvas to build analysis workflows
-- **Reproducible & shareable**: workflows save as `.json` files that anyone can open and run
+- **Reproducible & shareable**: workflows save as `.json` files that anyone can open and re-run deterministically
+- **Strict port type checking**: connections enforce data-type compatibility (a `MaskData` output can feed an `ImageData` input via subclass upcast, but never the other way around); errors surface at connection time in the status bar
+- **Auto-organize layout**: `Ctrl+L` re-positions every node left-to-right with overlap-safe stacking
+- **Run Selected (Up To)**: `Ctrl+Shift+W` runs the selected nodes and their upstream dependencies, skipping anything downstream — useful for debugging without firing save/report nodes
 - **Batch processing**: iterate over entire folders with automatic result accumulation
 - **Plugin system**: extend with custom nodes distributed as `.py`, `.zip`, or `.synpkg` packages
-- **AI workflow assistant** *(beta)*: describe what you want and the AI builds the node graph (Ollama, OpenAI, Claude, Gemini, Groq)
+- **Two AI surfaces**:
+  - **In-app AI Chat panel** — 8 providers including local **Ollama** and **llama.cpp** (no API key, no internet); pay-as-you-go for cloud models
+  - **MCP server** — drive Synapse from external chat clients (**Claude Code**, **Claude Desktop**, **Antigravity**, **Gemini CLI**) using your existing chat subscription; one-click setup per client
 - **Cross-platform**: macOS, Windows, and Linux
 
 ## Download
@@ -136,6 +141,28 @@ https://github.com/user-attachments/assets/a3772ee9-da64-4fe1-ad58-ee22ac6f41aa
 
 <p align="center"><i>Color deconvolution of a Masson's trichrome stain, threshold the collagen channel, measure area.</i></p>
 
+## Using AI
+
+Synapse has **two AI surfaces** — both drive the same node graph. Pick whichever fits your cost model and workflow.
+
+### In-app AI Chat (works offline with Ollama)
+
+1. **View > AI Chat** to open the dock panel.
+2. Pick a provider. For zero setup with no API key, install [Ollama](https://ollama.com) and pull a model (`ollama pull gemma3:12b`).
+3. Type a description — the assistant builds and edits the canvas for you.
+
+Supports Claude, OpenAI, Gemini, Groq, OpenRouter, Ollama, llama.cpp, and RunPod. API keys are stored locally via the OS keyring; conversation history is session-only.
+
+### MCP from your existing chat client
+
+Synapse runs an MCP server on `127.0.0.1:51780` so external chat clients can read, modify, and run your graph using your existing chat subscription (no per-token billing on Synapse's side).
+
+1. **Help > AI Connection (MCP)...** opens the connection dialog.
+2. Click the setup button for your chat client (**Claude Code**, **Claude Desktop**, **Antigravity**, or **Gemini CLI**) — the right config is written automatically.
+3. Open your chat client and ask it to inspect, build, or modify a workflow.
+
+See the [AI overview](https://m00zu.github.io/Synapse/ai/) for the full feature reference.
+
 ## Plugins
 
 The core handles data I/O and display. Domain-specific nodes ship as plugins with their dependencies bundled in.
@@ -163,11 +190,13 @@ You can also drop `.py` files or extracted plugin folders directly into the `plu
 | Data Processing | Table filter, sort, math column, aggregate, concat, join (installed by default) |
 | Image Analysis | Filters, thresholding, morphology, segmentation, measurements, ROI |
 | Statistical Analysis | t-tests, ANOVA, regression, survival analysis, PCA |
-| Figure Plotting | Scatter, box, violin, heatmap, volcano, regression plots |
-| SAM2 & Cellpose | SAM2, Cellpose, video tracking |
-| Cheminformatics | RDKit molecule editing, docking, protein prep |
-| 3D Volume | Volume rendering and analysis |
-| Filopodia | Cell protrusion detection and measurement (Port of FiloQuant) |
+| Figure Plotting | Scatter, box, violin, heatmap, volcano, regression, SVG editor |
+| Machine Learning | scikit-learn classifiers, regressors, clustering, embedding (UMAP), SHAP, train/test split |
+| SAM2 & Cellpose | SAM2 click-to-segment, Cellpose batch + single-image, video tracking |
+| Cheminformatics | RDKit molecule editing, fingerprints, scaffolds, batch docking (AutoDock Vina / GNINA), protein prep |
+| 3D Volume | Z-stack I/O, 3D morphology, volume rendering |
+| Filopodia | Cell protrusion detection and measurement (port of FiloQuant) |
+| Report | Markdown / HTML report generation from workflow outputs |
 
 ## Documentation
 
@@ -175,4 +204,4 @@ Available at [m00zu.github.io/Synapse](https://m00zu.github.io/Synapse/) and bui
 
 ## License
 
-This work is licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). You can use, share, and adapt it for non-commercial purposes with attribution.
+Licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/). You may use, modify, and distribute Synapse for any noncommercial purpose, including personal projects, academic research, and use within nonprofit or government organizations. Commercial use requires a separate license from the copyright holder.

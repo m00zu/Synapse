@@ -47,6 +47,6 @@ Use ++ctrl+s++ to save the workflow as a `.json` file. Reopen it later to contin
 
 - [Interface Overview](interface.md) — learn the UI layout
 - [Batch Processing](../concepts/batch-processing.md) — process folders of images
-- [Node Reference](../plugins/image-analysis/filters.md) — explore all available nodes
+- [Node Reference](../index.md#node-reference) — explore all available nodes
 
 <!-- TODO: Add screenshots for each step -->

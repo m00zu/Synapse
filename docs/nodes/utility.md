@@ -1,5 +1,36 @@
 # Utility
 
+### Cast Type
+
+Relabel data as a different ``NodeData`` subclass without re-parsing.
+
+??? note "Details"
+    Useful when a polymorphic pass-through node erases your subtype
+    info -- e.g., filtering a ``MolTableData`` through ``Filter Table``
+    gives you back ``TableData`` even though the DataFrame still has
+    the rdkit Mol column.  A ``Table -> MolTable`` node would re-parse
+    every SMILES (slow).  This node just wraps the existing payload in
+    the target class -- microseconds, no re-parse.
+    
+    Targets are populated from the live port-type registry, so any
+    plugin-registered type whose data class accepts only a ``payload``
+    argument appears in the dropdown automatically.
+    
+    Light validation: for the common ndarray-typed and DataFrame-typed
+    targets, the node checks at evaluate time that the payload looks
+    right.  For plugin types, the cast is permissive (the user takes
+    responsibility -- this node is a *type assertion*, not a
+    conversion).
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `data` | any |
+| **Output** | `data` | image |
+
+**Properties:** `Cast to`
+
+---
+
 ### Data Saver
 
 Saves incoming data to a file on disk.
