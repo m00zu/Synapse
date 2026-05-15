@@ -827,7 +827,16 @@ class NodeGraphController:
 
     def load_graph(self, path: str) -> None:
         from pathlib import Path
+        import json
+        from ..workflow_migrate import migrate_layout
         p = Path(path).expanduser()
         if not p.is_file():
             raise FileNotFoundError(str(p))
-        self._graph.load_session(str(p))
+        # Read + migrate + deserialize, so workflows saved under
+        # older identifier names still load (e.g., plugins.Plugins.* ->
+        # plugins.*).  Equivalent to NodeGraphQt's load_session() but
+        # with the migration step inserted before deserialization.
+        layout = json.loads(p.read_text(encoding='utf-8'))
+        migrate_layout(layout)
+        self._graph.clear_session()
+        self._graph.deserialize_session(layout, clear_undo_stack=True)

@@ -12,7 +12,7 @@
                     "properties": {
                         "id": {
                             "type": "integer",
-                            "description": "Sequential integer ID (1, 2, 3, \u2026)."
+                            "description": "Sequential integer ID (1, 2, 3, ...)."
                         },
                         "type": {
                             "type": "string",
@@ -21,6 +21,7 @@
                                 "BackdropNode",
                                 "BatchAccumulatorNode",
                                 "BatchGateNode",
+                                "CastTypeNode",
                                 "CollectNode",
                                 "CollectionInfoNode",
                                 "DataFigureCellNode",
@@ -208,6 +209,42 @@
                                             "batch_gate": {
                                                 "type": "string",
                                                 "description": "Default: "
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "const": "CastTypeNode"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "custom": {
+                                        "type": "object",
+                                        "properties": {
+                                            "target_type": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "collection",
+                                                    "confocal",
+                                                    "figure",
+                                                    "html",
+                                                    "image",
+                                                    "label",
+                                                    "label_image",
+                                                    "mask",
+                                                    "model",
+                                                    "skeleton",
+                                                    "stat",
+                                                    "table"
+                                                ],
+                                                "description": "Default: image. Must be one of the listed options."
                                             }
                                         }
                                     }
@@ -569,7 +606,7 @@
                                         "properties": {
                                             "thresh_state": {
                                                 "type": "string",
-                                                "description": "Default: [128.0, 1] [threshold, direction] \u2014 1=keep pixels > threshold (strictly above), 0=keep pixels <= threshold (below or equal)"
+                                                "description": "Default: [128.0, 1] [threshold, direction] -- 1=keep pixels > threshold (strictly above), 0=keep pixels <= threshold (below or equal)"
                                             },
                                             "thresh_colormap": {
                                                 "type": "string",
@@ -585,7 +622,7 @@
                                             },
                                             "apply_to_image": {
                                                 "type": "boolean",
-                                                "description": "Default: False true = preview shows masked input image; false = preview shows the binary mask. Display only \u2014 masked_image output is always produced."
+                                                "description": "Default: False true = preview shows masked input image; false = preview shows the binary mask. Display only -- masked_image output is always produced."
                                             }
                                         }
                                     }
@@ -1253,7 +1290,7 @@
                                         "properties": {
                                             "hsv_state": {
                                                 "type": "string",
-                                                "description": "Default: [0.0, 360.0, 0.0, 100.0, 0.0, 100.0] [h_min, h_max, s_min, s_max, v_min, v_max] \u2014 H in 0\u2013360\u00b0, S/V in 0\u2013100%. h_min > h_max wraps around."
+                                                "description": "Default: [0.0, 360.0, 0.0, 100.0, 0.0, 100.0] [h_min, h_max, s_min, s_max, v_min, v_max] -- H in 0-360\u00b0, S/V in 0-100%. h_min > h_max wraps around."
                                             },
                                             "hsv_range_widget": {
                                                 "type": "string",
@@ -1720,19 +1757,19 @@
                                         "properties": {
                                             "thresh_state_ch1": {
                                                 "type": "string",
-                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch1 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip. Legacy 2-element [threshold, direction] is also accepted (defaults enabled=1)."
+                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch1 -- direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip. Legacy 2-element [threshold, direction] is also accepted (defaults enabled=1)."
                                             },
                                             "thresh_state_ch2": {
                                                 "type": "string",
-                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch2 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch2 -- direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
                                             },
                                             "thresh_state_ch3": {
                                                 "type": "string",
-                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch3 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch3 -- direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
                                             },
                                             "thresh_state_ch4": {
                                                 "type": "string",
-                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch4 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                                                "description": "Default: [128.0, 1, 1] [threshold, direction, enabled] for ch4 -- direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
                                             },
                                             "mc_thresh_widget": {
                                                 "type": "string",
@@ -1744,11 +1781,11 @@
                                                     "AND",
                                                     "OR"
                                                 ],
-                                                "description": "Default: AND. Must be one of the listed options. 'AND' or 'OR' \u2014 how to merge active per-channel masks"
+                                                "description": "Default: AND. Must be one of the listed options. 'AND' or 'OR' -- how to merge active per-channel masks"
                                             },
                                             "apply_to_image": {
                                                 "type": "boolean",
-                                                "description": "Default: False true = preview shows masked image; false = preview shows combined mask. Display only \u2014 masked_image output is always produced."
+                                                "description": "Default: False true = preview shows masked image; false = preview shows combined mask. Display only -- masked_image output is always produced."
                                             }
                                         }
                                     }
@@ -3868,13 +3905,13 @@
                                             "panel_labels": {
                                                 "type": "string",
                                                 "enum": [
-                                                    "A, B, C\u2026",
-                                                    "a, b, c\u2026",
-                                                    "(A), (B)\u2026",
-                                                    "(a), (b)\u2026",
+                                                    "A, B, C...",
+                                                    "a, b, c...",
+                                                    "(A), (B)...",
+                                                    "(a), (b)...",
                                                     "None"
                                                 ],
-                                                "description": "Default: A, B, C\u2026. Must be one of the listed options."
+                                                "description": "Default: A, B, C.... Must be one of the listed options."
                                             },
                                             "label_fontweight": {
                                                 "type": "string",
@@ -5251,14 +5288,14 @@
                                             "method": {
                                                 "type": "string",
                                                 "enum": [
-                                                    "Min-Max (0\u20131)",
+                                                    "Min-Max (0-1)",
                                                     "Z-score",
                                                     "Log10",
                                                     "Log2",
                                                     "Ln (natural)",
                                                     "Robust (IQR)"
                                                 ],
-                                                "description": "Default: Min-Max (0\u20131). Must be one of the listed options."
+                                                "description": "Default: Min-Max (0-1). Must be one of the listed options."
                                             },
                                             "columns": {
                                                 "type": "string",
@@ -5849,6 +5886,41 @@
                 }
             }
         },
+        "CastTypeNode": {
+            "description": "Relabel data as a different ``NodeData`` subclass without re-parsing.",
+            "inputs": [
+                {
+                    "name": "data",
+                    "type": "any"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "data",
+                    "type": "image"
+                }
+            ],
+            "configurable_properties": {
+                "target_type": {
+                    "type": "str",
+                    "default": "image",
+                    "options": [
+                        "collection",
+                        "confocal",
+                        "figure",
+                        "html",
+                        "image",
+                        "label",
+                        "label_image",
+                        "mask",
+                        "model",
+                        "skeleton",
+                        "stat",
+                        "table"
+                    ]
+                }
+            }
+        },
         "CollectNode": {
             "description": "Pack multiple data items into a named collection.",
             "inputs": [
@@ -6335,7 +6407,7 @@
                         128.0,
                         1
                     ],
-                    "description": "[threshold, direction] \u2014 1=keep pixels > threshold (strictly above), 0=keep pixels <= threshold (below or equal)"
+                    "description": "[threshold, direction] -- 1=keep pixels > threshold (strictly above), 0=keep pixels <= threshold (below or equal)"
                 },
                 "thresh_colormap": {
                     "type": "str",
@@ -6356,7 +6428,7 @@
                 "apply_to_image": {
                     "type": "bool",
                     "default": false,
-                    "description": "true = preview shows masked input image; false = preview shows the binary mask. Display only \u2014 masked_image output is always produced."
+                    "description": "true = preview shows masked input image; false = preview shows the binary mask. Display only -- masked_image output is always produced."
                 }
             }
         },
@@ -7157,7 +7229,7 @@
                         0.0,
                         100.0
                     ],
-                    "description": "[h_min, h_max, s_min, s_max, v_min, v_max] \u2014 H in 0\u2013360\u00b0, S/V in 0\u2013100%. h_min > h_max wraps around."
+                    "description": "[h_min, h_max, s_min, s_max, v_min, v_max] -- H in 0-360\u00b0, S/V in 0-100%. h_min > h_max wraps around."
                 },
                 "hsv_range_widget": {
                     "type": "list",
@@ -7231,8 +7303,8 @@
                     "type": "image"
                 },
                 {
-                    "name": "B (mask)",
-                    "type": "mask"
+                    "name": "B (image/mask)",
+                    "type": "image"
                 }
             ],
             "outputs": [
@@ -7876,7 +7948,7 @@
                         1,
                         1
                     ],
-                    "description": "[threshold, direction, enabled] for ch1 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip. Legacy 2-element [threshold, direction] is also accepted (defaults enabled=1)."
+                    "description": "[threshold, direction, enabled] for ch1 -- direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip. Legacy 2-element [threshold, direction] is also accepted (defaults enabled=1)."
                 },
                 "thresh_state_ch2": {
                     "type": "list",
@@ -7885,7 +7957,7 @@
                         1,
                         1
                     ],
-                    "description": "[threshold, direction, enabled] for ch2 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                    "description": "[threshold, direction, enabled] for ch2 -- direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
                 },
                 "thresh_state_ch3": {
                     "type": "list",
@@ -7894,7 +7966,7 @@
                         1,
                         1
                     ],
-                    "description": "[threshold, direction, enabled] for ch3 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                    "description": "[threshold, direction, enabled] for ch3 -- direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
                 },
                 "thresh_state_ch4": {
                     "type": "list",
@@ -7903,7 +7975,7 @@
                         1,
                         1
                     ],
-                    "description": "[threshold, direction, enabled] for ch4 \u2014 direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
+                    "description": "[threshold, direction, enabled] for ch4 -- direction: 1=above, 0=below; enabled: 1=use in combine, 0=skip."
                 },
                 "mc_thresh_widget": {
                     "type": "dict",
@@ -7935,12 +8007,12 @@
                         "AND",
                         "OR"
                     ],
-                    "description": "'AND' or 'OR' \u2014 how to merge active per-channel masks"
+                    "description": "'AND' or 'OR' -- how to merge active per-channel masks"
                 },
                 "apply_to_image": {
                     "type": "bool",
                     "default": false,
-                    "description": "true = preview shows masked image; false = preview shows combined mask. Display only \u2014 masked_image output is always produced."
+                    "description": "true = preview shows masked image; false = preview shows combined mask. Display only -- masked_image output is always produced."
                 }
             }
         },
@@ -10188,7 +10260,7 @@
             }
         },
         "JointPlotNode": {
-            "description": "Creates a joint plot \u2014 scatter with marginal distributions on each axis.",
+            "description": "Creates a joint plot -- scatter with marginal distributions on each axis.",
             "inputs": [
                 {
                     "name": "data",
@@ -10360,12 +10432,12 @@
                 },
                 "panel_labels": {
                     "type": "str",
-                    "default": "A, B, C\u2026",
+                    "default": "A, B, C...",
                     "options": [
-                        "A, B, C\u2026",
-                        "a, b, c\u2026",
-                        "(A), (B)\u2026",
-                        "(a), (b)\u2026",
+                        "A, B, C...",
+                        "a, b, c...",
+                        "(A), (B)...",
+                        "(a), (b)...",
                         "None"
                     ]
                 },
@@ -11849,9 +11921,9 @@
             "configurable_properties": {
                 "method": {
                     "type": "str",
-                    "default": "Min-Max (0\u20131)",
+                    "default": "Min-Max (0-1)",
                     "options": [
-                        "Min-Max (0\u20131)",
+                        "Min-Max (0-1)",
                         "Z-score",
                         "Log10",
                         "Log2",

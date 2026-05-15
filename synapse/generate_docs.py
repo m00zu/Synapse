@@ -1,8 +1,31 @@
 #!/usr/bin/env python3
-"""Auto-generate node reference Markdown pages from source docstrings.
+"""Auto-generate node reference Markdown pages from source __identifier__.
 
-Run:  python generate_docs.py
-Outputs to docs/nodes/ and docs/plugins/
+Output paths are derived directly from each node's ``__identifier__``
+attribute -- no manual file-to-page mapping.  Adding a new node
+anywhere under ``synapse/nodes/`` or ``Synapse-Plugins/`` automatically
+creates or updates its docs page on the next run.
+
+Identifier -> output path:
+
+    nodes.io                      ->  docs/nodes/io.md
+    nodes.dataframe.Compute       ->  docs/nodes/dataframe/compute.md
+    nodes.image_process.filter    ->  docs/nodes/image_process/filter.md
+    plugins.ML.Classification     ->  docs/plugins/ml/classification.md
+
+Folder names and filenames are lowercased for cross-platform URL
+stability.  Page titles come from the last identifier component
+(underscores split into words; known acronyms like ``io`` stay
+upper-case).
+
+Source roots:
+
+    PySide_Node/synapse/nodes/    (core nodes)
+    Synapse-Plugins/              (canonical plugin repo; sibling dir)
+
+Override the plugins root via the ``SYNAPSE_PLUGINS_DIR`` env var.
+
+Run:  python synapse/generate_docs.py
 """
 
 import ast
@@ -10,9 +33,26 @@ import os
 import re
 import textwrap
 
-# Project root is one level up from synapse/
+
+# ── Paths ────────────────────────────────────────────────────────────────
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
+PLUGINS_ROOT = os.environ.get(
+    "SYNAPSE_PLUGINS_DIR",
+    os.path.normpath(os.path.join(ROOT, "..", "Synapse-Plugins")),
+)
+CORE_NODES_ROOT = os.path.join(ROOT, "synapse", "nodes")
+
+# Directories to skip while walking source roots.
+_SKIP_DIRS = {"__pycache__", "rust", "vendor", ".git", "build", "dist"}
+
+# Acronyms kept upper-case when converting identifier components to
+# page titles.  Anything not in here is title-cased normally.
+_ACRONYMS = {
+    "io", "ml", "ai", "ui", "api", "url", "json", "csv", "rdkit",
+    "sam2", "shap", "pca", "umap", "id", "rgb", "rgba", "svg", "html",
+    "cli", "gui", "mcp", "ngs", "pdb",
+}
 
 
 def _extract_nodes(filepath):
@@ -112,12 +152,12 @@ def _extract_nodes(filepath):
                             for kw in node.keywords:
                                 if kw.arg == "color":
                                     if isinstance(kw.value, ast.Subscript):
-                                        # PORT_COLORS['table'] → 'table'
+                                        # PORT_COLORS['table'] -> 'table'
                                         sl = kw.value.slice
                                         if isinstance(sl, ast.Constant):
                                             port_type = sl.value
                                     elif isinstance(kw.value, ast.Call):
-                                        # PORT_COLORS.get('table', ...) → 'table'
+                                        # PORT_COLORS.get('table', ...) -> 'table'
                                         if (kw.value.args
                                                 and isinstance(kw.value.args[0], ast.Constant)):
                                             port_type = kw.value.args[0].value
@@ -236,195 +276,174 @@ def _node_to_md(info):
     return "\n".join(lines)
 
 
-# ── File → category mapping ──────────────────────────────────────────────
+# ── Routing: identifier -> output path ───────────────────────────────────
 
-FILE_MAP = {
-    # Data processing plugin (moved from core)
-    "synapse/plugins/data_processing/dataframe_nodes.py": {
-        "filter": ("nodes/data-tables/filter.md", "Filter"),
-        "compute": ("nodes/data-tables/compute.md", "Compute"),
-        "transform": ("nodes/data-tables/transform.md", "Transform"),
-        "combine": ("nodes/data-tables/combine.md", "Combine"),
-        "util": ("nodes/data-tables/util.md", "Utility"),
-    },
-    "synapse/plugins/data_processing/data_nodes.py": {
-        "_default": ("nodes/data-tables/util.md", "Utility"),
-    },
-    "synapse/nodes/io_nodes.py": {
-        "_default": ("nodes/io-display.md", "IO & Display"),
-    },
-    "synapse/nodes/display_nodes.py": {
-        "_default": ("nodes/io-display.md", "IO & Display"),
-    },
-    "synapse/nodes/utility_nodes.py": {
-        "_default": ("nodes/io-display.md", "IO & Display"),
-    },
-    # ── image_analysis plugin ──────────────────────────────────────────────
-    "synapse/plugins/image_analysis/image_process_nodes.py": {
-        "color": ("plugins/image-analysis/color.md", "Color"),
-        "exposure": ("plugins/image-analysis/exposure.md", "Exposure & Contrast"),
-        "filter": ("plugins/image-analysis/filters.md", "Filters"),
-        "transform": ("plugins/image-analysis/transform.md", "Transform"),
-        "morphology": ("plugins/image-analysis/morphology.md", "Morphology"),
-        "_default": ("plugins/image-analysis/filters.md", "Filters"),
-    },
-    "synapse/plugins/image_analysis/mask_nodes.py": {
-        "_default": ("plugins/image-analysis/morphology.md", "Morphology"),
-    },
-    "synapse/plugins/image_analysis/vision_nodes.py": {
-        "morphology": ("plugins/image-analysis/morphology.md", "Morphology"),
-        "filter": ("plugins/image-analysis/filters.md", "Filters"),
-        "measure": ("plugins/image-analysis/measurement.md", "Measurement & Analysis"),
-        "_default": ("plugins/image-analysis/measurement.md", "Measurement & Analysis"),
-    },
-    "synapse/plugins/image_analysis/roi_nodes.py": {
-        "_default": ("plugins/image-analysis/roi-drawing.md", "ROI & Drawing"),
-    },
-    # ── statistical_analysis plugin ────────────────────────────────────────
-    "synapse/plugins/statistical_analysis/analysis_nodes.py": {
-        "_default": ("plugins/statistical-analysis/descriptive.md", "Descriptive & Comparison"),
-    },
-    "synapse/plugins/statistical_analysis/stats_nodes.py": {
-        "_default": ("plugins/statistical-analysis/regression.md", "Regression & Advanced"),
-    },
-    # ── figure_plotting plugin ─────────────────────────────────────────────
-    "synapse/plugins/figure_plotting/plot_nodes.py": {
-        "_default": ("plugins/figure-plotting.md", "Plotting"),
-    },
-    # ── report plugin ─────────────────────────────────────────────────────
-    "synapse/plugins/report_node.py": {
-        "_default": ("plugins/report.md", "Report Generation"),
-    },
-    # ── data_processing extras ────────────────────────────────────────────
-    "synapse/plugins/data_processing/script_node.py": {
-        "_default": ("nodes/data-tables/util.md", "Utility"),
-    },
-    # ── figure_plotting extras ────────────────────────────────────────────
-    "synapse/plugins/figure_plotting/svg_editor_node.py": {
-        "_default": ("plugins/figure-plotting.md", "Plotting"),
-    },
-    # ── filopodia plugin ───────────────────────────────────────────────────
-    "synapse/plugins/filopodia_nodes.py": {
-        "_default": ("plugins/filopodia.md", "Filopodia Analysis"),
-    },
-    "plugins/filopodia_nodes/confocal_nodes.py": {
-        "_default": ("plugins/filopodia.md", "Filopodia Analysis"),
-    },
-    # ── SAM2 / Cellpose / Tracking plugins ─────────────────────────────────
-    "plugins/sam2_nodes/sam2_segment.py": {
-        "_default": ("plugins/sam2.md", "SAM2 Segmentation"),
-    },
-    "plugins/sam2_nodes/node.py": {
-        "_default": ("plugins/sam2.md", "SAM2 Segmentation"),
-    },
-    "plugins/sam2_nodes/tracking.py": {
-        "_default": ("plugins/video-tracking.md", "Video & Tracking"),
-    },
-    "plugins/sam2_nodes/grounding.py": {
-        "_default": ("plugins/sam2.md", "SAM2 Segmentation"),
-    },
-    "plugins/sam2_nodes/video_utils.py": {
-        "_default": ("plugins/video-tracking.md", "Video & Tracking"),
-    },
-    "plugins/sam2_nodes/video_analyze_node.py": {
-        "_default": ("plugins/video-tracking.md", "Video & Tracking"),
-    },
-    "plugins/sam2_nodes/particle_tracking.py": {
-        "_default": ("plugins/video-tracking.md", "Video & Tracking"),
-    },
-    "plugins/sam2_nodes/cellpose_node.py": {
-        "_default": ("plugins/cellpose.md", "Cellpose Segmentation"),
-    },
-    "plugins/sam2_nodes/cellpose_segment_node.py": {
-        "_default": ("plugins/cellpose.md", "Cellpose Segmentation"),
-    },
-}
-
-# Volume nodes
-for vf in [
-    "plugins/volume_nodes/io_nodes.py",
-    "plugins/volume_nodes/viewer_nodes.py",
-    "plugins/volume_nodes/image_ops_nodes.py",
-    "plugins/volume_nodes/process_nodes.py",
-    "plugins/volume_nodes/segment_nodes.py",
-]:
-    FILE_MAP[vf] = {"_default": ("plugins/volume.md", "3D Volume Processing")}
-
-# Cheminformatics nodes
-for rf in [
-    "plugins/rdkit_nodes/chem_nodes.py",
-    "plugins/rdkit_nodes/docking_nodes.py",
-    "plugins/rdkit_nodes/viewer_nodes.py",
-]:
-    FILE_MAP[rf] = {"_default": ("plugins/cheminformatics.md", "Cheminformatics")}
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
-def _get_category_key(identifier):
-    """Extract the last meaningful part of the identifier for categorization.
+def _split_camel(name):
+    """Split CamelCase boundaries: ``'VideoAnalysis'`` -> ``['Video', 'Analysis']``.
 
-    Case-insensitive: identifiers use mixed case (Exposure vs exposure,
-    Transform vs transform) so we normalise to lower.
+    Leaves snake_case and lowercase strings alone (so ``'image_process'``
+    returns ``['image_process']`` and ``'io'`` returns ``['io']``).
+    Acronyms like ``'IO'`` or ``'ML'`` stay together because the regex
+    requires a lowercase letter after the second uppercase.
     """
-    if not identifier:
-        return "_default"
-    parts = identifier.split(".")
-    return parts[-1].lower() if parts else "_default"
+    return _CAMEL_BOUNDARY.split(name)
 
+
+def _slugify(name):
+    """Lowercase identifier component for filesystem path use.
+
+    ``'VideoAnalysis'`` -> ``'video_analysis'``
+    ``'image_process'`` -> ``'image_process'``
+    ``'IO'``            -> ``'io'``
+    """
+    return "_".join(part.lower() for part in _split_camel(name))
+
+
+def _make_title(name):
+    """Convert an identifier component to a page title.
+
+    Handles snake_case (``'image_process'`` -> ``'Image Process'``),
+    CamelCase (``'VideoAnalysis'`` -> ``'Video Analysis'``), and acronyms
+    (``'io'`` -> ``'IO'``).
+    """
+    # First split CamelCase, then split each chunk on underscores.
+    words = []
+    for chunk in _split_camel(name):
+        words.extend(chunk.split("_"))
+    return " ".join(
+        w.upper() if w.lower() in _ACRONYMS else w.capitalize()
+        for w in words if w
+    )
+
+
+def _identifier_to_output_path(identifier):
+    """Map a node ``__identifier__`` to ``(relative_doc_path, page_title)``.
+
+    Returns ``None`` if the identifier is missing or malformed.
+
+    Examples::
+
+        'nodes.io'                  -> ('nodes/io.md', 'IO')
+        'nodes.dataframe.Compute'   -> ('nodes/dataframe/compute.md', 'Compute')
+        'plugins.ML.Classification' -> ('plugins/ml/classification.md', 'Classification')
+        'plugins.VideoAnalysis'     -> ('plugins/video_analysis.md', 'Video Analysis')
+    """
+    if not identifier or "." not in identifier:
+        return None
+    parts = identifier.split(".")
+    if len(parts) < 2:
+        return None
+    namespace = _slugify(parts[0])
+    rest_slugs = [_slugify(p) for p in parts[1:]]
+    title_source = parts[-1]  # original case for nicer titles
+    if len(rest_slugs) == 1:
+        rel_path = f"{namespace}/{rest_slugs[0]}.md"
+    else:
+        folder = "/".join(rest_slugs[:-1])
+        filename = rest_slugs[-1]
+        rel_path = f"{namespace}/{folder}/{filename}.md"
+    return rel_path, _make_title(title_source)
+
+
+def _walk_source_files(root):
+    """Yield .py file paths under ``root``, skipping junk directories."""
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        for fn in filenames:
+            if fn.endswith(".py"):
+                yield os.path.join(dirpath, fn)
+
+
+# ── Main ─────────────────────────────────────────────────────────────────
 
 def main():
-    # Collect all node info grouped by output file
-    output_files = {}  # path -> {title, nodes[]}
-    core_count = 0
-    plugin_count = 0
+    # Group node infos by output path.
+    output_pages: dict[str, dict] = {}  # rel_path -> {title, nodes: []}
+    files_scanned = 0
+    nodes_routed = 0
+    nodes_skipped = 0
+    skipped_details: list[tuple[str, str, object]] = []
 
-    for rel_path, cat_map in FILE_MAP.items():
-        full_path = os.path.join(ROOT, rel_path)
-        if not os.path.isfile(full_path):
+    for source_root in [CORE_NODES_ROOT, PLUGINS_ROOT]:
+        if not os.path.isdir(source_root):
+            print(f"  warn: source root not found: {source_root}")
             continue
+        for py_file in _walk_source_files(source_root):
+            files_scanned += 1
+            nodes = _extract_nodes(py_file)
+            for info in nodes:
+                identifier = info.get("identifier")
+                routed = _identifier_to_output_path(identifier)
+                if routed is None:
+                    nodes_skipped += 1
+                    skipped_details.append(
+                        (info["class_name"], py_file, identifier))
+                    continue
+                rel_path, title = routed
+                if rel_path not in output_pages:
+                    output_pages[rel_path] = {"title": title, "nodes": []}
+                output_pages[rel_path]["nodes"].append(info)
+                nodes_routed += 1
 
-        # Normalise cat_map keys to lower for matching
-        cat_map_lower = {k.lower(): v for k, v in cat_map.items()}
+    # Sort each page's nodes alphabetically by NODE_NAME for stable output.
+    for page in output_pages.values():
+        page["nodes"].sort(key=lambda n: (n.get("node_name") or "").lower())
 
-        is_plugin = rel_path.startswith("plugins/")
-        nodes = _extract_nodes(full_path)
-        for info in nodes:
-            cat_key = _get_category_key(info["identifier"])
-            if cat_key in cat_map_lower:
-                out_path, title = cat_map_lower[cat_key]
-            elif "_default" in cat_map_lower:
-                out_path, title = cat_map_lower["_default"]
-            else:
-                continue
-
-            if out_path not in output_files:
-                output_files[out_path] = {"title": title, "nodes": []}
-            output_files[out_path]["nodes"].append(info)
-
-            if is_plugin:
-                plugin_count += 1
-            else:
-                core_count += 1
-
-    # Write output files
-    for rel_out, data in output_files.items():
-        out_path = os.path.join(DOCS, rel_out)
+    # Write pages.
+    written = []
+    for rel_path, data in sorted(output_pages.items()):
+        out_path = os.path.join(DOCS, rel_path)
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
-
         lines = [f"# {data['title']}", ""]
-
         for info in data["nodes"]:
             lines.append(_node_to_md(info))
-
         with open(out_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
+        written.append(rel_path)
 
-        print(f"  wrote {rel_out} ({len(data['nodes'])} nodes)")
+    # Summary.
+    print(f"\nGenerated {len(written)} reference pages.")
+    print(f"  Files scanned:  {files_scanned}")
+    print(f"  Nodes routed:   {nodes_routed}")
+    print(f"  Nodes skipped:  {nodes_skipped}")
+    if skipped_details:
+        print("\nSkipped nodes (missing or malformed __identifier__):")
+        for cls, fp, ident in skipped_details[:20]:
+            short = os.path.relpath(fp, ROOT)
+            print(f"  - {cls} in {short}  (__identifier__={ident!r})")
+        if len(skipped_details) > 20:
+            print(f"  ... and {len(skipped_details) - 20} more")
 
-    total = core_count + plugin_count
-    print(f"\nGenerated {len(output_files)} reference pages.")
-    print(f"  Core nodes: {core_count}")
-    print(f"  Plugin nodes: {plugin_count}")
-    print(f"  Total: {total}")
+    # Detect potentially-stale pages: any .md under docs/nodes/ or
+    # docs/plugins/ that this run did NOT generate.  Leftover pages
+    # from a previous (FILE_MAP-based) layout end up here.  We report
+    # them but don't delete -- review and rm manually.
+    auto_roots = ["nodes", "plugins"]
+    stale = []
+    written_set = set(written)
+    for root_name in auto_roots:
+        abs_root = os.path.join(DOCS, root_name)
+        if not os.path.isdir(abs_root):
+            continue
+        for dirpath, _, filenames in os.walk(abs_root):
+            for fn in filenames:
+                if not fn.endswith(".md"):
+                    continue
+                rel = os.path.relpath(os.path.join(dirpath, fn), DOCS)
+                # Normalise to forward slashes for comparison.
+                rel = rel.replace(os.sep, "/")
+                if rel not in written_set:
+                    stale.append(rel)
+
+    if stale:
+        print(f"\nPotentially-stale auto-generated pages ({len(stale)}):")
+        for s in sorted(stale):
+            print(f"  - {s}")
+        print("\n  These weren't generated by this run.  Review and delete if")
+        print("  they're orphans from the previous (FILE_MAP-based) layout.")
 
 
 if __name__ == "__main__":

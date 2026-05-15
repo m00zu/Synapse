@@ -174,6 +174,187 @@ class PathModifierNode(BaseExecutionNode):
 
 
 # ===========================================================================
+# Cast Type -- relabel data as a different NodeData subclass
+# ===========================================================================
+
+class CastTypeNode(BaseExecutionNode):
+    """Relabel data as a different ``NodeData`` subclass without re-parsing.
+
+    Useful when a polymorphic pass-through node erases your subtype
+    info -- e.g., filtering a ``MolTableData`` through ``Filter Table``
+    gives you back ``TableData`` even though the DataFrame still has
+    the rdkit Mol column.  A ``Table -> MolTable`` node would re-parse
+    every SMILES (slow).  This node just wraps the existing payload in
+    the target class -- microseconds, no re-parse.
+
+    Targets are populated from the live port-type registry, so any
+    plugin-registered type whose data class accepts only a ``payload``
+    argument appears in the dropdown automatically.
+
+    Light validation: for the common ndarray-typed and DataFrame-typed
+    targets, the node checks at evaluate time that the payload looks
+    right.  For plugin types, the cast is permissive (the user takes
+    responsibility -- this node is a *type assertion*, not a
+    conversion).
+
+    Keywords: cast, type, relabel, convert, mol_table, MolTable, 轉換, 類型, 型別
+    """
+
+    __identifier__ = 'nodes.utility'
+    NODE_NAME = 'Cast Type'
+    PORT_SPEC = {'inputs': ['any'], 'outputs': ['any']}
+
+    # Validators for the common payload shapes.  Plugin-specific
+    # types not in here are passed through without validation.
+    _PAYLOAD_VALIDATORS = {
+        'image':     lambda p: isinstance(p, (np.ndarray, Image.Image)),
+        'mask':      lambda p: isinstance(p, np.ndarray),
+        'skeleton':  lambda p: isinstance(p, np.ndarray),
+        'label':     lambda p: isinstance(p, np.ndarray),
+        'table':     lambda p: isinstance(p, pd.DataFrame),
+        'stat':      lambda p: isinstance(p, pd.DataFrame),
+        'mol_table': lambda p: isinstance(p, pd.DataFrame),
+    }
+    _EXPECTED_LABEL = {
+        'image':     'ndarray or PIL.Image',
+        'mask':      'ndarray',
+        'skeleton':  'ndarray',
+        'label':     'ndarray',
+        'table':     'pandas.DataFrame',
+        'stat':      'pandas.DataFrame',
+        'mol_table': 'pandas.DataFrame',
+    }
+
+    def __init__(self):
+        super(CastTypeNode, self).__init__()
+        self.add_input('data',  color=PORT_COLORS['any'])
+        self.add_output('data', color=PORT_COLORS['image'])
+
+        # Populate dropdown from the live registry -- any type whose
+        # NodeData subclass needs only ``payload`` is castable.
+        items = self._discover_targets()
+        # Image as default since it's the most generic ndarray target.
+        default = 'image' if 'image' in items else (items[0] if items else 'image')
+        self.add_combo_menu('target_type', 'Cast to', items=items)
+        self.set_property('target_type', default)
+        # Apply the initial type to the output port.
+        self._retype_output(default)
+
+    # ── Discovery: which targets can we cast to? ────────────────────────
+
+    @staticmethod
+    def _discover_targets() -> list[str]:
+        """Return registered port-type names whose data class is castable.
+
+        A class is castable if its only required Pydantic field is
+        ``payload`` (or it has no required fields).  Excludes types
+        like ProteinData which require additional fields the cast
+        can't supply.
+        """
+        # Imported here to avoid module-load-time circular issues.
+        from .base import _PORT_TYPE_CLASSES
+        result = []
+        for name, cls in _PORT_TYPE_CLASSES.items():
+            try:
+                required = {n for n, f in cls.model_fields.items()
+                            if f.is_required()}
+            except AttributeError:
+                continue
+            if required <= {'payload'}:
+                result.append(name)
+        return sorted(result)
+
+    # ── Live retyping when the user changes the dropdown ────────────────
+
+    def set_property(self, name, value, push_undo=True):
+        super(CastTypeNode, self).set_property(name, value, push_undo)
+        if name == 'target_type':
+            self._retype_output(value)
+
+    def _retype_output(self, target: str) -> None:
+        """Update output port colour + recorded type to the new target.
+
+        ``Port.connect_to``'s type check reads ``_output_types`` live
+        for outgoing ports (and ``_input_types`` for incoming ones),
+        so updating the right dict here is enough for subsequent
+        connection attempts to enforce the new type.  Existing
+        downstream wires are left in place -- the user can re-wire if
+        they become type-incompatible (they'll be flagged at next
+        connect attempt).
+        """
+        rgb = PORT_COLORS.get(target, PORT_COLORS['any'])
+        # IMPORTANT: only the OUTPUT port retypes.  The input port
+        # stays 'any' so the user can feed any upstream into the cast.
+        self._output_types['data'] = target
+        for port in self.outputs().values():
+            if port.name() == 'data':
+                try:
+                    # Use the public setter -- it routes through the
+                    # QGraphics PortItem and calls update() to repaint.
+                    # Setting port.model.color directly only updates
+                    # the data; it doesn't trigger a redraw.
+                    port.color = rgb
+                    if hasattr(self.view, 'draw_node'):
+                        self.view.draw_node()
+                except Exception:
+                    pass  # best-effort UI refresh
+                break
+
+    # ── Evaluation: wrap the payload in the target class ────────────────
+
+    def evaluate(self):
+        in_port = self.inputs().get('data')
+        if not in_port or not in_port.connected_ports():
+            return False, "Input not connected."
+        upstream = in_port.connected_ports()[0]
+        upstream_data = upstream.node().output_values.get(upstream.name())
+        if upstream_data is None:
+            return False, ("Upstream node has no output yet -- "
+                           "run it first, then re-run this Cast.")
+
+        target = self.get_property('target_type') or 'image'
+
+        from .base import _PORT_TYPE_CLASSES
+        target_cls = _PORT_TYPE_CLASSES.get(target)
+        if target_cls is None:
+            return False, (f"Target type {target!r} is not registered.  "
+                           f"This usually means a plugin defining {target!r} "
+                           f"failed to load.")
+
+        # Unwrap the upstream payload.
+        payload = getattr(upstream_data, 'payload', upstream_data)
+        meta = getattr(upstream_data, 'metadata', None) or {}
+        src = getattr(upstream_data, 'source_path', None)
+
+        # Light validation: catch the obvious type-mistakes (image -> table etc.)
+        validator = self._PAYLOAD_VALIDATORS.get(target)
+        if validator is not None and not validator(payload):
+            expected = self._EXPECTED_LABEL.get(target, target)
+            return False, (f"Cannot cast to {target!r}: payload is "
+                           f"{type(payload).__name__}, expected {expected}.  "
+                           f"Use an analytical node (Binary Threshold, "
+                           f"Connected Components, etc.) for actual "
+                           f"conversions; Cast is for type relabelling only.")
+
+        # Wrap payload in the target class.  Most classes have only
+        # `payload` required; metadata/source_path inherit from NodeData.
+        try:
+            wrapped = target_cls(payload=payload,
+                                 metadata=meta,
+                                 source_path=src)
+        except Exception as exc:
+            return False, (f"Could not construct {target_cls.__name__} "
+                           f"from payload: {exc}.  Some classes have "
+                           f"required fields beyond payload (e.g. "
+                           f"ProteinData.format) and can't be cast generically.")
+
+        self.output_values['data'] = wrapped
+        self.mark_clean()
+        self.set_progress(100)
+        return True, None
+
+
+# ===========================================================================
 # Collect -- pack multiple data items into a named CollectionData
 # ===========================================================================
 

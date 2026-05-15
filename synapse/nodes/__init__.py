@@ -46,6 +46,7 @@ from .display_nodes import (
 from .utility_nodes import (
     UniversalDataNode,
     PathModifierNode,
+    CastTypeNode,
     CollectNode,
     SelectCollectionNode,
     PopCollectionNode,
@@ -72,7 +73,7 @@ __all__ = [
     'DisplayNode', 'DataTableCellNode', 'DataFigureCellNode',
     'ImageCellNode',
     # Utility
-    'UniversalDataNode', 'PathModifierNode',
+    'UniversalDataNode', 'PathModifierNode', 'CastTypeNode',
     'CollectNode', 'SelectCollectionNode', 'PopCollectionNode',
     'SplitCollectionNode', 'SaveCollectionNode',
     'RenameCollectionNode', 'CollectionInfoNode', 'FilterCollectionNode', 'MapNamesNode',

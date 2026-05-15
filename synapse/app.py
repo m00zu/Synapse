@@ -24,7 +24,7 @@ from .custom_nodes import (
     # Core display
     DisplayNode, DataTableCellNode, DataFigureCellNode, ImageCellNode,
     # Core utility
-    UniversalDataNode, PathModifierNode,
+    UniversalDataNode, PathModifierNode, CastTypeNode,
     CollectNode, SelectCollectionNode, PopCollectionNode,
     SplitCollectionNode, SaveCollectionNode,
     RenameCollectionNode, CollectionInfoNode, FilterCollectionNode, MapNamesNode,
@@ -669,21 +669,23 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             'nodes.analysis',
             'nodes.image_process',
             'nodes.data',
-            'plugins.Plugins',
-            'plugins.Plugins.Segmentation',
-            'plugins.Plugins.VideoAnalysis',
-            'plugins.Plugins.confocal',
-            'plugins.Plugins.filopodia',
+            'plugins.Segmentation',
+            'plugins.VideoAnalysis',
+            'plugins.Confocal',
+            'plugins.Filopodia',
+            'plugins.Report',
+            'plugins.ML',
         ])
         
         # Define human-readable labels for categories
         self.nodes_tree.set_category_label('nodes.dataframe', tr('Table Processing'))
         self.nodes_tree.set_category_label('nodes.analysis', tr('Statistical Analysis'))
         self.nodes_tree.set_category_label('nodes.plotting', tr('Visualization'))
-        self.nodes_tree.set_category_label('plugins.Plugins', tr('Plugins'))
-        self.nodes_tree.set_category_label('plugins.Plugins.Segmentation', tr('Segmentation'))
-        self.nodes_tree.set_category_label('plugins.Plugins.VideoAnalysis', tr('Video Analysis'))
-        self.nodes_tree.set_category_label('plugins.Plugins.confocal', tr('Confocal Analysis'))
+        self.nodes_tree.set_category_label('plugins.Segmentation', tr('Segmentation'))
+        self.nodes_tree.set_category_label('plugins.VideoAnalysis', tr('Video Analysis'))
+        self.nodes_tree.set_category_label('plugins.Confocal', tr('Confocal Analysis'))
+        self.nodes_tree.set_category_label('plugins.Report', tr('Reporting'))
+        self.nodes_tree.set_category_label('plugins.ML', tr('Machine Learning'))
         self.nodes_tree.set_category_label('nodes.io', tr('Input / Output'))
         self.nodes_tree.set_category_label('nodes.utility', tr('Common Utilities'))
         self.nodes_tree.set_category_label('nodes.Collection', tr('Collection'))
@@ -695,7 +697,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.nodes_tree.set_category_label('nodes.image_process.threshold', tr('Thresholding'))
         self.nodes_tree.set_category_label('nodes.image_process.morphology', tr('Morphology'))
         self.nodes_tree.set_category_label('nodes.image_process.math', tr('Math'))
-        self.nodes_tree.set_category_label('plugins.Plugins.filopodia', tr('Filopodia Analysis'))
+        self.nodes_tree.set_category_label('plugins.Filopodia', tr('Filopodia Analysis'))
         self.nodes_tree.set_category_label('nodes.image_process.geometry', tr('Geometry'))
         self.nodes_tree.set_category_label('nodes.image_process.measure', tr('Measure'))
         self.nodes_tree.set_category_label('nodes.data', tr('Misc'))
@@ -839,6 +841,21 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         # Create an initial node for demonstration
         # n1 = self.graph.create_node('custom.nodes.UniversalDataNode', name='Input Data', pos=[-300, 0])
         # n1.set_property('code', 'output = [10, 20, 30]')
+
+        # Wire port-type-mismatch errors to the status bar so users in
+        # Nuitka builds (no terminal) see the rejection message.  The
+        # signal is emitted from synapse.port_typing._typed_connect_to
+        # whenever a wire is refused; we display it for 6 seconds in
+        # the status bar.
+        try:
+            from .port_typing import port_error_signaller
+            port_error_signaller.error_raised.connect(
+                lambda msg: self.statusBar().showMessage(msg, 6000)
+            )
+        except Exception:
+            # Should never happen, but don't fail startup if the signal
+            # module is unavailable for some reason (e.g. headless test).
+            pass
 
         self._mark_clean()
         self._maybe_recover_session()
@@ -1030,6 +1047,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 
         try:
             layout = payload.get("layout") or {}
+            self._migrate_layout_node_types(layout)
             self.graph.deserialize_session(layout, clear_session=True, clear_undo_stack=True)
             src = payload.get("source_path", "") or ""
             self._current_workflow_path = src if isinstance(src, str) else ""
@@ -1075,7 +1093,7 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             DisplayNode, DataTableCellNode, DataFigureCellNode,
             ImageCellNode,
             # Utility
-            UniversalDataNode, PathModifierNode,
+            UniversalDataNode, PathModifierNode, CastTypeNode,
             CollectNode, SelectCollectionNode, PopCollectionNode,
     SplitCollectionNode, SaveCollectionNode,
     RenameCollectionNode, CollectionInfoNode, FilterCollectionNode, MapNamesNode,
@@ -1198,6 +1216,14 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.btn_run.setShortcut("Ctrl+W")
         self.btn_run.triggered.connect(self.execute_graph)
         self.addAction(self.btn_run)
+
+        # Run Selected -- runs the selected nodes plus their upstream
+        # dependencies; stops at the selection (downstream skipped).
+        # Useful for debugging without firing save / report nodes.
+        self.action_run_selected = QtGui.QAction(self)
+        self.action_run_selected.setShortcut("Ctrl+Shift+W")
+        self.action_run_selected.triggered.connect(self.execute_selected)
+        self.addAction(self.action_run_selected)
 
         # Batch Run -- blue
         self._batch_btn = self._make_toolbar_button(
@@ -1360,6 +1386,26 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         focus_search_action.setShortcut("Ctrl+F")
         focus_search_action.triggered.connect(self._focus_search_bar)
         edit_menu.addAction(focus_search_action)
+
+        edit_menu.addSeparator()
+
+        auto_organize_action = QtGui.QAction(tr("&Auto-organize Layout"), self)
+        auto_organize_action.setShortcut("Ctrl+L")
+        auto_organize_action.setStatusTip(tr(
+            "Re-position every node left-to-right with overlap-safe stacking. "
+            "Undo with Ctrl+Z."))
+        auto_organize_action.triggered.connect(self._auto_organize_layout)
+        edit_menu.addAction(auto_organize_action)
+
+        edit_menu.addSeparator()
+
+        run_selected_action = QtGui.QAction(tr("&Run Selected (Up To)"), self)
+        run_selected_action.setShortcut("Ctrl+Shift+W")
+        run_selected_action.setStatusTip(tr(
+            "Run the selected node(s) and their upstream dependencies. "
+            "Skips anything downstream of the selection."))
+        run_selected_action.triggered.connect(self.execute_selected)
+        edit_menu.addAction(run_selected_action)
 
         # Workflows Menu
         workflow_menu = menubar.addMenu(tr("&Workflows"))
@@ -2181,6 +2227,22 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.nodes_tree._search_bar.setFocus()
         self.nodes_tree._search_bar.selectAll()
 
+    def _auto_organize_layout(self):
+        """Re-position every node left-to-right (Ctrl/Cmd+L).
+
+        Uses topological depth for x and a barycenter heuristic for y.
+        Disconnected sub-graphs are stacked vertically.  Overlap-safe
+        even when node heights vary.  Wrapped in an undo macro so the
+        user can revert with Ctrl/Cmd+Z.
+        """
+        from .layout import auto_organize
+        moved = auto_organize(self.graph)
+        if moved:
+            self.statusBar().showMessage(
+                f"Auto-organized {moved} node{'s' if moved != 1 else ''}.",
+                3000)
+            self._mark_manual_dirty()
+
     def _save_workflow(self):
         """Save the current graph session."""
         suggested = self._current_workflow_path or self._workflow_dialog_start_dir()
@@ -2240,27 +2302,14 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def _migrate_layout_node_types(layout_data: dict) -> int:
+        """Migrate deprecated node types in serialized workflow data.
+
+        Delegates to ``synapse.workflow_migrate`` so the same migration
+        rules apply consistently across every load path (file open,
+        autosave recovery, MCP ``load_workflow``).
         """
-        Migrate deprecated node types in serialized workflow data.
-        Returns number of migrated nodes.
-        """
-        if not isinstance(layout_data, dict):
-            return 0
-        nodes = layout_data.get('nodes', {})
-        if not isinstance(nodes, dict):
-            return 0
-        migrated = 0
-        for n_data in nodes.values():
-            if not isinstance(n_data, dict):
-                continue
-            t = str(n_data.get('type_', ''))
-            if t.endswith('.GlobalMaskPropsNode'):
-                n_data['type_'] = t[:-len('GlobalMaskPropsNode')] + 'ImageStatsNode'
-                custom = n_data.get('custom') if isinstance(n_data.get('custom'), dict) else {}
-                custom.setdefault('per_channel', False)
-                n_data['custom'] = custom
-                migrated += 1
-        return migrated
+        from .workflow_migrate import migrate_layout
+        return migrate_layout(layout_data)
 
     def _load_example(self, file_path, prompt_unsaved=True):
         """Load a graph session and handle any errors."""
@@ -2468,11 +2517,23 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
             self.statusBar().showMessage(tr("Error: circular connection detected. Remove the cycle and try again."), 8000)
             return
 
+        self._start_graph_worker(sorted_nodes, tr("Executing graph..."))
+
+    # ── Shared run-path for execute_graph and execute_selected ──────────
+
+    def _start_graph_worker(self, sorted_nodes, status_message):
+        """Spawn a GraphWorker on a thread for an already-sorted node list.
+
+        Both ``execute_graph`` (run everything) and
+        ``execute_selected`` (run selection + upstream) funnel through
+        here.  The only difference between them is which node list
+        they pass in.
+        """
         # UI State
         self.btn_run.setEnabled(False)
         self.btn_batch.setEnabled(False)
         self.btn_stop.setEnabled(True)
-        self.statusBar().showMessage(tr("Executing graph..."))
+        self.statusBar().showMessage(status_message)
 
         # Setup Thread and Worker
         self.worker_thread = QtCore.QThread()
@@ -2483,12 +2544,87 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         self.worker.finished.connect(self.worker_thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker_thread.finished.connect(self.worker_thread.deleteLater)
-        
+
         self.worker.finished.connect(self._on_execution_finished)
         self.worker.error.connect(self._on_execution_error)
 
         self._batch_start = time.perf_counter()
         self.worker_thread.start()
+
+    def execute_selected(self):
+        """Run selected nodes plus their upstream dependencies.
+
+        Stops at the selection -- doesn't fire anything downstream.
+        Useful for debugging: pick a midway node and see its output
+        without triggering save / display / report nodes further down.
+        """
+        # Guard against double-run.
+        try:
+            if self.worker_thread and self.worker_thread.isRunning():
+                return
+        except (RuntimeError, AttributeError):
+            pass
+
+        selected = self.graph.selected_nodes()
+        if not selected:
+            self.statusBar().showMessage(
+                tr("Select one or more nodes to run."), 3000)
+            return
+
+        # 1. Upstream closure: BFS through input ports starting at selection.
+        closure = set()
+        stack = list(selected)
+        while stack:
+            n = stack.pop()
+            if n in closure:
+                continue
+            closure.add(n)
+            for upstream_nodes in n.connected_input_nodes().values():
+                for u in upstream_nodes:
+                    if u not in closure:
+                        stack.append(u)
+
+        # 2. Topological sort restricted to the closure.
+        visited = set()
+        in_stack = set()
+        sorted_nodes = []
+        _cycle_found = False
+
+        def visit(node):
+            nonlocal _cycle_found
+            if _cycle_found or node in visited or node not in closure:
+                return
+            if node in in_stack:
+                _cycle_found = True
+                return
+            in_stack.add(node)
+            for upstream_nodes in node.connected_input_nodes().values():
+                for u in upstream_nodes:
+                    if u in closure:
+                        visit(u)
+            in_stack.discard(node)
+            visited.add(node)
+            sorted_nodes.append(node)
+
+        for n in closure:
+            visit(n)
+
+        if _cycle_found:
+            self.statusBar().showMessage(
+                tr("Error: circular connection detected. "
+                   "Remove the cycle and try again."), 8000)
+            return
+
+        n_sel = len(selected)
+        n_up = len(closure) - n_sel
+        if n_up > 0:
+            msg = tr(f"Running {n_sel} selected node"
+                     f"{'s' if n_sel != 1 else ''} + "
+                     f"{n_up} upstream...")
+        else:
+            msg = tr(f"Running {n_sel} selected node"
+                     f"{'s' if n_sel != 1 else ''}...")
+        self._start_graph_worker(sorted_nodes, msg)
 
     def execute_batch(self):
         # Guard: don't start if already running

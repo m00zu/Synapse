@@ -45,7 +45,7 @@ def _subcategory_for(identifier: str) -> str:
       nodes.image_process.filter      → 'filter'
       nodes.dataframe.Combine         → 'Combine'
       nodes.io                        → ''           (no sub-category)
-      plugins.Plugins.Report          → 'Report'     (strip redundant 'Plugins')
+      plugins.Report          → 'Report'     (strip redundant 'Plugins')
       nodes.image_process.sub.nested  → 'sub.nested' (preserves deeper nesting)
     """
     if not identifier:
@@ -56,7 +56,7 @@ def _subcategory_for(identifier: str) -> str:
         key = ".".join(parts[:n])
         if key in _CATEGORY_MAP:
             remainder = parts[n:]
-            # 'plugins.Plugins.Report' -- the 'Plugins' segment after the
+            # 'plugins.Report' -- the 'Plugins' segment after the
             # 'plugins' namespace is redundant noise; strip it so the sub-
             # category is just 'Report'.
             if remainder and remainder[0] == "Plugins":

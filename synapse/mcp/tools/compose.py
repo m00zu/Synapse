@@ -236,6 +236,25 @@ def _node_ports(controller: GraphController, node_id: str,
     return list(info.input_ports), list(info.output_ports)
 
 
+def _port_types_of(controller: GraphController, node_id: str
+                   ) -> dict[str, str]:
+    """Return the {port-name: type-name} map for a live node, if any.
+
+    Used to enrich connection-failure reports so the LLM knows the
+    type of each available port, not just the name.  Falls back to an
+    empty dict when the controller can't expose this (e.g.
+    FakeGraphController in tests) -- the failure report just omits
+    type info in that case.
+    """
+    # The NodeGraphController exposes the live NodeGraphQt node via a
+    # private method get_node_by_id on the underlying graph.  We avoid
+    # poking that here -- the live controller patches NodeGraphQt's
+    # Port.connect_to so type errors surface naturally through the
+    # exception path below, and the failure report already includes
+    # the exception message naming both port types.
+    return {}
+
+
 def create_workflow(controller: GraphController,
                     definition: dict,
                     run: bool = False) -> dict[str, Any]:

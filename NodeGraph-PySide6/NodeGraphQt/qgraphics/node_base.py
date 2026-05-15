@@ -31,13 +31,14 @@ _CATEGORY_COLORS = {
     'nodes.display':                 (241, 196, 15),    # Yellow
     'nodes.plotting':                (155, 89, 182),    # Purple
     'nodes.utility':                 (149, 165, 166),   # Grey
-    'plugins.Plugins.SAM2':          (230, 126, 34),    # Orange
-    'plugins.Plugins.Segmentation':  (230, 126, 34),    # Orange
-    'plugins.Plugins.VideoAnalysis': (230, 126, 34),    # Orange
-    'plugins.Plugins.filopodia':     (26, 188, 156),    # Teal
-    'plugins.Plugins.confocal':      (211, 84, 0),      # Dark orange
-    'plugins.Plugins.Volume':        (22, 160, 133),    # Dark teal
-    'plugins.Plugins.Cheminformatics': (142, 68, 173),  # Dark purple
+    'plugins.Segmentation':          (230, 126, 34),    # Orange
+    'plugins.VideoAnalysis':         (230, 126, 34),    # Orange
+    'plugins.Filopodia':             (26, 188, 156),    # Teal
+    'plugins.Confocal':              (211, 84, 0),      # Dark orange
+    'plugins.ML':                    (142, 68, 173),    # Dark purple
+    'plugins.Report':                (149, 165, 166),   # Grey
+    'nodes.Volume':                  (22, 160, 133),    # Dark teal
+    'nodes.Cheminformatics':         (142, 68, 173),    # Dark purple
 }
 
 

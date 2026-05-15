@@ -14,7 +14,11 @@ import numpy as np
 from NodeGraphQt.widgets.node_widgets import NodeBaseWidget, NodeLineEdit, NodeCheckBox
 from NodeGraphQt.widgets.dialogs import FileDialog
 from pathlib import Path
-from ..data_models import TableData, ImageData, FigureData, ConfocalDatasetData
+from ..data_models import (
+    NodeData, TableData, StatData, ImageData, MaskData, SkeletonData,
+    LabelData, FigureData, ConfocalDatasetData, CollectionData,
+    ModelData, HtmlData,
+)
 import traceback
 from ..i18n import tr
 from ..widgets.spec import (
@@ -40,6 +44,97 @@ PORT_COLORS = {
     'html':     (235,  87, 135),  # Rose/Pink  - HtmlData (report content)
     'any':      ( 95, 106, 106),  # Dark grey  - generic / unknown type
 }
+
+
+# ── Port type registry (for Rust-style connection type-checking) ────────────
+#
+# Maps port-type strings (the keys of PORT_COLORS) to their NodeData
+# subclass.  Used by Port.connect_to to check Liskov-substitutable
+# connections: a MaskData output (`type_=mask`) can connect to an
+# ImageData input (`type_=image`) because issubclass(MaskData, ImageData).
+#
+# Plugins that define their own NodeData subclasses call
+# ``register_port_type(<port-type-name>, <NodeData subclass>)`` after
+# the class definition.  Registration is idempotent and opt-in: ports
+# whose type-name isn't registered still work via exact-string equality
+# (current behaviour) -- registration unlocks subtype polymorphism.
+
+_PORT_TYPE_CLASSES: dict[str, type] = {}
+
+
+def register_port_type(name: str, data_class: type) -> None:
+    """Register a port-type-name to its NodeData subclass.
+
+    After registration, ``Port.connect_to`` allows any subtype of
+    ``data_class`` to connect to a port declared with type ``name``.
+    Idempotent -- safe to call repeatedly.
+    """
+    _PORT_TYPE_CLASSES[name] = data_class
+
+
+# Core types -- registered eagerly at module load.
+for _name, _cls in [
+    ('table',       TableData),
+    ('stat',        StatData),
+    ('image',       ImageData),
+    ('mask',        MaskData),
+    ('skeleton',    SkeletonData),
+    ('label',       LabelData),
+    ('label_image', LabelData),
+    ('figure',      FigureData),
+    ('confocal',    ConfocalDatasetData),
+    ('collection',  CollectionData),
+    ('model',       ModelData),
+    ('html',        HtmlData),
+]:
+    register_port_type(_name, _cls)
+del _name, _cls
+
+
+def is_port_type_compatible(src_type: str, dst_type: str) -> bool:
+    """Liskov: source may be used where dest is expected iff src <: dst.
+
+    Rules, in order:
+      1. Empty / missing type on either side -> permissive (legacy ports).
+      2. Exact-string match -> allowed.
+      3. ``'any'`` on either side -> allowed (wildcard escape hatch).
+      4. Both registered -> ``issubclass(src_cls, dst_cls)``.
+      5. Either unregistered -> reject (since names already differed).
+
+    Unregistered types still get the exact-match path (rule 2), so
+    plugins that forget to register but use unique colours keep
+    working -- they just don't get subtype polymorphism.
+    """
+    if not src_type or not dst_type:
+        return True
+    if src_type == dst_type:
+        return True
+    if src_type == 'any' or dst_type == 'any':
+        return True
+    src_cls = _PORT_TYPE_CLASSES.get(src_type)
+    dst_cls = _PORT_TYPE_CLASSES.get(dst_type)
+    if src_cls is None or dst_cls is None:
+        return False
+    return issubclass(src_cls, dst_cls)
+
+
+def _type_from_color(color) -> str | None:
+    """Reverse-lookup a port colour tuple to its PORT_COLORS key.
+
+    Used by ``BaseExecutionNode.add_input/add_output`` to record each
+    port's type-string for later connection validation.  Returns None
+    if the colour doesn't match any known type (so the caller can fall
+    back to the port name).
+    """
+    if color is None:
+        return None
+    rgb = tuple(color) if not isinstance(color, str) else None
+    if rgb is None:
+        return None
+    for name, c in PORT_COLORS.items():
+        if c == rgb:
+            return name
+    return None
 
 class ColorPickerButtonWidget(QtWidgets.QWidget):
     """
@@ -1058,10 +1153,35 @@ class BaseExecutionNode(NodeGraphQt.BaseNode):
         self._active_dialogs = [] # Keep references to popups to prevent GC
         self._eval_version = 0    # incremented on each parameter change, for stale eval detection
         self._eval_version_at_start = 0  # captured at evaluate start
-        
+
+        # Per-port data-type record (for connection validation).
+        # Split by direction because a node may legitimately have an
+        # input and an output that share a port name (e.g., CastType's
+        # 'data' on both ends -- the input wants any, the output wants
+        # the target class).  A single dict keyed by name only would
+        # let the second declaration silently overwrite the first.
+        self._input_types: dict[str, str] = {}
+        self._output_types: dict[str, str] = {}
+
         # Ensure we start in the "Dirty" (Blue) state immediately.
         # Since nodes are always created on the Main Thread, we can call this directly.
         self._mark_dirty_ui()
+
+    # ── Port-creation overrides -----------------------------------------
+    # We wrap NodeGraphQt's add_input/add_output to record each port's
+    # data-type (derived from its colour) so the connection validator
+    # can do proper subtype checks.  Plugins that already call these
+    # don't need any changes -- the type is captured automatically.
+
+    def add_input(self, name='input', color=None, **kwargs):
+        port = super().add_input(name, color=color, **kwargs)
+        self._input_types[name] = _type_from_color(color) or name
+        return port
+
+    def add_output(self, name='output', color=None, **kwargs):
+        port = super().add_output(name, color=color, **kwargs)
+        self._output_types[name] = _type_from_color(color) or name
+        return port
         
     def _add_list_input(self, name, label='', items=None, tab=None):
         self.create_property(name, value=items or [], widget_type=NodeGraphQt.constants.NodePropWidgetEnum.HIDDEN.value, tab=tab)

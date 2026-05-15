@@ -163,12 +163,18 @@ def __init__(self):
 If your plugin introduces a new data type, register a color for it **before** your class definitions. The key you add becomes usable in `PORT_SPEC`, `add_input()`, and `add_output()`, and the Node Explorer tree will show the matching color.
 
 ```python
-from nodes.base import PORT_COLORS
+from nodes.base import PORT_COLORS, register_port_type
+from data_models import NodeData
 
-# Register at module level, before any class definitions.
-# Use setdefault() so you don't overwrite colors registered by other plugins.
+# 1. Define the data class.
+class SpectraData(NodeData):
+    payload: Any   # np.ndarray shape (N,)
+
+# 2. Register a color (visual) and the port-type -> class mapping
+#    (connection type-checking).  Use setdefault for the color so you
+#    don't overwrite colors registered by other plugins.
 PORT_COLORS.setdefault('spectra', (255, 165, 0))   # Orange
-PORT_COLORS.setdefault('tensor',  (220,  80, 220)) # Magenta
+register_port_type('spectra', SpectraData)
 
 class MySpectraNode(BaseExecutionNode):
     PORT_SPEC = {'inputs': ['image'], 'outputs': ['spectra']}
@@ -178,6 +184,28 @@ class MySpectraNode(BaseExecutionNode):
         self.add_input('image',    color=PORT_COLORS['image'])
         self.add_output('spectra', color=PORT_COLORS['spectra'])
 ```
+
+The `register_port_type` call is what lets Synapse enforce connection compatibility — see [Registering for Connection Type-Checking](#registering-for-connection-type-checking) for the full story and when it's optional.
+
+### Port Type Checking
+
+Synapse enforces port compatibility **at connection time**. When the user drags a wire between two ports — or when an LLM calls the MCP `connect` tool — the connection is allowed only if the source's type is the *same as* or a *subclass of* the destination's type.
+
+| Connection | Allowed? | Why |
+|---|---|---|
+| `image` → `image` | ✓ | exact match |
+| `mask` → `image` | ✓ | `MaskData` is a subclass of `ImageData` (upcast) |
+| `skeleton` → `image` | ✓ | transitive: `SkeletonData` → `MaskData` → `ImageData` |
+| `mol_table` → `table` | ✓ | with `register_port_type('mol_table', MolTableData)` |
+| `image` → `mask` | ✗ | downcast — narrowing is unsafe |
+| `mask` → `label` | ✗ | sibling types |
+| `any` → anything | ✓ | explicit wildcard, opt-in escape hatch |
+| unregistered name vs different unregistered name | ✗ | no class info to compare |
+| unregistered name vs same name | ✓ | exact-string match always works |
+
+Rejected connections do **not** form. The user sees a status-bar message like *"Cannot connect: NodeA.out (mask) -> NodeB.in (label) -- type mismatch."* The MCP layer surfaces the same information as a `PortError` to the calling LLM.
+
+For your plugin to participate in subtype polymorphism, register your custom data types — see the section above.
 
 ---
 
@@ -404,6 +432,50 @@ class SpectraData(NodeData):
 ```
 
 Use `payload: Any` for types that Pydantic cannot natively validate (numpy arrays, custom objects, etc.).
+
+### Registering for Connection Type-Checking
+
+Synapse checks at **connection time** that the two ports you're wiring are type-compatible (Rust-style — see *Port Type Checking* below). For your custom data type to participate in **subtype polymorphism** (e.g., wiring your `SpectraData` output into a port that accepts the parent class), call `register_port_type` after the class definition:
+
+```python
+from nodes.base import register_port_type
+
+class SpectraData(NodeData):
+    payload: Any
+
+# Map the port-type-name string to the data class.
+register_port_type('spectra', SpectraData)
+```
+
+After this one line, `Synapse` knows that `'spectra'` ports carry `SpectraData`, and `issubclass()` runs at every connection attempt. A `'spectra'` output can connect to any port whose type is `SpectraData` or any of its parents.
+
+If your data class **inherits from an existing type** — say `MolTableData(TableData)` — registration unlocks the upcast:
+
+```python
+class MolTableData(TableData):
+    payload: Any   # pandas DataFrame with an RDKit Mol column
+
+register_port_type('mol_table', MolTableData)
+```
+
+Now a `'mol_table'` output can connect to any `'table'` input — because `issubclass(MolTableData, TableData)` is `True`. Without registration, the connection is only allowed when the port-type strings match exactly (`'mol_table'` → `'mol_table'`).
+
+#### When you can skip registration
+
+You can omit `register_port_type` if **all** of the following are true:
+
+- Your data class is `NodeData`-direct (not extending an existing typed class like `TableData` or `ImageData`).
+- Every node that uses this data type declares its ports with the same unique type-name string.
+- You don't need cross-plugin compatibility (e.g., feeding into a generic node that accepts a parent class).
+
+In that case, exact-string matching is enough — your ports work, just without subtype polymorphism.
+
+#### When you *should* register
+
+- Whenever your data class **extends a built-in type** (`TableData`, `ImageData`, `MaskData`, `FigureData`, etc.). Registration lets your output feed any node that accepts the parent type, which is usually what you want.
+- When **multiple plugins** can produce or consume the same logical type — registration is the contract that lets them interoperate.
+
+`register_port_type` is idempotent (safe to call multiple times with the same arguments), so you don't have to guard against double-registration during plugin reload.
 
 ### Batch Merge Support
 

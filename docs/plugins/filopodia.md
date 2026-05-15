@@ -1,4 +1,4 @@
-# Filopodia Analysis
+# Filopodia
 
 ### Cell Edge Mask
 
@@ -13,10 +13,10 @@ Generates a binary cell-body mask from a fluorescence image.
     
     Parameters:
 
-    - **threshold** — intensity cutoff (0--255)
-    - **n_open** — number of opening iterations for smoothing
-    - **n_erode_dilate** — additional erode+dilate cycles
-    - **fill_holes** — fill interior holes before opening
+    - **threshold** -- intensity cutoff (0--255)
+    - **n_open** -- number of opening iterations for smoothing
+    - **n_erode_dilate** -- additional erode+dilate cycles
+    - **fill_holes** -- fill interior holes before opening
     
     Output port `mask` is a MaskData (white = cell body).
 
@@ -26,38 +26,6 @@ Generates a binary cell-body mask from a fluorescence image.
 | **Output** | `mask` | mask |
 
 **Properties:** `Open Iterations`, `Extra Erode+Dilate`, ``
-
----
-
-### Filopodia Detect
-
-Detects filopodia candidates as a binary mask.
-
-??? note "Details"
-    Step 2 of the FiloQuant pipeline. Optionally applies CLAHE for local
-    contrast enhancement and a 5x5 centre-surround sharpening convolution
-    to accentuate thin bright structures, followed by a 3x3 median
-    despeckle (x2) and intensity thresholding. Small isolated blobs
-    (<8 px) are discarded. If a `cell_mask` is connected, an exclusion
-    zone is dilated around the cell body so candidates too close to the
-    cell edge are removed.
-    
-    Parameters:
-
-    - **threshold** — intensity cutoff (0--255)
-    - **n_distance_from_edge** — exclusion zone width in pixels around the cell body
-    - **use_convolve** — enable 5x5 sharpening kernel
-    - **use_clahe** — enable CLAHE local contrast pre-enhancement
-    
-    Output port `mask` is a MaskData of filopodia candidate regions.
-    Connect to FilopodiaAnalyzeNode together with the `cell_mask`.
-
-| Direction | Port | Type |
-|-----------|------|------|
-| **Input** | `cell_mask` | mask |
-| **Output** | `mask` | mask |
-
-**Properties:** `Distance from Edge (px)`, ``, ``
 
 ---
 
@@ -79,8 +47,14 @@ Skeletonizes the filopodia mask and measures each branch.
     
     Outputs:
 
-    - `table` — TableData with columns: `x`, `y`, `filopodia_length_px`, `edge_length_px` (one row per detected filopodium skeleton branch)
-    - `visualization` — colour composite (dark background, green = cell body, cyan = isolated filopodia mask, magenta = skeleton)
+    - `table` -- TableData with columns: `x`, `y`, `filopodia_length_px`,
+      `edge_length_px`, `filopodia_length_um`, `edge_length_um` (one row per
+      detected filopodium skeleton branch).  The `_um` columns are populated
+      when the input mask carries ``scale_um`` (micrometers per pixel,
+      typically set by image readers from microscope metadata); otherwise
+      they're NaN.
+
+    - `visualization` -- colour composite (dark background, green = cell body, cyan = isolated filopodia mask, magenta = skeleton)
 
 | Direction | Port | Type |
 |-----------|------|------|
@@ -89,5 +63,37 @@ Skeletonizes the filopodia mask and measures each branch.
 | **Output** | `visualization` | image |
 
 **Properties:** `Min Size (px)`, `Repair Cycles (close)`
+
+---
+
+### Filopodia Detect
+
+Detects filopodia candidates as a binary mask.
+
+??? note "Details"
+    Step 2 of the FiloQuant pipeline. Optionally applies CLAHE for local
+    contrast enhancement and a 5x5 centre-surround sharpening convolution
+    to accentuate thin bright structures, followed by a 3x3 median
+    despeckle (x2) and intensity thresholding. Small isolated blobs
+    (<8 px) are discarded. If a `cell_mask` is connected, an exclusion
+    zone is dilated around the cell body so candidates too close to the
+    cell edge are removed.
+    
+    Parameters:
+
+    - **threshold** -- intensity cutoff (0--255)
+    - **n_distance_from_edge** -- exclusion zone width in pixels around the cell body
+    - **use_convolve** -- enable 5x5 sharpening kernel
+    - **use_clahe** -- enable CLAHE local contrast pre-enhancement
+    
+    Output port `mask` is a MaskData of filopodia candidate regions.
+    Connect to FilopodiaAnalyzeNode together with the `cell_mask`.
+
+| Direction | Port | Type |
+|-----------|------|------|
+| **Input** | `cell_mask` | mask |
+| **Output** | `mask` | mask |
+
+**Properties:** `Distance from Edge (px)`, ``, ``
 
 ---

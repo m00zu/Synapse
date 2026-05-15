@@ -87,6 +87,13 @@ def main():
     # ── Heavy imports happen here; splash stays visible ──
     from synapse.app import main as _gui_main
 
+    # Install Rust-style port-type checking on Port.connect_to before
+    # any nodes are registered.  Plugins can opt into subtype
+    # polymorphism for their own data types via
+    # synapse.nodes.base.register_port_type.
+    from synapse.port_typing import install_port_type_check
+    install_port_type_check()
+
     status("Starting…")
 
     # Hand control to the GUI; splash auto-closes when the main window paints.
