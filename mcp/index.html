@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://m00zu.github.io/Synapse/shortcuts.html">
+        <link rel="canonical" href="https://m00zu.github.io/Synapse/mcp/index.html">
       
       
-        <link rel="prev" href="concepts/batch-processing.html">
+        <link rel="prev" href="../ai/index.html">
       
       
-        <link rel="next" href="ai/index.html">
+        <link rel="next" href="../workflows/cell-counting.html">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
-        <title>Keyboard Shortcuts - Synapse Manual</title>
+        <title>MCP Setup - Synapse Manual</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#keyboard-shortcuts" class="md-skip">
+        <a href="#connecting-synapse-to-llm-chat-clients" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +96,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="index.html" title="Synapse Manual" class="md-header__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
+    <a href="../index.html" title="Synapse Manual" class="md-header__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.33 12.91c.09 1.55-.62 3.04-1.89 3.95l.77 1.49c.23.45.26.98.06 1.45-.19.47-.58.84-1.06 1l-.79.25a1.687 1.687 0 0 1-1.86-.55L14.44 18c-.89-.15-1.73-.53-2.44-1.1-.5.15-1 .23-1.5.23-.88 0-1.76-.27-2.5-.79-.53.16-1.07.23-1.62.22-.79.01-1.57-.15-2.3-.45a4.1 4.1 0 0 1-2.43-3.61c-.08-.72.04-1.45.35-2.11-.29-.75-.32-1.57-.07-2.33C2.3 7.11 3 6.32 3.87 5.82c.58-1.69 2.21-2.82 4-2.7 1.6-1.5 4.05-1.66 5.83-.37.42-.11.86-.17 1.3-.17 1.36-.03 2.65.57 3.5 1.64 2.04.53 3.5 2.35 3.58 4.47.05 1.11-.25 2.2-.86 3.13.07.36.11.72.11 1.09m-5-1.41c.57.07 1.02.5 1.02 1.07a1 1 0 0 1-1 1h-.63c-.32.9-.88 1.69-1.62 2.29.25.09.51.14.77.21 5.13-.07 4.53-3.2 4.53-3.25a2.59 2.59 0 0 0-2.69-2.49 1 1 0 0 1-1-1 1 1 0 0 1 1-1c1.23.03 2.41.49 3.33 1.3.05-.29.08-.59.08-.89-.06-1.24-.62-2.32-2.87-2.53-1.25-2.96-4.4-1.32-4.4-.4-.03.23.21.72.25.75a1 1 0 0 1 1 1c0 .55-.45 1-1 1-.53-.02-1.03-.22-1.43-.56-.48.31-1.03.5-1.6.56-.57.05-1.04-.35-1.07-.9a.97.97 0 0 1 .88-1.1c.16-.02.94-.14.94-.77 0-.66.25-1.29.68-1.79-.92-.25-1.91.08-2.91 1.29C6.75 5 6 5.25 5.45 7.2 4.5 7.67 4 8 3.78 9c1.08-.22 2.19-.13 3.22.25.5.19.78.75.59 1.29-.19.52-.77.78-1.29.59-.73-.32-1.55-.34-2.3-.06-.32.27-.32.83-.32 1.27 0 .74.37 1.43 1 1.83.53.27 1.12.41 1.71.4q-.225-.39-.39-.81a1.038 1.038 0 0 1 1.96-.68c.4 1.14 1.42 1.92 2.62 2.05 1.37-.07 2.59-.88 3.19-2.13.23-1.38 1.34-1.5 2.56-1.5m2 7.47-.62-1.3-.71.16 1 1.25zm-4.65-8.61a1 1 0 0 0-.91-1.03c-.71-.04-1.4.2-1.93.67-.57.58-.87 1.38-.84 2.19a1 1 0 0 0 1 1c.57 0 1-.45 1-1 0-.27.07-.54.23-.76.12-.1.27-.15.43-.15.55.03 1.02-.38 1.02-.92"/></svg>
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Keyboard Shortcuts
+              MCP Setup
             
           </span>
         </div>
@@ -194,7 +194,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="index.html" title="Synapse Manual" class="md-nav__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
+    <a href="../index.html" title="Synapse Manual" class="md-nav__button md-logo" aria-label="Synapse Manual" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.33 12.91c.09 1.55-.62 3.04-1.89 3.95l.77 1.49c.23.45.26.98.06 1.45-.19.47-.58.84-1.06 1l-.79.25a1.687 1.687 0 0 1-1.86-.55L14.44 18c-.89-.15-1.73-.53-2.44-1.1-.5.15-1 .23-1.5.23-.88 0-1.76-.27-2.5-.79-.53.16-1.07.23-1.62.22-.79.01-1.57-.15-2.3-.45a4.1 4.1 0 0 1-2.43-3.61c-.08-.72.04-1.45.35-2.11-.29-.75-.32-1.57-.07-2.33C2.3 7.11 3 6.32 3.87 5.82c.58-1.69 2.21-2.82 4-2.7 1.6-1.5 4.05-1.66 5.83-.37.42-.11.86-.17 1.3-.17 1.36-.03 2.65.57 3.5 1.64 2.04.53 3.5 2.35 3.58 4.47.05 1.11-.25 2.2-.86 3.13.07.36.11.72.11 1.09m-5-1.41c.57.07 1.02.5 1.02 1.07a1 1 0 0 1-1 1h-.63c-.32.9-.88 1.69-1.62 2.29.25.09.51.14.77.21 5.13-.07 4.53-3.2 4.53-3.25a2.59 2.59 0 0 0-2.69-2.49 1 1 0 0 1-1-1 1 1 0 0 1 1-1c1.23.03 2.41.49 3.33 1.3.05-.29.08-.59.08-.89-.06-1.24-.62-2.32-2.87-2.53-1.25-2.96-4.4-1.32-4.4-.4-.03.23.21.72.25.75a1 1 0 0 1 1 1c0 .55-.45 1-1 1-.53-.02-1.03-.22-1.43-.56-.48.31-1.03.5-1.6.56-.57.05-1.04-.35-1.07-.9a.97.97 0 0 1 .88-1.1c.16-.02.94-.14.94-.77 0-.66.25-1.29.68-1.79-.92-.25-1.91.08-2.91 1.29C6.75 5 6 5.25 5.45 7.2 4.5 7.67 4 8 3.78 9c1.08-.22 2.19-.13 3.22.25.5.19.78.75.59 1.29-.19.52-.77.78-1.29.59-.73-.32-1.55-.34-2.3-.06-.32.27-.32.83-.32 1.27 0 .74.37 1.43 1 1.83.53.27 1.12.41 1.71.4q-.225-.39-.39-.81a1.038 1.038 0 0 1 1.96-.68c.4 1.14 1.42 1.92 2.62 2.05 1.37-.07 2.59-.88 3.19-2.13.23-1.38 1.34-1.5 2.56-1.5m2 7.47-.62-1.3-.71.16 1 1.25zm-4.65-8.61a1 1 0 0 0-.91-1.03c-.71-.04-1.4.2-1.93.67-.57.58-.87 1.38-.84 2.19a1 1 0 0 0 1 1c.57 0 1-.45 1-1 0-.27.07-.54.23-.76.12-.1.27-.15.43-.15.55.03 1.02-.38 1.02-.92"/></svg>
@@ -224,7 +224,7 @@
   
   
     <li class="md-nav__item">
-      <a href="index.html" class="md-nav__link">
+      <a href="../index.html" class="md-nav__link">
         
   
   
@@ -305,7 +305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/installation.html" class="md-nav__link">
+      <a href="../getting-started/installation.html" class="md-nav__link">
         
   
   
@@ -333,7 +333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/interface.html" class="md-nav__link">
+      <a href="../getting-started/interface.html" class="md-nav__link">
         
   
   
@@ -361,7 +361,7 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/quick-start.html" class="md-nav__link">
+      <a href="../getting-started/quick-start.html" class="md-nav__link">
         
   
   
@@ -389,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/examples.html" class="md-nav__link">
+      <a href="../getting-started/examples.html" class="md-nav__link">
         
   
   
@@ -417,7 +417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/plugins.html" class="md-nav__link">
+      <a href="../getting-started/plugins.html" class="md-nav__link">
         
   
   
@@ -425,6 +425,179 @@
     
   
     Installing Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/nodes-and-connections.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes & Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/data-types.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/batch-processing.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shortcuts.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
   
 
     
@@ -467,17 +640,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    User Guide
+    AI in Synapse
   
 
     
@@ -488,12 +661,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    User Guide
+    AI in Synapse
   
 
           </label>
@@ -506,70 +679,14 @@
   
   
     <li class="md-nav__item">
-      <a href="concepts/nodes-and-connections.html" class="md-nav__link">
+      <a href="../ai/index.html" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Nodes & Connections
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="concepts/data-types.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data Types
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="concepts/batch-processing.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Batch Processing
+    Overview
   
 
     
@@ -606,7 +723,7 @@
   <span class="md-ellipsis">
     
   
-    Keyboard Shortcuts
+    MCP Setup
   
 
     
@@ -617,14 +734,14 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="shortcuts.html" class="md-nav__link md-nav__link--active">
+      <a href="index.html" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    Keyboard Shortcuts
+    MCP Setup
   
 
     
@@ -650,10 +767,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#general" class="md-nav__link">
+  <a href="#step-1-launch-synapse" class="md-nav__link">
     <span class="md-ellipsis">
       
-        General
+        Step 1 — Launch Synapse
       
     </span>
   </a>
@@ -661,10 +778,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#canvas" class="md-nav__link">
+  <a href="#step-2-add-synapse-to-claude-code-one-time" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Canvas
+        Step 2 — Add Synapse to Claude Code (one-time)
       
     </span>
   </a>
@@ -672,10 +789,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#nodes" class="md-nav__link">
+  <a href="#step-2b-add-synapse-to-claude-desktop-optional" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Nodes
+        Step 2b — Add Synapse to Claude Desktop (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Use it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations-in-v0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations in v0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
       
     </span>
   </a>
@@ -686,123 +836,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    AI in Synapse
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    AI in Synapse
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="ai/index.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="mcp/index.html" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    MCP Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -876,7 +909,7 @@
   
   
     <li class="md-nav__item">
-      <a href="workflows/cell-counting.html" class="md-nav__link">
+      <a href="../workflows/cell-counting.html" class="md-nav__link">
         
   
   
@@ -904,7 +937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="workflows/batch-analysis.html" class="md-nav__link">
+      <a href="../workflows/batch-analysis.html" class="md-nav__link">
         
   
   
@@ -993,7 +1026,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/io.html" class="md-nav__link">
+      <a href="../nodes/io.html" class="md-nav__link">
         
   
   
@@ -1021,7 +1054,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/display.html" class="md-nav__link">
+      <a href="../nodes/display.html" class="md-nav__link">
         
   
   
@@ -1049,7 +1082,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/utility.html" class="md-nav__link">
+      <a href="../nodes/utility.html" class="md-nav__link">
         
   
   
@@ -1077,7 +1110,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/data.html" class="md-nav__link">
+      <a href="../nodes/data.html" class="md-nav__link">
         
   
   
@@ -1105,7 +1138,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/collection.html" class="md-nav__link">
+      <a href="../nodes/collection.html" class="md-nav__link">
         
   
   
@@ -1133,7 +1166,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/plotting.html" class="md-nav__link">
+      <a href="../nodes/plotting.html" class="md-nav__link">
         
   
   
@@ -1161,7 +1194,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/analysis.html" class="md-nav__link">
+      <a href="../nodes/analysis.html" class="md-nav__link">
         
   
   
@@ -1240,7 +1273,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/dataframe/io.html" class="md-nav__link">
+      <a href="../nodes/dataframe/io.html" class="md-nav__link">
         
   
   
@@ -1268,7 +1301,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/dataframe/filter.html" class="md-nav__link">
+      <a href="../nodes/dataframe/filter.html" class="md-nav__link">
         
   
   
@@ -1296,7 +1329,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/dataframe/compute.html" class="md-nav__link">
+      <a href="../nodes/dataframe/compute.html" class="md-nav__link">
         
   
   
@@ -1324,7 +1357,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/dataframe/transform.html" class="md-nav__link">
+      <a href="../nodes/dataframe/transform.html" class="md-nav__link">
         
   
   
@@ -1352,7 +1385,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/dataframe/combine.html" class="md-nav__link">
+      <a href="../nodes/dataframe/combine.html" class="md-nav__link">
         
   
   
@@ -1380,7 +1413,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/dataframe/util.html" class="md-nav__link">
+      <a href="../nodes/dataframe/util.html" class="md-nav__link">
         
   
   
@@ -1467,7 +1500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/image_process/io.html" class="md-nav__link">
+      <a href="../nodes/image_process/io.html" class="md-nav__link">
         
   
   
@@ -1495,7 +1528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/image_process/color.html" class="md-nav__link">
+      <a href="../nodes/image_process/color.html" class="md-nav__link">
         
   
   
@@ -1523,7 +1556,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/image_process/exposure.html" class="md-nav__link">
+      <a href="../nodes/image_process/exposure.html" class="md-nav__link">
         
   
   
@@ -1551,7 +1584,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/image_process/filter.html" class="md-nav__link">
+      <a href="../nodes/image_process/filter.html" class="md-nav__link">
         
   
   
@@ -1579,7 +1612,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/image_process/transform.html" class="md-nav__link">
+      <a href="../nodes/image_process/transform.html" class="md-nav__link">
         
   
   
@@ -1607,7 +1640,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/image_process/morphology.html" class="md-nav__link">
+      <a href="../nodes/image_process/morphology.html" class="md-nav__link">
         
   
   
@@ -1635,7 +1668,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/image_process/measure.html" class="md-nav__link">
+      <a href="../nodes/image_process/measure.html" class="md-nav__link">
         
   
   
@@ -1663,7 +1696,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/image_process/visualize.html" class="md-nav__link">
+      <a href="../nodes/image_process/visualize.html" class="md-nav__link">
         
   
   
@@ -1750,7 +1783,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/volume/io.html" class="md-nav__link">
+      <a href="../nodes/volume/io.html" class="md-nav__link">
         
   
   
@@ -1778,7 +1811,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/volume/color.html" class="md-nav__link">
+      <a href="../nodes/volume/color.html" class="md-nav__link">
         
   
   
@@ -1806,7 +1839,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/volume/exposure.html" class="md-nav__link">
+      <a href="../nodes/volume/exposure.html" class="md-nav__link">
         
   
   
@@ -1834,7 +1867,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/volume/filters.html" class="md-nav__link">
+      <a href="../nodes/volume/filters.html" class="md-nav__link">
         
   
   
@@ -1862,7 +1895,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/volume/morphology.html" class="md-nav__link">
+      <a href="../nodes/volume/morphology.html" class="md-nav__link">
         
   
   
@@ -1890,7 +1923,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/volume/display.html" class="md-nav__link">
+      <a href="../nodes/volume/display.html" class="md-nav__link">
         
   
   
@@ -1977,7 +2010,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/cheminformatics/io.html" class="md-nav__link">
+      <a href="../nodes/cheminformatics/io.html" class="md-nav__link">
         
   
   
@@ -2005,7 +2038,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/cheminformatics/mol.html" class="md-nav__link">
+      <a href="../nodes/cheminformatics/mol.html" class="md-nav__link">
         
   
   
@@ -2033,7 +2066,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/cheminformatics/batch.html" class="md-nav__link">
+      <a href="../nodes/cheminformatics/batch.html" class="md-nav__link">
         
   
   
@@ -2061,7 +2094,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/cheminformatics/convert.html" class="md-nav__link">
+      <a href="../nodes/cheminformatics/convert.html" class="md-nav__link">
         
   
   
@@ -2089,7 +2122,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/cheminformatics/protein.html" class="md-nav__link">
+      <a href="../nodes/cheminformatics/protein.html" class="md-nav__link">
         
   
   
@@ -2117,7 +2150,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/cheminformatics/docking.html" class="md-nav__link">
+      <a href="../nodes/cheminformatics/docking.html" class="md-nav__link">
         
   
   
@@ -2145,7 +2178,7 @@
   
   
     <li class="md-nav__item">
-      <a href="nodes/cheminformatics/viewer.html" class="md-nav__link">
+      <a href="../nodes/cheminformatics/viewer.html" class="md-nav__link">
         
   
   
@@ -2293,7 +2326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/ml/classification.html" class="md-nav__link">
+      <a href="../plugins/ml/classification.html" class="md-nav__link">
         
   
   
@@ -2321,7 +2354,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/ml/regression.html" class="md-nav__link">
+      <a href="../plugins/ml/regression.html" class="md-nav__link">
         
   
   
@@ -2349,7 +2382,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/ml/clustering.html" class="md-nav__link">
+      <a href="../plugins/ml/clustering.html" class="md-nav__link">
         
   
   
@@ -2377,7 +2410,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/ml/embedding.html" class="md-nav__link">
+      <a href="../plugins/ml/embedding.html" class="md-nav__link">
         
   
   
@@ -2405,7 +2438,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/ml/preprocessing.html" class="md-nav__link">
+      <a href="../plugins/ml/preprocessing.html" class="md-nav__link">
         
   
   
@@ -2433,7 +2466,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/ml/evaluation.html" class="md-nav__link">
+      <a href="../plugins/ml/evaluation.html" class="md-nav__link">
         
   
   
@@ -2461,7 +2494,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/ml/visualization.html" class="md-nav__link">
+      <a href="../plugins/ml/visualization.html" class="md-nav__link">
         
   
   
@@ -2489,7 +2522,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/ml/io.html" class="md-nav__link">
+      <a href="../plugins/ml/io.html" class="md-nav__link">
         
   
   
@@ -2525,7 +2558,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/segmentation.html" class="md-nav__link">
+      <a href="../plugins/segmentation.html" class="md-nav__link">
         
   
   
@@ -2553,7 +2586,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/video_analysis.html" class="md-nav__link">
+      <a href="../plugins/video_analysis.html" class="md-nav__link">
         
   
   
@@ -2581,7 +2614,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/filopodia.html" class="md-nav__link">
+      <a href="../plugins/filopodia.html" class="md-nav__link">
         
   
   
@@ -2609,7 +2642,7 @@
   
   
     <li class="md-nav__item">
-      <a href="plugins/report.html" class="md-nav__link">
+      <a href="../plugins/report.html" class="md-nav__link">
         
   
   
@@ -2698,7 +2731,7 @@
   
   
     <li class="md-nav__item">
-      <a href="developing/creating-plugins.html" class="md-nav__link">
+      <a href="../developing/creating-plugins.html" class="md-nav__link">
         
   
   
@@ -2746,136 +2779,178 @@
   
 
 
-<h1 id="keyboard-shortcuts">Keyboard Shortcuts<a class="headerlink" href="#keyboard-shortcuts" title="Permanent link">&para;</a></h1>
-<h2 id="general">General<a class="headerlink" href="#general" title="Permanent link">&para;</a></h2>
+<h1 id="connecting-synapse-to-llm-chat-clients">Connecting Synapse to LLM chat clients<a class="headerlink" href="#connecting-synapse-to-llm-chat-clients" title="Permanent link">&para;</a></h1>
+<p>Synapse exposes its running workflow over MCP (Model Context Protocol).
+This means chat clients like <strong>Claude Code</strong> can compose and run workflows
+in Synapse without you needing an API key — your existing chat subscription
+is all that's required.</p>
+<h2 id="step-1-launch-synapse">Step 1 — Launch Synapse<a class="headerlink" href="#step-1-launch-synapse" title="Permanent link">&para;</a></h2>
+<p>Just run Synapse normally. On startup it prints a line like:</p>
+<div class="highlight"><pre><span></span><code>[mcp] server listening on 127.0.0.1:51780
+</code></pre></div>
+<p>The default port is <strong>51780</strong>. The current port is also written to
+<code>~/.synapse/mcp-port</code> (<code>{"port": N}</code>) for tooling.</p>
+<blockquote>
+<p>If 51780 is already in use (e.g. a second Synapse instance), a random
+fallback port is chosen and printed instead — re-run <code>claude mcp add</code>
+with the new URL in that case.</p>
+</blockquote>
+<h2 id="step-2-add-synapse-to-claude-code-one-time">Step 2 — Add Synapse to Claude Code (one-time)<a class="headerlink" href="#step-2-add-synapse-to-claude-code-one-time" title="Permanent link">&para;</a></h2>
+<p>From a terminal where the <code>claude</code> CLI is installed:</p>
+<div class="highlight"><pre><span></span><code>claude<span class="w"> </span>mcp<span class="w"> </span>add<span class="w"> </span>synapse<span class="w"> </span>--transport<span class="w"> </span>http<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:51780/mcp&quot;</span>
+</code></pre></div>
+<p>You only need to run this once. Subsequent Synapse restarts re-use the
+same port.</p>
+<p>Verify with:</p>
+<div class="highlight"><pre><span></span><code>claude<span class="w"> </span>mcp<span class="w"> </span>list
+</code></pre></div>
+<p>You should see <code>synapse</code> listed.</p>
+<h2 id="step-2b-add-synapse-to-claude-desktop-optional">Step 2b — Add Synapse to Claude Desktop (optional)<a class="headerlink" href="#step-2b-add-synapse-to-claude-desktop-optional" title="Permanent link">&para;</a></h2>
+<p>Claude Desktop only speaks stdio to MCP servers, but Synapse runs over
+HTTP. A bundled stdio&lt;-&gt;HTTP bridge handles the translation. Add this
+to your <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>
+(macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows):</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;synapse&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;python&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;-m&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;synapse.mcp.bridge_stdio&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>If <code>python</code> doesn't resolve correctly in Claude Desktop's environment
+(common on macOS), use the absolute path to the Python you ran Synapse
+with — e.g. <code>/Users/you/anaconda3/envs/synapse/bin/python</code>.</p>
+<p>Restart Claude Desktop, and you should see Synapse appear in the MCP
+servers list. <strong>Note:</strong> Synapse must be running for the bridge to
+connect — start Synapse first, then start a Claude Desktop session.</p>
+<h2 id="step-3-use-it">Step 3 — Use it<a class="headerlink" href="#step-3-use-it" title="Permanent link">&para;</a></h2>
+<p>Start a Claude Code session and ask things like:</p>
+<ul>
+<li>"What clustering nodes are available?"</li>
+<li>"Build a fingerprint clustering pipeline for the CSV at /Users/me/molecules.csv"</li>
+<li>"Add a Murcko Scaffold node after the MolTable Reader."</li>
+</ul>
+<p>Claude has access to 18 tools:</p>
 <table>
 <thead>
 <tr>
-<th>Shortcut</th>
-<th>Action</th>
+<th>Group</th>
+<th>Tool</th>
+<th>Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-s">S</kbd></span></td>
-<td>Save workflow</td>
+<td>Discovery</td>
+<td><code>list_nodes</code></td>
+<td>Catalog of every registered node (name + summary + category)</td>
 </tr>
 <tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-o">O</kbd></span></td>
-<td>Open workflow</td>
+<td>Discovery</td>
+<td><code>describe_node(node_type)</code></td>
+<td>Full details on a node type — ports + per-property metadata (combo options, types, defaults, hints)</td>
 </tr>
 <tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-z">Z</kbd></span></td>
-<td>Undo</td>
+<td>Discovery</td>
+<td><code>search_nodes(query)</code></td>
+<td>Keyword search; fallback when the catalog is too large</td>
 </tr>
 <tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-shift">Shift</kbd><span>+</span><kbd class="key-z">Z</kbd></span></td>
-<td>Redo</td>
+<td>Compose</td>
+<td><code>create_workflow(definition, run=False)</code></td>
+<td>Atomic one-shot — build a whole pipeline, optionally execute it</td>
 </tr>
 <tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-w">W</kbd></span></td>
-<td>Run Graph</td>
+<td>Inspect</td>
+<td><code>describe_graph()</code></td>
+<td>Snapshot of the current workflow</td>
 </tr>
 <tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-b">B</kbd></span></td>
-<td>Batch Run</td>
+<td>Modify</td>
+<td><code>add_node(node_type, properties?)</code></td>
+<td>Create a node in the current graph</td>
 </tr>
 <tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-f">F</kbd></span></td>
-<td>Focus Node Explorer search</td>
+<td>Modify</td>
+<td><code>delete_node(node_id)</code></td>
+<td>Remove a node + any edges that touch it</td>
 </tr>
 <tr>
-<td><span class="keys"><kbd class="key-f1">F1</kbd></span></td>
-<td>Open Manual</td>
+<td>Modify</td>
+<td><code>replace_node(node_id, new_type, properties?)</code></td>
+<td>Swap a node's type while preserving compatible properties + connections</td>
 </tr>
 <tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span></td>
-<td>Quit</td>
+<td>Modify</td>
+<td><code>set_property(node_id, prop, value)</code></td>
+<td>Update a node's property</td>
+</tr>
+<tr>
+<td>Modify</td>
+<td><code>connect(src_node_id, src_port, dst_node_id, dst_port)</code></td>
+<td>Wire two nodes</td>
+</tr>
+<tr>
+<td>Modify</td>
+<td><code>disconnect(src_node_id, src_port, dst_node_id, dst_port)</code></td>
+<td>Remove a wire</td>
+</tr>
+<tr>
+<td>Execute</td>
+<td><code>run_node(node_id)</code></td>
+<td>Evaluate a node (re-runs dirty upstream)</td>
+</tr>
+<tr>
+<td>Execute</td>
+<td><code>get_node_status(node_id)</code></td>
+<td>Last known status of a node, no re-run</td>
+</tr>
+<tr>
+<td>Execute</td>
+<td><code>get_node_output(node_id, port_name?, mode?, ...)</code></td>
+<td>Read a node's output port. Modes: <code>preview</code> (default), <code>describe</code>, <code>range(start,end)</code>, <code>columns(...)</code>, <code>filter(query)</code>, <code>full</code>.</td>
+</tr>
+<tr>
+<td>Execute</td>
+<td><code>get_node_image(node_id, port_name?, max_dim?)</code></td>
+<td>Return a node's output as a PNG image — for visual inspection by the LLM's vision model</td>
+</tr>
+<tr>
+<td>Persist</td>
+<td><code>new_workflow()</code></td>
+<td>Clear every node + connection from the current graph</td>
+</tr>
+<tr>
+<td>Persist</td>
+<td><code>save_workflow(path)</code></td>
+<td>Write the current workflow to a JSON file</td>
+</tr>
+<tr>
+<td>Persist</td>
+<td><code>load_workflow(path)</code></td>
+<td>Replace the current workflow with one from disk</td>
 </tr>
 </tbody>
 </table>
-<h2 id="canvas">Canvas<a class="headerlink" href="#canvas" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Shortcut</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><span class="keys"><kbd class="key-tab">Tab</kbd></span></td>
-<td>Open inline node search (canvas)</td>
-</tr>
-<tr>
-<td><span class="keys"><kbd class="key-delete">Del</kbd></span> / <span class="keys"><kbd class="key-backspace">Backspace</kbd></span></td>
-<td>Delete selected nodes</td>
-</tr>
-<tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-a">A</kbd></span></td>
-<td>Select all nodes</td>
-</tr>
-<tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-c">C</kbd></span></td>
-<td>Copy selected nodes</td>
-</tr>
-<tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-v">V</kbd></span></td>
-<td>Paste nodes</td>
-</tr>
-<tr>
-<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-d">D</kbd></span></td>
-<td>Duplicate selected nodes</td>
-</tr>
-<tr>
-<td>Scroll wheel</td>
-<td>Zoom in/out</td>
-</tr>
-<tr>
-<td>Middle-click drag</td>
-<td>Pan canvas</td>
-</tr>
-<tr>
-<td><span class="keys"><kbd class="key-alt">Alt</kbd></span> + drag</td>
-<td>Pan canvas</td>
-</tr>
-<tr>
-<td><span class="keys"><kbd class="key-f">F</kbd></span></td>
-<td>Fit all nodes in view</td>
-</tr>
-</tbody>
-</table>
-<h2 id="nodes">Nodes<a class="headerlink" href="#nodes" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Shortcut</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Double-click node</td>
-<td>Open preview / detail view</td>
-</tr>
-<tr>
-<td>Right-click node</td>
-<td>Context menu (disable, delete, etc.)</td>
-</tr>
-<tr>
-<td>Drag from port</td>
-<td>Create connection</td>
-</tr>
-<tr>
-<td>Click connection</td>
-<td>Select connection</td>
-</tr>
-<tr>
-<td><span class="keys"><kbd class="key-delete">Del</kbd></span> on connection</td>
-<td>Remove connection</td>
-</tr>
-</tbody>
-</table>
+<h2 id="limitations-in-v0">Limitations in v0<a class="headerlink" href="#limitations-in-v0" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Claude Desktop support is via the bridge</strong> — see Step 2b above.</li>
+<li><strong>No confirmation dialog</strong> — every tool call is auto-allowed in v0.
+  v1 adds an "Ask / Auto" setting that can prompt for destructive ops.</li>
+</ul>
+<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The server binds only to <code>127.0.0.1</code>. It is not reachable from other
+  machines on your network.</li>
+<li>No authentication in v0 — anyone running code on your machine could
+  send requests to the port. If that's a concern, kill Synapse when not
+  in use.</li>
+<li>Tool calls run with the same privileges as Synapse itself. They can
+  read files Synapse's nodes can read; they cannot install packages or
+  shell out unless a node already does so.</li>
+</ul>
 
 
 
@@ -2931,10 +3006,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.sections", "navigation.expand", "navigation.top", "toc.integrate"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "navigation.top", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
