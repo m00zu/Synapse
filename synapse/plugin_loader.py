@@ -71,17 +71,46 @@ _PLUGIN_CLASSES: list[type] = []   # accumulated across load_plugins() calls
 # Plugin directory
 # ---------------------------------------------------------------------------
 
+def _is_nuitka_compiled() -> bool:
+    """True if running inside any Nuitka-compiled binary (standalone or onefile)."""
+    try:
+        import __compiled__  # type: ignore[import-not-found]  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _nuitka_onefile_mode() -> bool:
+    """Authoritative: ask Nuitka whether this is an onefile build."""
+    try:
+        import __compiled__  # type: ignore[import-not-found]
+    except ImportError:
+        return False
+    return bool(getattr(__compiled__, 'onefile_mode', False))
+
+
+def _is_frozen() -> bool:
+    """True for any frozen build (PyInstaller, cx_Freeze, Nuitka standalone/onefile)."""
+    return bool(getattr(sys, 'frozen', False)) or _is_nuitka_compiled()
+
+
 def _is_versioned_extraction(exe_path: Path) -> bool:
     """True if exe_path lives inside a Nuitka onefile extraction dir.
 
-    Nuitka onefile builds extract into {CACHE_DIR}/Synapse/{VERSION}/ -- so the
-    path contains a "Synapse" component followed by a version-shaped component
-    (e.g. "0.2.0", "1.0.0.0").
+    Nuitka onefile extracts into {CACHE_DIR}/Synapse/{VERSION}/ -- so the path
+    contains a "Synapse" component followed by a version-shaped component.
+    Matches both the long form ("0.2.0", "1.0.0.0") and Windows 8.3 short
+    names ("026545~1.0") since sys.argv[0] sometimes arrives unresolved.
     """
+    # Long-form version, e.g. "0.2.0"
+    long_re  = re.compile(r'^\d+(\.\d+)+$')
+    # Windows 8.3 short name, e.g. "026545~1.0" or "0170E4~1.0"
+    short_re = re.compile(r'^[A-Z0-9]{1,6}~\d+(\.\d+)*$', re.IGNORECASE)
     parts = exe_path.parts
     for i, p in enumerate(parts):
         if p == APP_NAME and i + 1 < len(parts):
-            if re.match(r'^\d+(\.\d+)+$', parts[i + 1]):
+            nxt = parts[i + 1]
+            if long_re.match(nxt) or short_re.match(nxt):
                 return True
     return False
 
@@ -89,6 +118,25 @@ def _is_versioned_extraction(exe_path: Path) -> bool:
 def _is_macos_app_bundle(exe_path: Path) -> bool:
     """True if exe_path is inside a macOS .app bundle (Synapse.app/Contents/...)."""
     return '.app/Contents/' in str(exe_path)
+
+
+def _frozen_exe_candidates() -> list[Path]:
+    """All paths that might reveal the install layout in a frozen build."""
+    candidates: list[Path] = []
+    for raw in (sys.argv[0] if sys.argv else None, sys.executable):
+        if not raw:
+            continue
+        p = Path(raw)
+        candidates.append(p)
+        try:
+            candidates.append(p.resolve())
+        except OSError:
+            pass
+        try:
+            candidates.append(Path(os.path.realpath(raw)))
+        except OSError:
+            pass
+    return candidates
 
 
 def _user_data_base() -> Path:
@@ -106,15 +154,20 @@ def get_plugin_dir() -> Path:
 
     See module docstring for the full routing table.
     """
-    if getattr(sys, 'frozen', False):
-        real_exe = Path(sys.argv[0]).resolve()
+    if _is_frozen():
+        candidates = _frozen_exe_candidates()
 
         # Onefile (versioned extraction) and macOS .app always use user-data dir
         # so plugins survive across version upgrades and bundle replacements.
-        if _is_versioned_extraction(real_exe) or _is_macos_app_bundle(real_exe):
+        # Check every candidate path against both detectors -- different paths
+        # may reveal the install type even when sys.argv[0] doesn't.
+        if (_nuitka_onefile_mode()
+                or any(_is_versioned_extraction(c) for c in candidates)
+                or any(_is_macos_app_bundle(c) for c in candidates)):
             base = _user_data_base()
         else:
             # True standalone folder build (Windows portable) -- plugins/ next to .exe.
+            real_exe = candidates[0] if candidates else Path(sys.executable)
             portable = real_exe.parent / 'plugins'
             if portable.exists():
                 return portable
@@ -126,12 +179,19 @@ def get_plugin_dir() -> Path:
                 # Read-only install location (e.g. Program Files) -- fall back to user data.
                 base = _user_data_base()
     else:
-        # Dev mode: bundled plugins are inside synapse/plugins/
-        bundled = Path(__file__).parent / 'plugins'
-        if bundled.exists():
-            return bundled
-        # Fallback: project root plugins/
-        base = Path(__file__).parent.parent
+        # Dev mode: bundled plugins are inside synapse/plugins/.
+        # Safety net: if __file__ has somehow ended up inside a .app bundle
+        # (Nuitka build that didn't trip _is_frozen() on this Python version),
+        # use the user data dir instead of writing into the bundle.
+        here = Path(__file__).parent
+        if '.app/Contents/' in str(here):
+            base = _user_data_base()
+        else:
+            bundled = here / 'plugins'
+            if bundled.exists():
+                return bundled
+            # Fallback: project root plugins/
+            base = here.parent
 
     plugin_dir = base / 'plugins'
     plugin_dir.mkdir(parents=True, exist_ok=True)

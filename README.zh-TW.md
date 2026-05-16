@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://polyformproject.org/licenses/noncommercial/1.0.0/"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg" alt="License"></a>
+  <a href="https://polyformproject.org/licenses/noncommercial/1.0.0"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/python-3.13%20%7C%203.14-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg" alt="Platform">
 </p>
@@ -204,4 +204,4 @@ Synapse 會在 `127.0.0.1:51780` 執行一個 MCP 伺服器，讓外部對話客
 
 ## 授權
 
-本程式採用 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/) 授權。你可以在任何非商業用途下使用、修改與散布 Synapse，包含個人專案、學術研究，以及非營利或政府組織內部使用。商業用途需另向著作權人取得授權。
+本程式採用 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) 授權。你可以在任何非商業用途下使用、修改與散布 Synapse，包含個人專案、學術研究，以及非營利或政府組織內部使用。商業用途需另向著作權人取得授權。

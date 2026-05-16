@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://polyformproject.org/licenses/noncommercial/1.0.0/"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg" alt="License"></a>
+  <a href="https://polyformproject.org/licenses/noncommercial/1.0.0"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/python-3.13%20%7C%203.14-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg" alt="Platform">
 </p>
@@ -204,4 +204,4 @@ Available at [m00zu.github.io/Synapse](https://m00zu.github.io/Synapse/) and bui
 
 ## License
 
-Licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/). You may use, modify, and distribute Synapse for any noncommercial purpose, including personal projects, academic research, and use within nonprofit or government organizations. Commercial use requires a separate license from the copyright holder.
+Licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0). You may use, modify, and distribute Synapse for any noncommercial purpose, including personal projects, academic research, and use within nonprofit or government organizations. Commercial use requires a separate license from the copyright holder.

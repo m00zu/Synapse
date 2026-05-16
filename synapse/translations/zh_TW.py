@@ -88,6 +88,12 @@ STRINGS: dict[str, str] = {
     "Clear all node caches":    "清除所有節點的快取",
     "AI Connection (MCP)...":   "AI 連線 (MCP)...",
     "MCP Call Log...":          "MCP 呼叫紀錄...",
+    "&About Synapse":           "關於 Synapse(&A)",
+    "About Synapse":            "關於 Synapse",
+    "A visual node-graph workflow editor for scientific data analysis.":
+        "用於科學數據分析的視覺化節點工作流程編輯器。",
+    "Licensed under":           "授權條款：",
+    "Manual":                   "使用手冊",
     "Light Mode":               "淺色模式",
     "Dark Mode":                "深色模式",
     "No recent workflows":      "無最近工作流程",

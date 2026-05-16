@@ -1527,6 +1527,12 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
         toggle_help_action.toggled.connect(self.dockWidgetHelp.setVisible)
         self.dockWidgetHelp.visibilityChanged.connect(toggle_help_action.setChecked)
 
+        help_menu.addSeparator()
+        about_action = QtGui.QAction(tr("&About Synapse"), self)
+        about_action.setMenuRole(QtGui.QAction.MenuRole.AboutRole)
+        about_action.triggered.connect(self._show_about_dialog)
+        help_menu.addAction(about_action)
+
     def _open_online_manual(self):
         """Open the online manual (GitHub Pages) in the default browser."""
         QtGui.QDesktopServices.openUrl(
@@ -1545,6 +1551,42 @@ class NodeExecutionWindow(QtWidgets.QMainWindow):
                 return
         # No bundled docs -- fall back to online
         self._open_online_manual()
+
+    def _show_about_dialog(self) -> None:
+        """Display the About dialog with version, license, and project info."""
+        from . import __version__
+        import pathlib
+        msg = QtWidgets.QMessageBox(self)
+        msg.setWindowTitle(tr("About Synapse"))
+        msg.setTextFormat(QtCore.Qt.TextFormat.RichText)
+        msg.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextBrowserInteraction)
+
+        icon_path = pathlib.Path(__file__).parent / 'icons' / 'synapse_icon.png'
+        if icon_path.exists():
+            pix = QtGui.QPixmap(str(icon_path)).scaled(
+                96, 96,
+                QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                QtCore.Qt.TransformationMode.SmoothTransformation)
+            msg.setIconPixmap(pix)
+
+        msg.setText(
+            f"<h2 style='margin-bottom:2px'>Synapse</h2>"
+            f"<p style='color:gray;margin-top:0'>v{__version__}</p>"
+        )
+        msg.setInformativeText(
+            "<p>" + tr("A visual node-graph workflow editor for scientific data analysis.") + "</p>"
+            "<p>" + tr("Licensed under") +
+            " <a href='https://polyformproject.org/licenses/noncommercial/1.0.0'>"
+            "PolyForm Noncommercial 1.0.0</a>.</p>"
+            "<p><a href='https://github.com/m00zu/Synapse'>github.com/m00zu/Synapse</a>"
+            " &middot; "
+            "<a href='https://m00zu.github.io/Synapse/'>" + tr("Manual") + "</a></p>"
+            "<p style='color:gray;font-size:11px'>"
+            "Copyright (c) 2024-2026 m00zu</p>"
+        )
+        msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+        msg.exec()
 
     def _open_mcp_setup_dialog(self) -> None:
         """Open the AI Connection (MCP) help dialog."""

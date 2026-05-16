@@ -32,6 +32,20 @@ class TestIsVersionedExtraction:
         p = Path('C:/Users/s/AppData/Local/Synapse/plugins/foo.dll')
         assert not _is_versioned_extraction(p)
 
+    def test_windows_8_3_short_name_of_version(self):
+        # 0.2.0 → 026545~1.0 in 8.3 short form (the actual bug we hit)
+        p = Path('C:/Users/s/AppData/Local/Synapse/026545~1.0/synapse.exe')
+        assert _is_versioned_extraction(p)
+
+    def test_windows_8_3_short_name_lowercase(self):
+        p = Path('C:/Users/s/AppData/Local/Synapse/0170e4~1.0/synapse.exe')
+        assert _is_versioned_extraction(p)
+
+    def test_windows_8_3_short_name_without_dot_suffix(self):
+        # Some short names may not have a dot suffix
+        p = Path('C:/Users/s/AppData/Local/Synapse/ABC123~1/synapse.exe')
+        assert _is_versioned_extraction(p)
+
 
 class TestIsMacosAppBundle:
     def test_inside_app_bundle(self):
