@@ -154,44 +154,39 @@ def get_plugin_dir() -> Path:
 
     See module docstring for the full routing table.
     """
-    if _is_frozen():
-        candidates = _frozen_exe_candidates()
+    # Run packaged-build detection FIRST, before checking sys.frozen.
+    # Some Nuitka build configurations don't set sys.frozen and don't expose
+    # __compiled__, but their sys.argv[0] / sys.executable / __file__ paths
+    # still reveal the install layout. Trust the path signal regardless of
+    # frozen markers.
+    candidates = _frozen_exe_candidates()
+    here = Path(__file__).parent
+    candidates.append(here)  # also probe __file__ for .app / versioned dirs
 
-        # Onefile (versioned extraction) and macOS .app always use user-data dir
-        # so plugins survive across version upgrades and bundle replacements.
-        # Check every candidate path against both detectors -- different paths
-        # may reveal the install type even when sys.argv[0] doesn't.
-        if (_nuitka_onefile_mode()
-                or any(_is_versioned_extraction(c) for c in candidates)
-                or any(_is_macos_app_bundle(c) for c in candidates)):
+    if (_nuitka_onefile_mode()
+            or any(_is_versioned_extraction(c) for c in candidates)
+            or any(_is_macos_app_bundle(c) for c in candidates)):
+        base = _user_data_base()
+    elif _is_frozen():
+        # True standalone folder build (Windows portable) -- plugins/ next to .exe.
+        real_exe = candidates[0] if candidates else Path(sys.executable)
+        portable = real_exe.parent / 'plugins'
+        if portable.exists():
+            return portable
+        # First run of a standalone build: create plugins/ next to the .exe.
+        try:
+            portable.mkdir(parents=True, exist_ok=True)
+            return portable
+        except OSError:
+            # Read-only install location (e.g. Program Files) -- fall back to user data.
             base = _user_data_base()
-        else:
-            # True standalone folder build (Windows portable) -- plugins/ next to .exe.
-            real_exe = candidates[0] if candidates else Path(sys.executable)
-            portable = real_exe.parent / 'plugins'
-            if portable.exists():
-                return portable
-            # First run of a standalone build: create plugins/ next to the .exe.
-            try:
-                portable.mkdir(parents=True, exist_ok=True)
-                return portable
-            except OSError:
-                # Read-only install location (e.g. Program Files) -- fall back to user data.
-                base = _user_data_base()
     else:
         # Dev mode: bundled plugins are inside synapse/plugins/.
-        # Safety net: if __file__ has somehow ended up inside a .app bundle
-        # (Nuitka build that didn't trip _is_frozen() on this Python version),
-        # use the user data dir instead of writing into the bundle.
-        here = Path(__file__).parent
-        if '.app/Contents/' in str(here):
-            base = _user_data_base()
-        else:
-            bundled = here / 'plugins'
-            if bundled.exists():
-                return bundled
-            # Fallback: project root plugins/
-            base = here.parent
+        bundled = here / 'plugins'
+        if bundled.exists():
+            return bundled
+        # Fallback: project root plugins/
+        base = here.parent
 
     plugin_dir = base / 'plugins'
     plugin_dir.mkdir(parents=True, exist_ok=True)
