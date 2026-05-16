@@ -8,10 +8,16 @@ Node Explorer on the next launch -- no recompilation required.
 
 Plugin directory locations
 --------------------------
-  Development (not frozen):   ./plugins/   (next to this file)
-  macOS frozen .app:          ~/Library/Application Support/Synapse/plugins/
-  Windows frozen:             %APPDATA%\\Synapse\\plugins\\
+  Development (not frozen):   synapse/plugins/   (bundled built-in plugins)
+  Windows onefile:            %APPDATA%\\Synapse\\plugins\\   (never version-tied)
+  Windows standalone folder:  <exe-dir>/plugins/   (portable, next to real .exe)
+  macOS .app bundle:          ~/Library/Application Support/Synapse/plugins/
   Linux frozen:               ~/.synapse/plugins/
+
+The "portable" path (plugins/ next to the executable) is only chosen for true
+standalone folder distributions on Windows -- not for Nuitka onefile builds
+(whose sys.argv[0] points inside a versioned extraction dir) and not for macOS
+.app bundles (whose Contents/MacOS is read-only on signed installs).
 
 Plugin file requirements
 ------------------------
@@ -47,6 +53,7 @@ import importlib.util
 import json
 import os
 import platform
+import re
 import sys
 from pathlib import Path
 
@@ -64,33 +71,60 @@ _PLUGIN_CLASSES: list[type] = []   # accumulated across load_plugins() calls
 # Plugin directory
 # ---------------------------------------------------------------------------
 
+def _is_versioned_extraction(exe_path: Path) -> bool:
+    """True if exe_path lives inside a Nuitka onefile extraction dir.
+
+    Nuitka onefile builds extract into {CACHE_DIR}/Synapse/{VERSION}/ -- so the
+    path contains a "Synapse" component followed by a version-shaped component
+    (e.g. "0.2.0", "1.0.0.0").
+    """
+    parts = exe_path.parts
+    for i, p in enumerate(parts):
+        if p == APP_NAME and i + 1 < len(parts):
+            if re.match(r'^\d+(\.\d+)+$', parts[i + 1]):
+                return True
+    return False
+
+
+def _is_macos_app_bundle(exe_path: Path) -> bool:
+    """True if exe_path is inside a macOS .app bundle (Synapse.app/Contents/...)."""
+    return '.app/Contents/' in str(exe_path)
+
+
+def _user_data_base() -> Path:
+    """Per-OS user data directory (Roaming on Windows, ~/Library/... on macOS)."""
+    system = platform.system()
+    if system == 'Darwin':
+        return Path.home() / 'Library' / 'Application Support' / APP_NAME
+    if system == 'Windows':
+        return Path(os.environ.get('APPDATA', str(Path.home()))) / APP_NAME
+    return Path.home() / f'.{APP_NAME.lower()}'
+
+
 def get_plugin_dir() -> Path:
     """Return the platform-appropriate plugin directory (created if absent).
 
-    Frozen (Nuitka onefile):
-      1. Check for plugins/ next to the real .exe (portable install on D:/ etc.)
-      2. Fall back to persistent OS user directory (%APPDATA%, ~/Library/..., etc.)
-      Note: sys.executable points to the temp extraction dir in onefile mode,
-      so we use sys.argv[0] to find the actual .exe location.
-
-    Dev mode:
-      synapse/plugins/ (bundled built-in plugins)
+    See module docstring for the full routing table.
     """
     if getattr(sys, 'frozen', False):
-        # 1. Portable: plugins/ next to the real executable
         real_exe = Path(sys.argv[0]).resolve()
-        portable = real_exe.parent / 'plugins'
-        if portable.exists():
-            return portable
 
-        # 2. Persistent OS user directory
-        system = platform.system()
-        if system == 'Darwin':
-            base = Path.home() / 'Library' / 'Application Support' / APP_NAME
-        elif system == 'Windows':
-            base = Path(os.environ.get('APPDATA', str(Path.home()))) / APP_NAME
+        # Onefile (versioned extraction) and macOS .app always use user-data dir
+        # so plugins survive across version upgrades and bundle replacements.
+        if _is_versioned_extraction(real_exe) or _is_macos_app_bundle(real_exe):
+            base = _user_data_base()
         else:
-            base = Path.home() / f'.{APP_NAME.lower()}'
+            # True standalone folder build (Windows portable) -- plugins/ next to .exe.
+            portable = real_exe.parent / 'plugins'
+            if portable.exists():
+                return portable
+            # First run of a standalone build: create plugins/ next to the .exe.
+            try:
+                portable.mkdir(parents=True, exist_ok=True)
+                return portable
+            except OSError:
+                # Read-only install location (e.g. Program Files) -- fall back to user data.
+                base = _user_data_base()
     else:
         # Dev mode: bundled plugins are inside synapse/plugins/
         bundled = Path(__file__).parent / 'plugins'
