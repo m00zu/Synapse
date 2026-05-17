@@ -41,6 +41,10 @@ jobs:
         working-directory: oir_reader_rs
         run: maturin build --release
 
+      - name: Build ims_reader_rs wheel
+        working-directory: ims_reader_rs
+        run: maturin build --release
+
       - name: Build image_process_rs wheel
         working-directory: image_process_rs
         run: maturin build --release
@@ -58,6 +62,7 @@ jobs:
         run: |
           mkdir -p dist
           find oir_reader_rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
+          find ims_reader_rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
           find image_process_rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
           find image_process_3d_rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
           find umap-rs/target/wheels -name '*.whl' -exec cp {} dist/ \;
