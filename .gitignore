@@ -145,7 +145,6 @@ rdkit-*.whl
 /ui/
 /util/
 /icons/
-ims_reader_rs/hdf5-pure-fork/
 .worktrees/
 
 # --- Web frontend (Phase 1c) ---
